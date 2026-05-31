@@ -1,4 +1,4 @@
-# Caddyfile - notlar.dentlogicapp.com + notlar-api.dentlogicapp.com
+# Caddyfile - notlar.dentlogicapp.com + api.dentlogicapp.com
 # Caddy otomatik Let's Encrypt SSL alır (HTTP-01 challenge, port 80 açık olmalı)
 
 {
@@ -17,7 +17,7 @@ notlar.dentlogicapp.com {
     }
 }
 
-notlar-api.dentlogicapp.com {
+api.dentlogicapp.com {
     encode gzip zstd
     reverse_proxy backend:8080
 

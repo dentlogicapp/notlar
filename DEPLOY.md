@@ -22,13 +22,13 @@ METUnic panelinde **DNS Yönetimi** → A kayıtları ekle:
 | Tip  | Ad           | Değer       | TTL |
 |------|--------------|-------------|-----|
 | A    | `notlar`     | `<SUNUCU_IP>` | 300 |
-| A    | `notlar-api` | `<SUNUCU_IP>` | 300 |
+| A    | `api` | `<SUNUCU_IP>` | 300 |
 
 Yayılma 5-30 dakika sürer. Test:
 
 ```bash
 nslookup notlar.dentlogicapp.com
-nslookup notlar-api.dentlogicapp.com
+nslookup api.dentlogicapp.com
 ```
 
 ---
@@ -157,7 +157,7 @@ Başarılı log şunun gibidir:
 
 ```
 certificate obtained successfully  identifier=notlar.dentlogicapp.com
-certificate obtained successfully  identifier=notlar-api.dentlogicapp.com
+certificate obtained successfully  identifier=api.dentlogicapp.com
 ```
 
 **Hata olursa:** DNS henüz yayılmamış olabilir. Birkaç dakika bekle, `docker restart notlar_caddy`.
@@ -169,7 +169,7 @@ certificate obtained successfully  identifier=notlar-api.dentlogicapp.com
 Tarayıcıdan:
 
 - ✅ https://notlar.dentlogicapp.com → giriş sayfası açılmalı
-- ✅ https://notlar-api.dentlogicapp.com/health → `{"status":"ok"}` JSON
+- ✅ https://api.dentlogicapp.com/health → `{"status":"ok"}` JSON
 
 Giriş:
 

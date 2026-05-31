@@ -58,7 +58,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_BASE: "https://notlar-api.dentlogicapp.com"
+        NEXT_PUBLIC_API_BASE: "https://api.dentlogicapp.com"
     container_name: notlar_frontend
     restart: unless-stopped
     depends_on:
