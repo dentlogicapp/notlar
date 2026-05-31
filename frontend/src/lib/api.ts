@@ -23,8 +23,8 @@ async function ist<T>(yol: string, init?: RequestInit): Promise<T> {
 }
 
 export const authApi = {
-  giris: (email: string, sifre: string) =>
-    ist<Ben>("/api/auth/giris", { method: "POST", body: JSON.stringify({ email, sifre }) }),
+  giris: (email: string, sifre: string, beniHatirla = true) =>
+    ist<Ben>("/api/auth/giris", { method: "POST", body: JSON.stringify({ email, sifre, beniHatirla }) }),
   ben: () => ist<Ben>("/api/auth/ben"),
   cikis: () => ist<{ mesaj: string }>("/api/auth/cikis", { method: "POST" }),
   tokenDogrula: (token: string) =>

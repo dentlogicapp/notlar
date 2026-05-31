@@ -65,7 +65,9 @@ public static class AuthEndpoints
 
             var token = jwt.TokenUret(user);
             var gun = int.Parse(cfg["Jwt:GunOmru"] ?? "30");
-            CookieEkle(http, token, gun, cfg);
+            // BeniHatirla null/true → persistent (30 gün); false → session cookie
+            var persistent = req.BeniHatirla ?? true;
+            CookieEkle(http, token, gun, cfg, persistent);
             await audit.YazAsync("giris_basarili", "kullanici", user.Id, user.Id, email, ct: ct);
 
             return Results.Ok(new BenYaniti(user.Id, user.Email, user.AdSoyad, user.Rol));
@@ -165,7 +167,7 @@ public static class AuthEndpoints
         Convert.ToBase64String(RandomNumberGenerator.GetBytes(48))
             .Replace("+", "-").Replace("/", "_").Replace("=", "");
 
-    public static void CookieEkle(HttpContext http, string token, int gun, IConfiguration cfg)
+    public static void CookieEkle(HttpContext http, string token, int gun, IConfiguration cfg, bool persistent = true)
     {
         var secure = bool.Parse(cfg["Cookie:Secure"] ?? "false");
         var domain = cfg["Cookie:Domain"];
@@ -174,9 +176,14 @@ public static class AuthEndpoints
             HttpOnly = true,
             Secure = secure,
             SameSite = secure ? SameSiteMode.None : SameSiteMode.Lax,
-            Expires = DateTimeOffset.UtcNow.AddDays(gun),
             Path = "/"
         };
+        // persistent true → Expires set, browser kapansa bile kalır
+        // persistent false → Expires set edilmez, session cookie (browser kapanınca silinir)
+        if (persistent)
+        {
+            opts.Expires = DateTimeOffset.UtcNow.AddDays(gun);
+        }
         if (!string.IsNullOrEmpty(domain)) opts.Domain = domain;
         http.Response.Cookies.Append("auth_token", token, opts);
     }

@@ -15,6 +15,7 @@ import { Input, Label } from "@/components/ui/input";
 const schema = z.object({
   email: z.string().email("Geçerli email gir"),
   sifre: z.string().min(1, "Şifre boş olamaz"),
+  beniHatirla: z.boolean().default(true),
 });
 
 export default function GirisSayfasi() {
@@ -22,10 +23,13 @@ export default function GirisSayfasi() {
   const qc = useQueryClient();
 
   const { register, handleSubmit, formState: { errors } } =
-    useForm<z.infer<typeof schema>>({ resolver: zodResolver(schema) });
+    useForm<z.infer<typeof schema>>({
+      resolver: zodResolver(schema),
+      defaultValues: { beniHatirla: true },
+    });
 
   const m = useMutation({
-    mutationFn: (d: z.infer<typeof schema>) => authApi.giris(d.email, d.sifre),
+    mutationFn: (d: z.infer<typeof schema>) => authApi.giris(d.email, d.sifre, d.beniHatirla),
     onSuccess: (ben) => {
       qc.setQueryData(["ben"], ben);
       toast.success(`Hoş geldin, ${ben.adSoyad.split(" ")[0]} 🤍`);
@@ -41,9 +45,10 @@ export default function GirisSayfasi() {
           <div className="inline-flex items-center justify-center h-14 w-14 rounded-full bg-terracotta/15 mb-4">
             <Heart className="h-6 w-6 text-terracotta animate-heart-beat" fill="currentColor" />
           </div>
-          <h1 className="font-display text-3xl text-clay-900">Görev Defteri</h1>
-          <p className="text-clay-500 mt-1.5 italic text-sm">
-            Birlikte yapılacaklar, birlikte tamamlanacaklar
+          <h1 className="font-display text-3xl text-clay-900">Planlama Defterimiz</h1>
+          <p className="text-clay-500 mt-1.5 italic text-sm inline-flex items-center justify-center gap-1.5 flex-wrap">
+            <span>AŞK&apos;la planlanıp, AŞK&apos;la tamamlanacaklar</span>
+            <Heart className="h-3.5 w-3.5 text-terracotta inline-block" fill="currentColor" strokeWidth={0} />
           </p>
         </div>
 
@@ -59,6 +64,18 @@ export default function GirisSayfasi() {
               <Label htmlFor="sifre">Şifre</Label>
               <Input id="sifre" type="password" autoComplete="current-password" {...register("sifre")} />
               {errors.sifre && <p className="text-xs text-red-600 mt-1">{errors.sifre.message}</p>}
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <input
+                type="checkbox"
+                id="beniHatirla"
+                {...register("beniHatirla")}
+                className="h-4 w-4 rounded border-cream-300 text-terracotta focus:ring-2 focus:ring-terracotta/30 focus:ring-offset-0 accent-terracotta cursor-pointer"
+              />
+              <label htmlFor="beniHatirla" className="text-sm text-clay-600 cursor-pointer select-none">
+                Beni hatırla
+              </label>
             </div>
 
             <Button type="submit" className="w-full" size="lg" disabled={m.isPending}>

@@ -30,57 +30,91 @@ export function CountdownWidget() {
 
   if (!mount) return null;
 
+  // KAVUSTUK durumu
   if (k.bitti) {
-    return (
-      <div className="fixed top-3 right-3 sm:top-4 sm:right-4 z-40 kart px-5 py-3 flex items-center gap-3 animate-fade-in shadow-md">
-        <Heart className="h-7 w-7 text-terracotta animate-heart-beat" fill="currentColor" />
+    const kavustukIcerik = (
+      <>
+        <Heart className="h-7 w-7 text-terracotta animate-heart-beat shrink-0" fill="currentColor" strokeWidth={1.5} />
         <div className="flex flex-col">
           <span className="text-[10px] uppercase tracking-[0.18em] text-clay-500 leading-none font-medium">kavuştuk</span>
           <span className="font-display text-xl text-clay-900 leading-tight mt-1">Mutluluklar 🤍</span>
         </div>
-      </div>
+      </>
+    );
+    return (
+      <>
+        <div className="md:hidden mx-4 mt-3 mb-1 kart px-4 py-3 flex items-center justify-center gap-3 animate-fade-in">
+          {kavustukIcerik}
+        </div>
+        <div className="hidden md:flex fixed top-4 right-4 z-40 kart px-5 py-3 items-center gap-3 animate-fade-in shadow-md">
+          {kavustukIcerik}
+        </div>
+      </>
     );
   }
 
-  return (
-    <div className="fixed top-3 right-3 sm:top-4 sm:right-4 z-40 kart px-4 py-2.5 sm:px-5 sm:py-3.5 flex items-center gap-3 sm:gap-3.5 animate-fade-in shadow-md hover:shadow-lg transition-shadow">
+  // Kalanı gösteren içerik — mobil ve desktop'ta paylaşılan iç yapı
+  const SayacIcerik = ({ kompakt }: { kompakt?: boolean }) => (
+    <>
       <Heart
-        className="h-7 w-7 sm:h-9 sm:w-9 text-terracotta animate-heart-beat shrink-0 drop-shadow-sm"
+        className={cn(
+          "text-terracotta animate-heart-beat shrink-0 drop-shadow-sm",
+          kompakt ? "h-6 w-6" : "h-9 w-9"
+        )}
         fill="currentColor"
         strokeWidth={1.5}
       />
-      <div className="flex flex-col">
-        <span className="text-[10px] sm:text-[11px] uppercase tracking-[0.2em] text-clay-500 leading-none font-medium">
+      <div className="flex flex-col min-w-0">
+        <span className={cn(
+          "uppercase tracking-[0.2em] text-clay-500 leading-none font-medium",
+          kompakt ? "text-[10px]" : "text-[11px]"
+        )}>
           kavuşmamıza
         </span>
-        <div className="flex items-baseline gap-1.5 sm:gap-2 mt-1.5">
-          <KutuRakam deger={k.gun} etiket="gün" vurgu />
+        <div className={cn("flex items-baseline mt-1.5", kompakt ? "gap-1.5" : "gap-2")}>
+          <KutuRakam deger={k.gun} etiket="gün" vurgu kompakt={kompakt} />
           <span className="text-clay-300 text-base">·</span>
-          <KutuRakam deger={k.sa} etiket="sa" />
+          <KutuRakam deger={k.sa} etiket="sa" kompakt={kompakt} />
           <span className="text-clay-300 text-base">·</span>
-          <KutuRakam deger={k.dk} etiket="dk" />
+          <KutuRakam deger={k.dk} etiket="dk" kompakt={kompakt} />
           <span className="text-clay-300 text-base">·</span>
-          <KutuRakam deger={k.sn} etiket="sn" />
+          <KutuRakam deger={k.sn} etiket="sn" kompakt={kompakt} />
         </div>
       </div>
-    </div>
+    </>
+  );
+
+  return (
+    <>
+      {/* MOBIL: header altında akan inline kart */}
+      <div className="md:hidden mx-4 mt-3 mb-1 kart px-4 py-3 flex items-center justify-center gap-3 animate-fade-in">
+        <SayacIcerik kompakt />
+      </div>
+      {/* TABLET+: sağ üst köşede sabit floating kart */}
+      <div className="hidden md:flex fixed top-4 right-4 z-40 kart px-5 py-3.5 items-center gap-3.5 animate-fade-in shadow-md hover:shadow-lg transition-shadow">
+        <SayacIcerik />
+      </div>
+    </>
   );
 }
 
-function KutuRakam({ deger, etiket, vurgu, className }: {
-  deger: number; etiket: string; vurgu?: boolean; className?: string
+function KutuRakam({ deger, etiket, vurgu, kompakt, className }: {
+  deger: number; etiket: string; vurgu?: boolean; kompakt?: boolean; className?: string
 }) {
   return (
     <span className={cn("inline-flex items-baseline gap-0.5 tabular-nums", className)}>
       <span className={cn(
         "font-display leading-none",
         vurgu
-          ? "text-xl sm:text-2xl text-clay-900 font-semibold"
-          : "text-base sm:text-lg text-clay-700"
+          ? (kompakt ? "text-lg text-clay-900 font-semibold" : "text-2xl text-clay-900 font-semibold")
+          : (kompakt ? "text-sm text-clay-700" : "text-lg text-clay-700")
       )}>
         {deger.toString().padStart(2, "0")}
       </span>
-      <span className="text-[9px] sm:text-[10px] text-clay-400 font-medium">{etiket}</span>
+      <span className={cn(
+        "text-clay-400 font-medium",
+        kompakt ? "text-[9px]" : "text-[10px]"
+      )}>{etiket}</span>
     </span>
   );
 }

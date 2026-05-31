@@ -1,7 +1,8 @@
 namespace Notlar.Api.Models;
 
 // Auth
-public sealed record GirisIstegi(string Email, string Sifre);
+// BeniHatirla null/true → 30 gün persistent cookie; false → session cookie (browser kapanınca silinir)
+public sealed record GirisIstegi(string Email, string Sifre, bool? BeniHatirla = null);
 public sealed record SifreBelirleIstegi(string Token, string YeniSifre);
 public sealed record SifreSifirlaIstegi(string Email);
 public sealed record TokenDogrulamaYaniti(string Email, string AdSoyad, string Amac);
