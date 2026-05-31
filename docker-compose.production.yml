@@ -1,0 +1,85 @@
+# PRODUCTION docker-compose
+# Bu dosyayı sunucuda kullan: docker compose -f docker-compose.production.yml up -d
+# .env dosyasını sunucuya yerleştir (kök dizinde, bu compose'un yanında)
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: notlar_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # Yalnızca iç ağa açık - dışarı port mappings YOK
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: notlar_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+      Jwt__Secret: ${JWT_SECRET}
+      Jwt__Issuer: "notlar"
+      Jwt__Audience: "notlar"
+      Jwt__GunOmru: "30"
+      # Caddy SSL terminate ettiği için cookie secure
+      Cookie__Secure: "true"
+      Cookie__Domain: ".dentlogicapp.com"
+      Cors__AllowedOrigins: "https://notlar.dentlogicapp.com"
+      # Gmail SMTP
+      Smtp__Host: "smtp.gmail.com"
+      Smtp__Port: "587"
+      Smtp__User: ${SMTP_USER}
+      Smtp__Pass: ${SMTP_PASS}
+      Smtp__Ssl: "true"
+      Smtp__From: ${SMTP_FROM}
+      Smtp__FromName: "Görev Defteri"
+      FrontendBaseUrl: "https://notlar.dentlogicapp.com"
+      IlkAdmin__Email: ${ILK_ADMIN_EMAIL}
+      IlkAdmin__AdSoyad: ${ILK_ADMIN_AD}
+      IlkAdmin__Sifre: ${ILK_ADMIN_SIFRE}
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE: "https://notlar-api.dentlogicapp.com"
+    container_name: notlar_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: notlar_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - frontend
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:

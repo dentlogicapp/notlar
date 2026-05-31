@@ -1,0 +1,31 @@
+# Env
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Frontend
+frontend/node_modules
+frontend/.next
+frontend/out
+
+# Backend
+backend/**/bin
+backend/**/obj
+
+# Docker volumes
+caddy_data/
+postgres_data/

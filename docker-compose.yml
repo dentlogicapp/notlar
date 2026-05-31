@@ -1,0 +1,61 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: notlar_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: notlar
+      POSTGRES_USER: notlaruser
+      POSTGRES_PASSWORD: notlarpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notlaruser -d notlar"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: notlar_mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI
+    environment:
+      MP_MAX_MESSAGES: 5000
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: notlar_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=notlar;Username=notlaruser;Password=notlarpass"
+      Jwt__Secret: "LOKAL_DEV_JWT_SECRET_EN_AZ_32_KARAKTER_GUVENLI_DEGIL_123456"
+      Jwt__Issuer: "notlar"
+      Jwt__Audience: "notlar"
+      Jwt__GunOmru: "30"
+      Cookie__Secure: "false"
+      Cors__AllowedOrigins: "http://localhost:3000"
+      Smtp__Host: "mailpit"
+      Smtp__Port: "1025"
+      Smtp__From: "notlar@local.test"
+      Smtp__FromName: "Görev Defteri"
+      Smtp__Ssl: "false"
+      FrontendBaseUrl: "http://localhost:3000"
+      IlkAdmin__Email: "musa@local.test"
+      IlkAdmin__AdSoyad: "Musa Deveci"
+      IlkAdmin__Sifre: "Test1234"
+    ports:
+      - "5000:8080"
+
+volumes:
+  postgres_data:

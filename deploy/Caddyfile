@@ -1,0 +1,29 @@
+# Caddyfile - notlar.dentlogicapp.com + notlar-api.dentlogicapp.com
+# Caddy otomatik Let's Encrypt SSL alır (HTTP-01 challenge, port 80 açık olmalı)
+
+{
+    email dentlogicapp@gmail.com
+}
+
+notlar.dentlogicapp.com {
+    encode gzip zstd
+    reverse_proxy frontend:3000
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        X-Frame-Options "SAMEORIGIN"
+    }
+}
+
+notlar-api.dentlogicapp.com {
+    encode gzip zstd
+    reverse_proxy backend:8080
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+}
