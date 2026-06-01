@@ -32,4 +32,37 @@
   .kart {
     @apply bg-white border border-clay-100 rounded-2xl shadow-[0_1px_2px_rgba(61,40,23,0.04),0_4px_12px_rgba(61,40,23,0.04)];
   }
+
+  /* v9 - Bildirim pulse (kırmızı yanıp sönme — okunmamış bildirim varsa avatar) */
+  @keyframes pulse-red-bildirim {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7);
+      background-color: rgb(239, 68, 68);
+    }
+    50% {
+      box-shadow: 0 0 0 6px rgba(220, 38, 38, 0);
+      background-color: rgb(220, 38, 38);
+    }
+  }
+  .animate-pulse-red-bildirim {
+    animation: pulse-red-bildirim 1.6s ease-in-out infinite;
+  }
+
+  /* v9 - Focus highlight (bildirimden nota gelirken 2sn ring vurgusu) */
+  @keyframes focus-pulse-terracotta {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(196, 112, 77, 0);
+      transform: scale(1);
+    }
+    25% {
+      box-shadow: 0 0 0 4px rgba(196, 112, 77, 0.4);
+      transform: scale(1.005);
+    }
+    75% {
+      box-shadow: 0 0 0 2px rgba(196, 112, 77, 0.25);
+    }
+  }
+  .animate-focus-pulse {
+    animation: focus-pulse-terracotta 2s ease-in-out;
+  }
 }

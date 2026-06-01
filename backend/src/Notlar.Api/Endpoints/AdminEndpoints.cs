@@ -19,6 +19,7 @@ public static class AdminEndpoints
                 .OrderByDescending(u => u.OlusturmaZamani)
                 .Select(u => new KullaniciYaniti(
                     u.Id, u.Email, u.AdSoyad, u.Rol, u.Aktif,
+                    u.Cinsiyet,
                     u.SifreBelirlenmeZamani != null,
                     u.KilitlenmeZamani != null,
                     u.OlusturmaZamani, u.SonGirisZamani))
@@ -26,9 +27,10 @@ public static class AdminEndpoints
             return Results.Ok(list);
         });
 
-        // CREATE → setup mail
+        // CREATE → setup mail (Alt-3: cinsiyet zorunlu, gönderen adı imzaya geçer)
         g.MapPost("/kullanicilar", async (
             KullaniciOlusturIstegi req, AppDbContext db,
+            IUserContext uc,
             IEmailService email, IAuditService audit,
             IConfiguration cfg, CancellationToken ct) =>
         {
@@ -36,6 +38,8 @@ public static class AdminEndpoints
                 return Results.BadRequest(new { hata = "Email ve ad soyad zorunlu." });
             if (req.Rol != "admin" && req.Rol != "kullanici")
                 return Results.BadRequest(new { hata = "Rol 'admin' veya 'kullanici' olmalı." });
+            if (req.Cinsiyet != "kadin" && req.Cinsiyet != "erkek")
+                return Results.BadRequest(new { hata = "Cinsiyet 'kadin' veya 'erkek' olmalı." });
 
             var mail = req.Email.Trim().ToLowerInvariant();
             if (await db.Kullanicilar.AnyAsync(u => u.Email == mail, ct))
@@ -46,6 +50,7 @@ public static class AdminEndpoints
                 Email = mail,
                 AdSoyad = req.AdSoyad.Trim(),
                 Rol = req.Rol,
+                Cinsiyet = req.Cinsiyet,
                 Aktif = true
             };
             db.Kullanicilar.Add(user);
@@ -61,16 +66,24 @@ public static class AdminEndpoints
             });
             await db.SaveChangesAsync(ct);
 
+            // Gönderen ilk adı (imza için — "Sevgilerle, Musa 🤍")
+            var gonderen = await db.Kullanicilar
+                .Where(u => u.Id == uc.KullaniciId)
+                .Select(u => u.AdSoyad)
+                .FirstOrDefaultAsync(ct) ?? "Aşkın";
+            var gonderenIlkAd = gonderen.Split(' ')[0];
+
             // Setup mail
             var frontend = cfg["FrontendBaseUrl"] ?? "http://localhost:3000";
             var link = $"{frontend}/sifre-belirle?token={token}";
-            await email.SifreBelirleMailGonderAsync(user.Email, user.AdSoyad, link, ct);
+            await email.SifreBelirleMailGonderAsync(user.Email, user.AdSoyad, link, gonderenIlkAd, ct);
 
-            await audit.YazAsync("kullanici_olusturuldu", "kullanici", user.Id, detay: $"Rol: {user.Rol}", ct: ct);
+            await audit.YazAsync("kullanici_olusturuldu", "kullanici", user.Id,
+                detay: $"Rol: {user.Rol}, Cinsiyet: {user.Cinsiyet}", ct: ct);
 
             return Results.Created($"/api/admin/kullanicilar/{user.Id}",
                 new KullaniciYaniti(user.Id, user.Email, user.AdSoyad, user.Rol,
-                    user.Aktif, false, false, user.OlusturmaZamani, null));
+                    user.Aktif, user.Cinsiyet, false, false, user.OlusturmaZamani, null));
         });
 
         // Admin trigger şifre sıfırlama → kullanıcıya mail
@@ -115,6 +128,7 @@ public static class AdminEndpoints
             await audit.YazAsync(u.Aktif ? "kullanici_aktif" : "kullanici_pasif",
                 "kullanici", u.Id, detay: u.Email, ct: ct);
             return Results.Ok(new KullaniciYaniti(u.Id, u.Email, u.AdSoyad, u.Rol, u.Aktif,
+                u.Cinsiyet,
                 u.SifreBelirlenmeZamani != null, u.KilitlenmeZamani != null,
                 u.OlusturmaZamani, u.SonGirisZamani));
         });

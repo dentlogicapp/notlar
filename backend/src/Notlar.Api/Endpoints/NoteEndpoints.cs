@@ -61,6 +61,25 @@ public static class NoteEndpoints
                 KlasorId = req.KlasorId,
                 OlusturanKullaniciId = uc.KullaniciId.Value
             };
+
+            // Hatırlatıcı (opsiyonel) — toggle açıksa 3 alan da dolu olmalı
+            if (req.HatirlatmaZamani.HasValue)
+            {
+                if (string.IsNullOrWhiteSpace(req.HatirlatmaKime) || string.IsNullOrWhiteSpace(req.HatirlatmaSekli))
+                    return Results.BadRequest(new { hata = "Hatırlatıcı için kime ve şekil zorunlu." });
+                if (!new[] { "askima", "bana", "ikimize" }.Contains(req.HatirlatmaKime))
+                    return Results.BadRequest(new { hata = "HatirlatmaKime geçersiz." });
+                if (!new[] { "uygulama", "email", "her_ikisi" }.Contains(req.HatirlatmaSekli))
+                    return Results.BadRequest(new { hata = "HatirlatmaSekli geçersiz." });
+                if (req.HatirlatmaZamani.Value <= DateTimeOffset.UtcNow)
+                    return Results.BadRequest(new { hata = "Hatırlatma zamanı gelecekte olmalı." });
+
+                n.HatirlatmaZamani = req.HatirlatmaZamani;
+                n.HatirlatmaKime = req.HatirlatmaKime;
+                n.HatirlatmaSekli = req.HatirlatmaSekli;
+                n.HatirlatmaKuranKullaniciId = uc.KullaniciId.Value;
+            }
+
             db.Notlar.Add(n);
 
             db.NotGecmisleri.Add(new NotGecmisi
@@ -100,6 +119,40 @@ public static class NoteEndpoints
             n.Icerik = req.Icerik?.Trim();
             n.KlasorId = req.KlasorId;
             n.GuncellemeZamani = DateTimeOffset.UtcNow;
+
+            // Hatırlatıcı güncelleme
+            if (req.HatirlatmaSil)
+            {
+                // Toggle kapatıldı — tüm hatırlatma temizle
+                n.HatirlatmaZamani = null;
+                n.HatirlatmaKime = null;
+                n.HatirlatmaSekli = null;
+                n.HatirlatmaGonderildiMi = false;
+                n.HatirlatmaGonderimZamani = null;
+                n.HatirlatmaKuranKullaniciId = null;
+            }
+            else if (req.HatirlatmaZamani.HasValue)
+            {
+                if (string.IsNullOrWhiteSpace(req.HatirlatmaKime) || string.IsNullOrWhiteSpace(req.HatirlatmaSekli))
+                    return Results.BadRequest(new { hata = "Hatırlatıcı için kime ve şekil zorunlu." });
+                if (!new[] { "askima", "bana", "ikimize" }.Contains(req.HatirlatmaKime))
+                    return Results.BadRequest(new { hata = "HatirlatmaKime geçersiz." });
+                if (!new[] { "uygulama", "email", "her_ikisi" }.Contains(req.HatirlatmaSekli))
+                    return Results.BadRequest(new { hata = "HatirlatmaSekli geçersiz." });
+
+                // Aynı zamana tekrar set edilirse gönderildi flag'i sıfırlanır (re-arming)
+                var zamanDegisti = n.HatirlatmaZamani != req.HatirlatmaZamani;
+                n.HatirlatmaZamani = req.HatirlatmaZamani;
+                n.HatirlatmaKime = req.HatirlatmaKime;
+                n.HatirlatmaSekli = req.HatirlatmaSekli;
+                if (zamanDegisti)
+                {
+                    n.HatirlatmaGonderildiMi = false;
+                    n.HatirlatmaGonderimZamani = null;
+                }
+                n.HatirlatmaKuranKullaniciId ??= uc.KullaniciId.Value;
+            }
+
             var yeni = JsonSerializer.Serialize(new { n.Baslik, n.Icerik, n.KlasorId });
 
             db.NotGecmisleri.Add(new NotGecmisi
@@ -263,5 +316,7 @@ public static class NoteEndpoints
         n.KlasorId, n.Klasor?.Ad,
         n.OlusturanKullaniciId, n.OlusturanKullanici.AdSoyad,
         n.OlusturmaZamani, n.GuncellemeZamani,
-        n.Silindi, n.SilinmeZamani);
+        n.Silindi, n.SilinmeZamani,
+        n.HatirlatmaZamani, n.HatirlatmaKime, n.HatirlatmaSekli,
+        n.HatirlatmaGonderildiMi);
 }

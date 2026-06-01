@@ -7,7 +7,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { useState } from "react";
 import {
-  Eye, Pencil, Trash2, Plus, History, CheckCircle2, Loader2, FolderHeart, Tag
+  Eye, Pencil, Trash2, Plus, History, CheckCircle2, Loader2, FolderHeart, Tag, Bell
 } from "lucide-react";
 import { notApi, klasorApi } from "@/lib/api";
 import { Button } from "./ui/button";
@@ -131,22 +131,62 @@ export function DuzenleDialog({
   const [klasorId, setKlasorId] = useState<string | null>(not.klasorId);
   const [aciklama, setAciklama] = useState("");
 
+  // Hatırlatıcı state — mevcutsa yükle, yoksa kapalı başla
+  const [hatirlaticiAcik, setHatirlaticiAcik] = useState<boolean>(not.hatirlatmaZamani !== null);
+  const [hatirlatmaZamani, setHatirlatmaZamani] = useState<string>(() => {
+    if (!not.hatirlatmaZamani) return "";
+    // datetime-local için "YYYY-MM-DDTHH:MM" formatı, kullanıcının TZ'sinde
+    const d = new Date(not.hatirlatmaZamani);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  });
+  const [hatirlatmaKime, setHatirlatmaKime] = useState<"askima" | "bana" | "ikimize" | "">(
+    (not.hatirlatmaKime as "askima" | "bana" | "ikimize") ?? ""
+  );
+  const [hatirlatmaSekli, setHatirlatmaSekli] = useState<"uygulama" | "email" | "her_ikisi" | "">(
+    (not.hatirlatmaSekli as "uygulama" | "email" | "her_ikisi") ?? ""
+  );
+
   const { data: klasorler } = useQuery({
     queryKey: ["klasorler"],
     queryFn: klasorApi.list,
   });
 
   const m = useMutation({
-    mutationFn: () => notApi.update(not.id, {
-      baslik: baslik.trim(),
-      icerik: icerik.trim() || null,
-      klasorId: klasorId,
-      degisiklikAciklamasi: aciklama.trim() || null,
-    }),
+    mutationFn: () => {
+      const baslikTrim = baslik.trim();
+      const icerikTrim = icerik.trim() || null;
+      const aciklamaTrim = aciklama.trim() || null;
+
+      if (hatirlaticiAcik) {
+        // datetime-local kullanıcı TZ'sinde → ISO UTC string
+        const iso = new Date(hatirlatmaZamani).toISOString();
+        return notApi.update(not.id, {
+          baslik: baslikTrim,
+          icerik: icerikTrim,
+          klasorId,
+          degisiklikAciklamasi: aciklamaTrim,
+          hatirlatmaZamani: iso,
+          hatirlatmaKime: hatirlatmaKime as "askima" | "bana" | "ikimize",
+          hatirlatmaSekli: hatirlatmaSekli as "uygulama" | "email" | "her_ikisi",
+          hatirlatmaSil: false,
+        });
+      } else {
+        return notApi.update(not.id, {
+          baslik: baslikTrim,
+          icerik: icerikTrim,
+          klasorId,
+          degisiklikAciklamasi: aciklamaTrim,
+          // Daha önce hatırlatıcı varsa ve kullanıcı kapattıysa sil
+          hatirlatmaSil: not.hatirlatmaZamani !== null,
+        });
+      }
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["notlar"] });
       qc.invalidateQueries({ queryKey: ["klasorler"] });
       qc.invalidateQueries({ queryKey: ["not-gecmisi", not.id] });
+      qc.invalidateQueries({ queryKey: ["bildirimler"] });
       onOpenChange(false);
       toast.success("Güncellendi");
     },
@@ -219,12 +259,117 @@ export function DuzenleDialog({
               placeholder="Örn. Tarihi güncelledim"
             />
           </div>
+
+          {/* HATIRLATICI — toggle + 3 zorunlu alt alan */}
+          <div className="pt-1">
+            <button
+              type="button"
+              onClick={() => setHatirlaticiAcik((v) => !v)}
+              className={cn(
+                "w-full flex items-center justify-between gap-3 rounded-xl border px-4 py-3 transition-all",
+                hatirlaticiAcik
+                  ? "border-terracotta/40 bg-terracotta/5"
+                  : "border-clay-200 bg-cream-100 hover:bg-cream-200"
+              )}
+              aria-pressed={hatirlaticiAcik}
+            >
+              <span className="flex items-center gap-2.5">
+                <span
+                  className={cn(
+                    "inline-flex h-7 w-7 items-center justify-center rounded-lg transition-colors",
+                    hatirlaticiAcik ? "bg-terracotta text-cream-50" : "bg-clay-200 text-clay-500"
+                  )}
+                >
+                  ⏰
+                </span>
+                <span className={cn(
+                  "text-sm font-medium",
+                  hatirlaticiAcik ? "text-clay-900" : "text-clay-600"
+                )}>
+                  Hatırlatıcı kur (isteğe bağlı)
+                </span>
+              </span>
+              {/* Toggle switch */}
+              <span
+                className={cn(
+                  "relative inline-block h-6 w-11 rounded-full transition-colors",
+                  hatirlaticiAcik ? "bg-terracotta" : "bg-clay-300"
+                )}
+              >
+                <span
+                  className={cn(
+                    "absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
+                    hatirlaticiAcik && "translate-x-5"
+                  )}
+                />
+              </span>
+            </button>
+
+            <div
+              className={cn(
+                "space-y-3 transition-all overflow-hidden",
+                hatirlaticiAcik ? "max-h-[600px] mt-3 opacity-100" : "max-h-0 mt-0 opacity-0 pointer-events-none"
+              )}
+            >
+              <div>
+                <Label htmlFor="hatirlatma-zamani">Hatırlatma zamanı</Label>
+                <input
+                  id="hatirlatma-zamani"
+                  type="datetime-local"
+                  value={hatirlatmaZamani}
+                  onChange={(e) => setHatirlatmaZamani(e.target.value)}
+                  min={(() => {
+                    const d = new Date();
+                    d.setMinutes(d.getMinutes() + 1);
+                    const pad = (n: number) => String(n).padStart(2, "0");
+                    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                  })()}
+                  className="h-11 w-full rounded-xl border border-clay-200 bg-white px-4 text-[15px] text-clay-900 focus:outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta/15 transition-colors"
+                />
+              </div>
+              <div>
+                <Label htmlFor="hatirlatma-kime">Kime hatırlatılsın</Label>
+                <select
+                  id="hatirlatma-kime"
+                  value={hatirlatmaKime}
+                  onChange={(e) => setHatirlatmaKime(e.target.value as "askima" | "bana" | "ikimize" | "")}
+                  className="h-11 w-full rounded-xl border border-clay-200 bg-white px-4 text-[15px] text-clay-900 focus:outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta/15 transition-colors"
+                >
+                  <option value="" disabled>Seç…</option>
+                  <option value="askima">Aşkıma</option>
+                  <option value="bana">Bana</option>
+                  <option value="ikimize">İkimize de</option>
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="hatirlatma-sekli">Hatırlatma şekli</Label>
+                <select
+                  id="hatirlatma-sekli"
+                  value={hatirlatmaSekli}
+                  onChange={(e) => setHatirlatmaSekli(e.target.value as "uygulama" | "email" | "her_ikisi" | "")}
+                  className="h-11 w-full rounded-xl border border-clay-200 bg-white px-4 text-[15px] text-clay-900 focus:outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta/15 transition-colors"
+                >
+                  <option value="" disabled>Seç…</option>
+                  <option value="uygulama">Uygulama içinde</option>
+                  <option value="email">E-postayla</option>
+                  <option value="her_ikisi">Hem uygulama hem e-posta</option>
+                </select>
+              </div>
+            </div>
+          </div>
         </div>
         <div className="flex gap-2 justify-end pt-2">
           <DialogClose asChild>
             <Button type="button" variant="outline">İptal</Button>
           </DialogClose>
-          <Button onClick={() => m.mutate()} disabled={m.isPending || baslik.trim().length === 0}>
+          <Button
+            onClick={() => m.mutate()}
+            disabled={
+              m.isPending ||
+              baslik.trim().length === 0 ||
+              (hatirlaticiAcik && (!hatirlatmaZamani || !hatirlatmaKime || !hatirlatmaSekli))
+            }
+          >
             Kaydet
           </Button>
         </div>
@@ -349,10 +494,12 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
   });
 
   return (
-    <div className={cn(
-      "kart p-3 sm:p-4 group transition-all hover:shadow-md",
-      not.tamamlandi && "bg-cream-200/40 border-cream-300"
-    )}>
+    <div
+      data-not-id={not.id}
+      className={cn(
+        "kart p-3 sm:p-4 group transition-all hover:shadow-md",
+        not.tamamlandi && "bg-cream-200/40 border-cream-300"
+      )}>
       <div className="flex items-start gap-2.5 sm:gap-3">
         <Checkbox
           checked={not.tamamlandi}
@@ -405,6 +552,20 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
               >
                 <Eye className="h-3.5 w-3.5" />
               </button>
+              {not.hatirlatmaZamani && (
+                <span
+                  aria-label={`Hatırlatıcı: ${new Date(not.hatirlatmaZamani).toLocaleString("tr-TR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}`}
+                  title={`Hatırlatıcı: ${new Date(not.hatirlatmaZamani).toLocaleString("tr-TR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}`}
+                  className={cn(
+                    "p-1.5 rounded-md transition-colors inline-flex items-center",
+                    not.hatirlatmaGonderildiMi
+                      ? "text-clay-400"
+                      : "text-terracotta"
+                  )}
+                >
+                  <Bell className="h-3.5 w-3.5" fill={not.hatirlatmaGonderildiMi ? "none" : "currentColor"} strokeWidth={2} />
+                </span>
+              )}
               <button
                 onClick={() => setDuzenleAcik(true)}
                 aria-label="Düzenle"

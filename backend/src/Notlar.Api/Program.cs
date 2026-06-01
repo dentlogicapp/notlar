@@ -31,6 +31,7 @@ builder.Services.AddScoped<IAuditService, AuditService>();
 
 // Arka plan
 builder.Services.AddHostedService<CopKutusuTemizleyici>();
+builder.Services.AddHostedService<HatirlaticiKontrolcusu>();
 
 // JWT
 var jwtSecret = builder.Configuration["Jwt:Secret"]
@@ -118,6 +119,60 @@ using (var scope = app.Services.CreateScope())
         }
     }
 
+    // ──────────────────────────────────────────────────────────────────────────
+    // ŞEMA GÜNCELLEMELERİ (idempotent raw SQL)
+    // EnsureCreatedAsync mevcut veritabanına yeni kolon/tablo eklemez.
+    // EF Migrations'a geçişe kadar bu helper'la şema upgrade yapıyoruz.
+    // Her komut IF NOT EXISTS ile güvenli — defalarca çalışabilir.
+    // ──────────────────────────────────────────────────────────────────────────
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync(@"
+            -- kullanicilar.cinsiyet (v9 — Alt-3 davetiye + future-proof)
+            ALTER TABLE kullanicilar
+                ADD COLUMN IF NOT EXISTS ""Cinsiyet"" character varying(10);
+
+            -- notlar tablosuna hatırlatma kolonları (v9 — Hatırlatıcı sistemi)
+            ALTER TABLE notlar
+                ADD COLUMN IF NOT EXISTS ""HatirlatmaZamani"" timestamp with time zone;
+            ALTER TABLE notlar
+                ADD COLUMN IF NOT EXISTS ""HatirlatmaKime"" character varying(10);
+            ALTER TABLE notlar
+                ADD COLUMN IF NOT EXISTS ""HatirlatmaSekli"" character varying(15);
+            ALTER TABLE notlar
+                ADD COLUMN IF NOT EXISTS ""HatirlatmaGonderildiMi"" boolean NOT NULL DEFAULT false;
+            ALTER TABLE notlar
+                ADD COLUMN IF NOT EXISTS ""HatirlatmaGonderimZamani"" timestamp with time zone;
+            ALTER TABLE notlar
+                ADD COLUMN IF NOT EXISTS ""HatirlatmaKuranKullaniciId"" uuid;
+
+            CREATE INDEX IF NOT EXISTS ""IX_notlar_HatirlatmaZamani_HatirlatmaGonderildiMi""
+                ON notlar (""HatirlatmaZamani"", ""HatirlatmaGonderildiMi"");
+
+            -- bildirimler tablosu (v9 — Instagram-vari bildirim feed)
+            CREATE TABLE IF NOT EXISTS bildirimler (
+                ""Id""                uuid PRIMARY KEY,
+                ""KullaniciId""       uuid NOT NULL REFERENCES kullanicilar(""Id"") ON DELETE CASCADE,
+                ""Tip""               character varying(30) NOT NULL,
+                ""NotId""             uuid NULL,
+                ""Baslik""            character varying(120) NOT NULL,
+                ""Mesaj""             character varying(500) NOT NULL,
+                ""OkunduMu""          boolean NOT NULL DEFAULT false,
+                ""OkumaZamani""       timestamp with time zone NULL,
+                ""OlusturmaZamani""   timestamp with time zone NOT NULL DEFAULT NOW()
+            );
+
+            CREATE INDEX IF NOT EXISTS ""IX_bildirimler_KullaniciId_OkunduMu_OlusturmaZamani""
+                ON bildirimler (""KullaniciId"", ""OkunduMu"", ""OlusturmaZamani"");
+        ");
+        Log.Information("Şema güncellemeleri kontrol edildi (idempotent)");
+    }
+    catch (Exception ex)
+    {
+        Log.Error(ex, "Şema güncellemeleri sırasında hata");
+        throw;
+    }
+
     var ilkEmail = builder.Configuration["IlkAdmin:Email"];
     var ilkAd = builder.Configuration["IlkAdmin:AdSoyad"];
 
@@ -172,5 +227,6 @@ app.MapAuthEndpoints();
 app.MapAdminEndpoints();
 app.MapFolderEndpoints();
 app.MapNoteEndpoints();
+app.MapNotificationEndpoints();
 
 app.Run();

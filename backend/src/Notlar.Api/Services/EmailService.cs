@@ -5,8 +5,10 @@ namespace Notlar.Api.Services;
 
 public interface IEmailService
 {
-    Task SifreBelirleMailGonderAsync(string toEmail, string adSoyad, string link, CancellationToken ct = default);
+    Task SifreBelirleMailGonderAsync(string toEmail, string adSoyad, string link, string gonderenIlkAd, CancellationToken ct = default);
     Task SifreSifirlamaMailGonderAsync(string toEmail, string adSoyad, string link, CancellationToken ct = default);
+    Task HatirlaticiMailGonderAsync(string toEmail, string aliciAdSoyad, string notBaslik, string? notIcerik,
+        string? klasorAdi, string kimeMetin, DateTimeOffset hatirlatmaZamani, Guid notId, CancellationToken ct = default);
 }
 
 public sealed class EmailService : IEmailService
@@ -25,29 +27,39 @@ public sealed class EmailService : IEmailService
     }
 
     /// <summary>
-    /// Yeni kullanıcıya gönderilen davetiye maili.
-    /// Sevgi dolu ton + adım adım kullanım rehberi.
-    /// Çift-kullanıcılı eş projesi olduğu için bu mail nişanlıya / eşe / sevgiliye yazılmış gibi.
+    /// Davetiye maili — Alt-3: tek mail, gender-neutral, imza gönderenin gerçek ilk adı.
+    /// 7 maddeli kullanım rehberi (05 - Hatırlatıcı kurmak dahil).
     /// </summary>
-    public Task SifreBelirleMailGonderAsync(string toEmail, string adSoyad, string link, CancellationToken ct = default)
+    public Task SifreBelirleMailGonderAsync(string toEmail, string adSoyad, string link, string gonderenIlkAd, CancellationToken ct = default)
     {
-        var ilkAd = adSoyad.Split(' ')[0];
+        var aliciIlkAd = adSoyad.Split(' ')[0];
         var kalanGun = Math.Max(0, (int)Math.Ceiling((DUGUN_UTC - DateTimeOffset.UtcNow).TotalDays));
 
-        var konu = $"{ilkAd}, planlama defterimiz seni bekliyor";
-        var html = DavetiyeHtmlSablonu(ilkAd, link, kalanGun);
+        var konu = $"{aliciIlkAd}, planlama defterimiz seni bekliyor";
+        var html = DavetiyeHtmlSablonu(aliciIlkAd, link, kalanGun, gonderenIlkAd);
         return GonderAsync(toEmail, adSoyad, konu, html, ct);
     }
 
-    /// <summary>
-    /// Şifre sıfırlama maili. Profesyonel + güvenilir ton, branding tutarlılığı.
-    /// </summary>
     public Task SifreSifirlamaMailGonderAsync(string toEmail, string adSoyad, string link, CancellationToken ct = default)
     {
         var ilkAd = adSoyad.Split(' ')[0];
         var konu = "Planlama Defterimiz — Şifre Sıfırlama";
         var html = SifreSifirlamaHtmlSablonu(ilkAd, link);
         return GonderAsync(toEmail, adSoyad, konu, html, ct);
+    }
+
+    /// <summary>
+    /// Hatırlatıcı maili — kısa + odaklı + brand tutarlı.
+    /// </summary>
+    public Task HatirlaticiMailGonderAsync(string toEmail, string aliciAdSoyad, string notBaslik, string? notIcerik,
+        string? klasorAdi, string kimeMetin, DateTimeOffset hatirlatmaZamani, Guid notId, CancellationToken ct = default)
+    {
+        var aliciIlkAd = aliciAdSoyad.Split(' ')[0];
+        var frontend = _cfg["FrontendBaseUrl"] ?? "https://notlar.dentlogicapp.com";
+        var notLink = $"{frontend}/?focus={notId}";
+        var konu = $"♡ Hatırlatıcı — \"{notBaslik}\"";
+        var html = HatirlaticiHtmlSablonu(aliciIlkAd, notBaslik, notIcerik, klasorAdi, kimeMetin, hatirlatmaZamani, notLink);
+        return GonderAsync(toEmail, aliciAdSoyad, konu, html, ct);
     }
 
     private async Task GonderAsync(string toEmail, string toAd, string konu, string html, CancellationToken ct)
@@ -85,13 +97,8 @@ public sealed class EmailService : IEmailService
         }
     }
 
-    /// <summary>
-    /// Davetiye (yeni kullanıcı şifre belirleme) maili — sıcak ton + 6 adımlı kullanım rehberi.
-    /// Email-safe HTML: inline CSS, tablo bazlı layout, mobile-friendly.
-    /// </summary>
-    private static string DavetiyeHtmlSablonu(string ilkAd, string link, int kalanGun)
+    private static string DavetiyeHtmlSablonu(string aliciIlkAd, string link, int kalanGun, string gonderenIlkAd)
     {
-        // Düğün geçtiyse veya bugünse özel cümle
         var sayacCumle = kalanGun > 1
             ? $"Düğünümüze kaldı: <strong>{kalanGun} gün</strong>"
             : kalanGun == 1
@@ -99,6 +106,25 @@ public sealed class EmailService : IEmailService
                 : kalanGun == 0
                     ? "Bugün <strong>en güzel günümüz</strong>"
                     : "Mutlu evliliğimizin <strong>güzel günlerinde</strong>";
+
+        // Madde tasarım disiplini: rozet (28x28 terracotta) + başlık + justify açıklama + ince dashed ayraç
+        static string Madde(string rakam, string baslik, string aciklama, bool sonMu = false) => $@"
+      <tr><td style='padding:22px 40px 0;'>
+        <table role='presentation' cellpadding='0' cellspacing='0' border='0'>
+          <tr>
+            <td style='width:28px;height:28px;background:#c4704d;color:#ffffff;border-radius:8px;text-align:center;vertical-align:middle;font-family:-apple-system,BlinkMacSystemFont,""Segoe UI"",sans-serif;font-size:12px;font-weight:600;letter-spacing:0.04em;'>
+              {rakam}
+            </td>
+            <td style='padding-left:14px;font-family:Georgia,""Times New Roman"",serif;font-size:16px;color:#3d2817;font-weight:600;'>
+              {baslik}
+            </td>
+          </tr>
+        </table>
+        <p style='color:#5d4a37;font-size:14px;line-height:1.7;margin:10px 0 0;text-align:justify;hyphens:auto;'>
+          {aciklama}
+        </p>
+      </td></tr>
+      {(sonMu ? "" : @"<tr><td style='padding:22px 40px 0;'><div style='border-top:1px dashed #ebe3d4;'></div></td></tr>")}";
 
         return $@"<!DOCTYPE html>
 <html lang='tr'>
@@ -112,24 +138,21 @@ public sealed class EmailService : IEmailService
   <tr><td align='center'>
     <table role='presentation' width='560' cellpadding='0' cellspacing='0' border='0' style='max-width:560px;background:#ffffff;border-radius:18px;border:1px solid #ebe3d4;overflow:hidden;'>
 
-      <!-- HEADER kalp -->
       <tr><td style='padding:40px 40px 8px;text-align:center;'>
         <div style='font-size:36px;color:#c4704d;line-height:1;'>♡</div>
       </td></tr>
 
-      <!-- BAŞLIK -->
       <tr><td style='padding:8px 40px 0;text-align:center;'>
         <h1 style='font-family:Georgia,""Times New Roman"",serif;font-size:30px;color:#3d2817;margin:0 0 6px;font-weight:600;letter-spacing:-0.02em;'>
-          {ilkAd},
+          {aliciIlkAd},
         </h1>
         <p style='color:#c4704d;font-size:14px;margin:0;font-style:italic;letter-spacing:0.04em;'>
           planlama defterimiz seni bekliyor 🤍
         </p>
       </td></tr>
 
-      <!-- AÇILIŞ paragraf -->
       <tr><td style='padding:28px 40px 0;'>
-        <p style='color:#5d4a37;font-size:15px;line-height:1.7;margin:0 0 14px;'>
+        <p style='color:#5d4a37;font-size:15px;line-height:1.7;margin:0 0 14px;text-align:justify;hyphens:auto;'>
           Bu küçük sistemi, en güzel günümüze adım adım hazırlanırken
           aklımıza gelen her şeyi <em>birlikte</em> planlayalım,
           <em>birlikte</em> tamamlayalım diye yaptım. Bir köşesi davetiyeler,
@@ -141,7 +164,6 @@ public sealed class EmailService : IEmailService
         </p>
       </td></tr>
 
-      <!-- CTA BUTON -->
       <tr><td style='padding:32px 40px 12px;text-align:center;'>
         <a href='{link}'
            style='display:inline-block;background:#3d2817;color:#faf6ef;padding:16px 36px;border-radius:10px;text-decoration:none;font-weight:500;font-size:15px;letter-spacing:0.01em;'>
@@ -152,7 +174,6 @@ public sealed class EmailService : IEmailService
         </p>
       </td></tr>
 
-      <!-- AYIRICI -->
       <tr><td style='padding:32px 40px 8px;'>
         <table role='presentation' width='100%' cellpadding='0' cellspacing='0' border='0'>
           <tr>
@@ -163,7 +184,6 @@ public sealed class EmailService : IEmailService
         </table>
       </td></tr>
 
-      <!-- REHBER BAŞLIK -->
       <tr><td style='padding:24px 40px 0;'>
         <h2 style='font-family:Georgia,""Times New Roman"",serif;font-size:20px;color:#3d2817;margin:0 0 6px;text-align:center;font-weight:600;'>
           İçeride seni neler bekliyor?
@@ -173,87 +193,27 @@ public sealed class EmailService : IEmailService
         </p>
       </td></tr>
 
-      <!-- 1. GİRİŞ -->
-      <tr><td style='padding:28px 40px 0;'>
-        <p style='color:#3d2817;font-size:14px;font-weight:600;margin:0 0 4px;letter-spacing:0.04em;'>
-          <span style='color:#c4704d;'>01</span> &nbsp; Giriş yapmak için
-        </p>
-        <p style='color:#5d4a37;font-size:14px;line-height:1.6;margin:0;'>
-          Yukarıdaki butona tıklayıp kendi şifreni belirleyince hesabın hazır.
-          Bir dahaki sefere sadece e-posta adresin ve şifrenle giriş yaparsın.
-          Giriş ekranındaki <strong>“Beni hatırla”</strong> kutusunu işaretli
-          bırakırsan her seferinde tekrar girmek zorunda kalmazsın.
-        </p>
-      </td></tr>
+      {Madde("01", "Giriş yapmak için",
+        "Yukarıdaki butona tıklayıp kendi şifreni belirleyince hesabın hazır. Bir dahaki sefere sadece e-posta adresin ve şifrenle giriş yaparsın. Giriş ekranındaki <strong>“Beni hatırla”</strong> kutusunu işaretli bırakırsan her seferinde tekrar girmek zorunda kalmazsın.")}
 
-      <!-- 2. NOT EKLE -->
-      <tr><td style='padding:22px 40px 0;'>
-        <p style='color:#3d2817;font-size:14px;font-weight:600;margin:0 0 4px;letter-spacing:0.04em;'>
-          <span style='color:#c4704d;'>02</span> &nbsp; Aklına bir şey geldiğinde
-        </p>
-        <p style='color:#5d4a37;font-size:14px;line-height:1.6;margin:0;'>
-          Ana sayfada <em>“Bir not düşün…”</em> yazan kutuyu göreceksin.
-          Aklındakini yaz, sağdaki <strong>Ekle</strong> butonuna dokun, oldu.
-          İstersen sadece bir başlık, istersen detaylı bir açıklama —
-          benimle paylaşacağın her şey kıymetli.
-        </p>
-      </td></tr>
+      {Madde("02", "Aklına bir şey geldiğinde",
+        "Ana sayfada <em>“Bir not düşün…”</em> yazan kutuyu göreceksin. Aklındakini yaz, sağdaki <strong>Ekle</strong> butonuna dokun, oldu. İstersen sadece bir başlık, istersen detaylı bir açıklama — paylaşacağın her şey kıymetli.")}
 
-      <!-- 3. TAMAMLA -->
-      <tr><td style='padding:22px 40px 0;'>
-        <p style='color:#3d2817;font-size:14px;font-weight:600;margin:0 0 4px;letter-spacing:0.04em;'>
-          <span style='color:#c4704d;'>03</span> &nbsp; Bir şeyi tamamladığımızda
-        </p>
-        <p style='color:#5d4a37;font-size:14px;line-height:1.6;margin:0;'>
-          Her notun yanında küçük bir kutucuk var. Ona tıkladığında
-          <em>“Nasıl tamamlandı?”</em> diye sorulacak. Birkaç kelime yaz
-          (örneğin: <em>“Davetiye baskısı bitti, cuma kargolanıyor”</em>) ki
-          sonradan dönüp ne yaptığımızı hatırlayabilelim. Bu küçük detaylar
-          ileride tatlı anılar olacak.
-        </p>
-      </td></tr>
+      {Madde("03", "Bir şeyi tamamladığımızda",
+        "Her notun yanında küçük bir kutucuk var. Ona tıkladığında <em>“Nasıl tamamlandı?”</em> diye sorulacak. Birkaç kelime yaz (örneğin: <em>“Davetiye baskısı bitti, cuma kargolanıyor”</em>) ki sonradan dönüp ne yaptığımızı hatırlayabilelim. Bu küçük detaylar ileride tatlı anılar olacak.")}
 
-      <!-- 4. GÜNCELLE -->
-      <tr><td style='padding:22px 40px 0;'>
-        <p style='color:#3d2817;font-size:14px;font-weight:600;margin:0 0 4px;letter-spacing:0.04em;'>
-          <span style='color:#c4704d;'>04</span> &nbsp; Bir notu güncellemek
-        </p>
-        <p style='color:#5d4a37;font-size:14px;line-height:1.6;margin:0;'>
-          Her notun altında üç küçük ikon göreceksin:
-          <strong>göz</strong> (detaylar), <strong>kalem</strong> (düzenle),
-          <strong>çöp kutusu</strong> (sil). Kalem ikonuna tıklayıp başlığı,
-          içeriği veya hangi klasöre ait olduğunu istediğin gibi
-          değiştirebilirsin.
-        </p>
-      </td></tr>
+      {Madde("04", "Bir notu güncellemek",
+        "Her notun altında küçük ikonlar göreceksin: <strong>göz</strong> (detaylar), <strong>kalem</strong> (düzenle), <strong>çöp kutusu</strong> (sil). Kalem ikonuna tıklayıp başlığı, içeriği veya hangi klasöre ait olduğunu istediğin gibi değiştirebilirsin.")}
 
-      <!-- 5. GEÇMİŞ -->
-      <tr><td style='padding:22px 40px 0;'>
-        <p style='color:#3d2817;font-size:14px;font-weight:600;margin:0 0 4px;letter-spacing:0.04em;'>
-          <span style='color:#c4704d;'>05</span> &nbsp; Bir notun geçmişini görmek
-        </p>
-        <p style='color:#5d4a37;font-size:14px;line-height:1.6;margin:0;'>
-          Aynı satırdaki <strong>göz</strong> ikonu, notun bütün geçmişini gösteriyor:
-          ne zaman oluşturuldu, ne zaman ne değişti, kim ne yazdı, ne zaman tamamlandı…
-          Hiçbir şey kaybolmuyor; ikimiz de birbirimizin dokunuşlarını görebiliyoruz.
-        </p>
-      </td></tr>
+      {Madde("05", "Hatırlatıcı kurmak",
+        "Bir notu unutmayalım istersen kalem ikonuyla düzenle penceresini aç, en altta <strong>“Hatırlatıcı kur”</strong> seçeneğini göreceksin. Tarih ve saati seç, kime hatırlatılacağını (sana, bana veya ikimize) ve nasıl bildirim alacağımızı (uygulama içinde, e-postayla veya her ikisi) belirle. Zamanı geldiğinde haber veririm.")}
 
-      <!-- 6. KLASÖRLER -->
-      <tr><td style='padding:22px 40px 0;'>
-        <p style='color:#3d2817;font-size:14px;font-weight:600;margin:0 0 4px;letter-spacing:0.04em;'>
-          <span style='color:#c4704d;'>06</span> &nbsp; Konuları ayırmak için — klasörler
-        </p>
-        <p style='color:#5d4a37;font-size:14px;line-height:1.6;margin:0;'>
-          Sol panelden <strong>“Yeni klasör”</strong> diyerek konuları gruplayabilirsin:
-          <em>“Davetiye”, “Nikâh”, “Düğün Sonrası Tatil”</em> gibi.
-          Notu eklerken veya düzenlerken hangi klasöre ait olduğunu seçebilirsin.
-          İstersen bir klasörü sonradan silebilirsin — içindeki notlar kaybolmaz,
-          sadece klasörsüz hâle gelir.
-        </p>
-      </td></tr>
+      {Madde("06", "Bir notun geçmişini görmek",
+        "Aynı satırdaki <strong>göz</strong> ikonu, notun bütün geçmişini gösteriyor: ne zaman oluşturuldu, ne zaman ne değişti, kim ne yazdı, ne zaman tamamlandı… Hiçbir şey kaybolmuyor; ikimiz de birbirimizin dokunuşlarını görebiliyoruz.")}
 
-      <!-- KAPANIŞ AYIRICI -->
+      {Madde("07", "Konuları ayırmak için — klasörler",
+        "Sol panelden <strong>“Yeni klasör”</strong> diyerek konuları gruplayabilirsin: <em>“Davetiye”, “Nikâh”, “Düğün Sonrası Tatil”</em> gibi. Notu eklerken veya düzenlerken hangi klasöre ait olduğunu seçebilirsin. İstersen bir klasörü sonradan silebilirsin — içindeki notlar kaybolmaz, sadece klasörsüz hâle gelir.", sonMu: true)}
+
       <tr><td style='padding:32px 40px 8px;'>
         <table role='presentation' width='100%' cellpadding='0' cellspacing='0' border='0'>
           <tr>
@@ -264,7 +224,6 @@ public sealed class EmailService : IEmailService
         </table>
       </td></tr>
 
-      <!-- KAPANIŞ paragraf -->
       <tr><td style='padding:20px 40px 0;'>
         <p style='color:#5d4a37;font-size:15px;line-height:1.7;margin:0;text-align:center;font-style:italic;'>
           Hadi başlayalım. Mutlu olacağımız günlerde yazacağımız
@@ -272,11 +231,10 @@ public sealed class EmailService : IEmailService
         </p>
         <p style='color:#3d2817;font-size:15px;margin:18px 0 0;text-align:center;'>
           Sevgilerle,<br>
-          <strong style='font-family:Georgia,""Times New Roman"",serif;color:#c4704d;'>Aşkın</strong> 🤍
+          <strong style='font-family:Georgia,""Times New Roman"",serif;color:#c4704d;'>{gonderenIlkAd}</strong> 🤍
         </p>
       </td></tr>
 
-      <!-- FOOTER -->
       <tr><td style='padding:40px 40px 32px;text-align:center;'>
         <p style='color:#9c8a73;font-size:11px;margin:0;line-height:1.6;'>
           Bu defter sadece ikimiz görüyoruz, üçüncü bir göz yok.<br>
@@ -291,9 +249,6 @@ public sealed class EmailService : IEmailService
 </html>";
     }
 
-    /// <summary>
-    /// Şifre sıfırlama maili — sade, güvenilir ton, branding tutarlı.
-    /// </summary>
     private static string SifreSifirlamaHtmlSablonu(string ilkAd, string link)
     {
         return $@"<!DOCTYPE html>
@@ -332,4 +287,99 @@ public sealed class EmailService : IEmailService
 </body>
 </html>";
     }
+
+    /// <summary>
+    /// Hatırlatıcı maili — kısa odaklı kart + CTA, Davetiye gibi 7 maddeli uzun değil.
+    /// </summary>
+    private static string HatirlaticiHtmlSablonu(string aliciIlkAd, string notBaslik, string? notIcerik,
+        string? klasorAdi, string kimeMetin, DateTimeOffset hatirlatmaZamani, string notLink)
+    {
+        var icerikKisa = string.IsNullOrWhiteSpace(notIcerik)
+            ? ""
+            : (notIcerik.Length > 200 ? notIcerik.Substring(0, 200) + "…" : notIcerik);
+
+        // TR saat dilimi gösterimi
+        var trZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Istanbul");
+        var trZaman = TimeZoneInfo.ConvertTime(hatirlatmaZamani, trZone);
+        var zamanMetni = trZaman.ToString("dd MMMM yyyy, HH:mm",
+            System.Globalization.CultureInfo.GetCultureInfo("tr-TR"));
+
+        var klasorRozeti = string.IsNullOrWhiteSpace(klasorAdi)
+            ? ""
+            : $@"<div style='margin-top:14px;'>
+                  <span style='display:inline-block;background:#f5ede0;color:#8b6f4e;padding:4px 12px;border-radius:14px;font-size:12px;font-weight:500;'>
+                    📁 {klasorAdi}
+                  </span>
+                </div>";
+
+        var icerikSatiri = string.IsNullOrWhiteSpace(icerikKisa)
+            ? ""
+            : $@"<p style='color:#5d4a37;font-size:14px;line-height:1.7;margin:12px 0 0;text-align:justify;hyphens:auto;'>
+                  {icerikKisa}
+                </p>";
+
+        return $@"<!DOCTYPE html>
+<html lang='tr'>
+<head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'></head>
+<body style='margin:0;padding:0;background:#faf6ef;font-family:-apple-system,BlinkMacSystemFont,""Segoe UI"",Roboto,sans-serif;color:#3d2817;'>
+<table role='presentation' width='100%' cellpadding='0' cellspacing='0' border='0' style='padding:32px 12px;background:#faf6ef;'>
+  <tr><td align='center'>
+    <table role='presentation' width='560' cellpadding='0' cellspacing='0' border='0' style='max-width:560px;background:#ffffff;border-radius:18px;border:1px solid #ebe3d4;overflow:hidden;'>
+
+      <tr><td style='padding:36px 40px 8px;text-align:center;'>
+        <div style='font-size:32px;color:#c4704d;line-height:1;'>♡</div>
+      </td></tr>
+
+      <tr><td style='padding:6px 40px 0;text-align:center;'>
+        <h1 style='font-family:Georgia,""Times New Roman"",serif;font-size:22px;color:#3d2817;margin:0 0 4px;font-weight:600;letter-spacing:-0.01em;'>
+          {aliciIlkAd}, hatırlatıcının zamanı geldi
+        </h1>
+        <p style='color:#9c8a73;font-size:13px;margin:0;font-style:italic;'>
+          {kimeMetni(kimeMetin)}
+        </p>
+      </td></tr>
+
+      <tr><td style='padding:28px 40px 0;'>
+        <div style='background:#faf6ef;border-radius:12px;border:1px solid #ebe3d4;padding:22px 24px;'>
+          <h2 style='font-family:Georgia,""Times New Roman"",serif;font-size:18px;color:#3d2817;margin:0;font-weight:600;line-height:1.4;'>
+            {notBaslik}
+          </h2>
+          {icerikSatiri}
+          {klasorRozeti}
+        </div>
+      </td></tr>
+
+      <tr><td style='padding:18px 40px 0;text-align:center;'>
+        <p style='color:#9c8a73;font-size:12px;margin:0;letter-spacing:0.02em;'>
+          Hatırlatma zamanı: <strong>{zamanMetni}</strong>
+        </p>
+      </td></tr>
+
+      <tr><td style='padding:24px 40px 36px;text-align:center;'>
+        <a href='{notLink}'
+           style='display:inline-block;background:#3d2817;color:#faf6ef;padding:14px 32px;border-radius:10px;text-decoration:none;font-weight:500;font-size:14px;letter-spacing:0.01em;'>
+          Notu Defterimde Aç →
+        </a>
+      </td></tr>
+
+      <tr><td style='padding:0 40px 28px;text-align:center;'>
+        <p style='color:#9c8a73;font-size:11px;margin:0;line-height:1.6;'>
+          Planlama Defterimiz · <a href='https://notlar.dentlogicapp.com' style='color:#9c8a73;text-decoration:none;'>notlar.dentlogicapp.com</a>
+        </p>
+      </td></tr>
+
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>";
+    }
+
+    private static string kimeMetni(string kime) => kime switch
+    {
+        "Sen kurdun · Bana hatırlatıldı" => kime,
+        "Aşkın kurdu · Sana hatırlatıldı" => kime,
+        "Aşkın kurdu · İkimize hatırlatıldı" => kime,
+        _ => "Hatırlatıcı"
+    };
 }

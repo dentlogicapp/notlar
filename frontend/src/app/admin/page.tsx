@@ -25,6 +25,9 @@ const schema = z.object({
   email: z.string().email("Geçerli email gir"),
   adSoyad: z.string().min(2, "Ad soyad zorunlu").max(120),
   rol: z.enum(["admin", "kullanici"]),
+  cinsiyet: z.enum(["kadin", "erkek"], {
+    errorMap: () => ({ message: "Cinsiyet seçimi zorunlu" })
+  }),
 });
 
 export default function Page() {
@@ -236,6 +239,23 @@ function KullaniciEkleDialog() {
             <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" {...register("email")} />
             {errors.email && <p className="text-xs text-red-600 mt-1">{errors.email.message}</p>}
+          </div>
+          <div>
+            <Label htmlFor="cinsiyet">Eşinizin cinsiyeti</Label>
+            <select
+              id="cinsiyet"
+              defaultValue=""
+              {...register("cinsiyet")}
+              className="h-11 w-full rounded-xl border border-clay-200 bg-white px-4 text-[15px] text-clay-900 focus:outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta/15 transition-colors"
+            >
+              <option value="" disabled>Seç…</option>
+              <option value="kadin">Kadın</option>
+              <option value="erkek">Erkek</option>
+            </select>
+            {errors.cinsiyet && <p className="text-xs text-red-600 mt-1">{errors.cinsiyet.message}</p>}
+            <p className="text-[11px] text-clay-400 mt-1.5 italic leading-relaxed">
+              Bu bilgi yalnızca ileride kişiselleştirilmiş içerikler için saklanır.
+            </p>
           </div>
           <div>
             <Label htmlFor="rol">Rol</Label>

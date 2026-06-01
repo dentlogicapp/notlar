@@ -13,6 +13,7 @@ public sealed class AppDbContext : DbContext
     public DbSet<Not> Notlar => Set<Not>();
     public DbSet<NotGecmisi> NotGecmisleri => Set<NotGecmisi>();
     public DbSet<DenetimGunlugu> DenetimGunlukleri => Set<DenetimGunlugu>();
+    public DbSet<Bildirim> Bildirimler => Set<Bildirim>();
 
     protected override void OnModelCreating(ModelBuilder m)
     {
@@ -25,6 +26,7 @@ public sealed class AppDbContext : DbContext
             e.Property(x => x.AdSoyad).HasMaxLength(120).IsRequired();
             e.Property(x => x.Rol).HasMaxLength(20).IsRequired();
             e.Property(x => x.SifreHash).HasMaxLength(255);
+            e.Property(x => x.Cinsiyet).HasMaxLength(10);  // "kadin" | "erkek"
         });
 
         m.Entity<AuthToken>(e =>
@@ -66,9 +68,14 @@ public sealed class AppDbContext : DbContext
              .HasForeignKey(x => x.OlusturanKullaniciId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.TamamlayanKullanici).WithMany()
              .HasForeignKey(x => x.TamamlayanKullaniciId).OnDelete(DeleteBehavior.SetNull);
+            // Hatırlatıcı kolonları
+            e.Property(x => x.HatirlatmaKime).HasMaxLength(10);    // askima/bana/ikimize
+            e.Property(x => x.HatirlatmaSekli).HasMaxLength(15);   // uygulama/email/her_ikisi
             e.HasIndex(x => new { x.KlasorId, x.Silindi });
             e.HasIndex(x => x.OlusturmaZamani);
             e.HasIndex(x => x.Silindi);
+            // Background service her dakika bunu sorgular: NOW() >= zamani AND !gonderildi
+            e.HasIndex(x => new { x.HatirlatmaZamani, x.HatirlatmaGonderildiMi });
         });
 
         m.Entity<NotGecmisi>(e =>
@@ -97,6 +104,19 @@ public sealed class AppDbContext : DbContext
             e.HasIndex(x => x.Zaman);
             e.HasIndex(x => x.Olay);
             e.HasIndex(x => x.AktorKullaniciId);
+        });
+
+        m.Entity<Bildirim>(e =>
+        {
+            e.ToTable("bildirimler");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Tip).HasMaxLength(30).IsRequired();
+            e.Property(x => x.Baslik).HasMaxLength(120).IsRequired();
+            e.Property(x => x.Mesaj).HasMaxLength(500).IsRequired();
+            e.HasOne(x => x.Kullanici).WithMany(u => u.Bildirimler)
+             .HasForeignKey(x => x.KullaniciId).OnDelete(DeleteBehavior.Cascade);
+            // UserMenu unread count + listeleme sıralaması için
+            e.HasIndex(x => new { x.KullaniciId, x.OkunduMu, x.OlusturmaZamani });
         });
     }
 }

@@ -70,7 +70,7 @@ public static class AuthEndpoints
             CookieEkle(http, token, gun, cfg, persistent);
             await audit.YazAsync("giris_basarili", "kullanici", user.Id, user.Id, email, ct: ct);
 
-            return Results.Ok(new BenYaniti(user.Id, user.Email, user.AdSoyad, user.Rol));
+            return Results.Ok(new BenYaniti(user.Id, user.Email, user.AdSoyad, user.Rol, user.Cinsiyet));
         });
 
         // 2. Token doğrula (frontend setup/reset sayfasında preflight)
@@ -146,11 +146,15 @@ public static class AuthEndpoints
             return Results.Ok(new { mesaj = "Eğer hesap varsa, sıfırlama bağlantısı gönderildi." });
         });
 
-        // 5. Şu anki kullanıcı
-        g.MapGet("/ben", (IUserContext u) =>
+        // 5. Şu anki kullanıcı (cinsiyet DB'den okunur — JWT claim'de yok)
+        g.MapGet("/ben", async (IUserContext u, AppDbContext db, CancellationToken ct) =>
         {
             if (u.KullaniciId is null) return Results.Unauthorized();
-            return Results.Ok(new BenYaniti(u.KullaniciId.Value, u.Email!, u.AdSoyad!, u.Rol!));
+            var cinsiyet = await db.Kullanicilar
+                .Where(x => x.Id == u.KullaniciId.Value)
+                .Select(x => x.Cinsiyet)
+                .FirstOrDefaultAsync(ct);
+            return Results.Ok(new BenYaniti(u.KullaniciId.Value, u.Email!, u.AdSoyad!, u.Rol!, cinsiyet));
         }).RequireAuthorization();
 
         // 6. Çıkış

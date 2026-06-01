@@ -69,7 +69,7 @@ export function CountdownWidget() {
           "uppercase tracking-[0.2em] text-clay-500 leading-none font-medium",
           kompakt ? "text-[10px]" : "text-[11px]"
         )}>
-          kavuşmamıza
+          kavuşmamıza son:
         </span>
         <div className={cn("flex items-baseline mt-1.5", kompakt ? "gap-1.5" : "gap-2")}>
           <KutuRakam deger={k.gun} etiket="gün" vurgu kompakt={kompakt} />

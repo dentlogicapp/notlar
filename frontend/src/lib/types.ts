@@ -1,10 +1,14 @@
 export type Rol = "admin" | "kullanici";
+export type Cinsiyet = "kadin" | "erkek";
+export type HatirlatmaKime = "askima" | "bana" | "ikimize";
+export type HatirlatmaSekli = "uygulama" | "email" | "her_ikisi";
 
 export interface Ben {
   id: string;
   email: string;
   adSoyad: string;
   rol: Rol;
+  cinsiyet: Cinsiyet | null;
 }
 
 export interface Kullanici {
@@ -13,6 +17,7 @@ export interface Kullanici {
   adSoyad: string;
   rol: Rol;
   aktif: boolean;
+  cinsiyet: Cinsiyet | null;
   sifreBelirlendi: boolean;
   kilitli: boolean;
   olusturmaZamani: string;
@@ -57,6 +62,11 @@ export interface Not {
   guncellemeZamani: string;
   silindi: boolean;
   silinmeZamani: string | null;
+  // Hatırlatma (kurulmamışsa null)
+  hatirlatmaZamani: string | null;
+  hatirlatmaKime: HatirlatmaKime | null;
+  hatirlatmaSekli: HatirlatmaSekli | null;
+  hatirlatmaGonderildiMi: boolean;
 }
 
 export interface NotGecmisi {
@@ -91,4 +101,20 @@ export interface TokenDogrulama {
   email: string;
   adSoyad: string;
   amac: "setup" | "reset";
+}
+
+export interface Bildirim {
+  id: string;
+  tip: string;
+  notId: string | null;
+  baslik: string;
+  mesaj: string;
+  okunduMu: boolean;
+  okumaZamani: string | null;
+  olusturmaZamani: string;
+}
+
+export interface BildirimOzeti {
+  okunmamisSayisi: number;
+  bildirimler: Bildirim[];
 }

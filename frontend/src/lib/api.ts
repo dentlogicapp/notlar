@@ -1,6 +1,8 @@
 import type {
   Ben, Kullanici, Klasor, KlasorIcerikOzeti, Not, NotGecmisi,
-  DenetimListesi, TokenDogrulama
+  DenetimListesi, TokenDogrulama,
+  BildirimOzeti,
+  Cinsiyet, HatirlatmaKime, HatirlatmaSekli
 } from "./types";
 
 const API = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:5000";
@@ -45,6 +47,26 @@ export const klasorApi = {
   icerikOzeti: (id: string) => ist<KlasorIcerikOzeti>(`/api/klasorler/${id}/icerik-ozeti`),
 };
 
+export interface NotOlusturOnerisi {
+  baslik: string;
+  icerik?: string | null;
+  klasorId?: string | null;
+  hatirlatmaZamani?: string | null;
+  hatirlatmaKime?: HatirlatmaKime | null;
+  hatirlatmaSekli?: HatirlatmaSekli | null;
+}
+
+export interface NotGuncelleOnerisi {
+  baslik: string;
+  icerik?: string | null;
+  klasorId?: string | null;
+  degisiklikAciklamasi?: string | null;
+  hatirlatmaZamani?: string | null;
+  hatirlatmaKime?: HatirlatmaKime | null;
+  hatirlatmaSekli?: HatirlatmaSekli | null;
+  hatirlatmaSil?: boolean;
+}
+
 export const notApi = {
   list: (opts?: { klasor?: string; tamamlandi?: boolean; silindi?: boolean }) => {
     const q = new URLSearchParams();
@@ -55,9 +77,9 @@ export const notApi = {
     return ist<Not[]>(`/api/notlar${qs ? "?" + qs : ""}`);
   },
   get: (id: string) => ist<Not>(`/api/notlar/${id}`),
-  create: (data: { baslik: string; icerik?: string | null; klasorId?: string | null }) =>
+  create: (data: NotOlusturOnerisi) =>
     ist<Not>("/api/notlar", { method: "POST", body: JSON.stringify(data) }),
-  update: (id: string, data: { baslik: string; icerik?: string | null; klasorId?: string | null; degisiklikAciklamasi?: string | null }) =>
+  update: (id: string, data: NotGuncelleOnerisi) =>
     ist<Not>(`/api/notlar/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   tamamla: (id: string, tamamlanmaAciklamasi: string) =>
     ist<Not>(`/api/notlar/${id}/tamamla`, { method: "POST", body: JSON.stringify({ tamamlanmaAciklamasi }) }),
@@ -69,9 +91,17 @@ export const notApi = {
   gecmis: (id: string) => ist<NotGecmisi[]>(`/api/notlar/${id}/gecmis`),
 };
 
+export const bildirimApi = {
+  list: () => ist<BildirimOzeti>("/api/bildirimler/"),
+  okundu: (id: string) =>
+    ist<void>(`/api/bildirimler/${id}/okundu`, { method: "POST" }),
+  hepsiOkundu: () =>
+    ist<void>("/api/bildirimler/hepsi-okundu", { method: "POST" }),
+};
+
 export const adminApi = {
   listUsers: () => ist<Kullanici[]>("/api/admin/kullanicilar"),
-  createUser: (data: { email: string; adSoyad: string; rol: "admin" | "kullanici" }) =>
+  createUser: (data: { email: string; adSoyad: string; rol: "admin" | "kullanici"; cinsiyet: Cinsiyet }) =>
     ist<Kullanici>("/api/admin/kullanicilar", { method: "POST", body: JSON.stringify(data) }),
   sifreSifirla: (id: string) =>
     ist<{ mesaj: string }>(`/api/admin/kullanicilar/${id}/sifre-sifirla`, { method: "POST" }),
