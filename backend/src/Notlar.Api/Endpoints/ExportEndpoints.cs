@@ -271,7 +271,7 @@ h2.klasor { font-size: 22px; color: #3d2817; margin: 50px 0 4px; padding-bottom:
                         if (sistemMi)
                         {
                             row.AutoItem().PaddingLeft(10).AlignMiddle().Background(TERRACOTTA).Padding(3).Text("SİSTEM")
-                                .FontFamily(Fonts.Calibri).FontSize(8).FontColor(Colors.White);
+                                .FontFamily("Calibri").FontSize(8).FontColor(Colors.White);
                         }
                         row.RelativeItem().AlignRight().AlignMiddle().Text($"{grpNotlar.Count} not")
                             .FontSize(11).FontColor(CLAY_400).Italic();
@@ -310,13 +310,13 @@ h2.klasor { font-size: 22px; color: #3d2817; margin: 50px 0 4px; padding-bottom:
                                 {
                                     metaRow.AutoItem().Background("#f5ede0").Padding(4)
                                         .Text($"📅 {TarihTr(n.OlusturmaZamani, trZone)}")
-                                        .FontFamily(Fonts.Calibri).FontSize(8).FontColor("#8b6f4e");
+                                        .FontFamily("Calibri").FontSize(8).FontColor("#8b6f4e");
 
                                     if (n.HatirlatmaZamani.HasValue)
                                     {
                                         metaRow.AutoItem().PaddingLeft(5).Background(TERRACOTTA).Padding(4)
                                             .Text($"⏰ {TarihTr(n.HatirlatmaZamani.Value, trZone)}")
-                                            .FontFamily(Fonts.Calibri).FontSize(8).FontColor(Colors.White);
+                                            .FontFamily("Calibri").FontSize(8).FontColor(Colors.White);
                                     }
                                     metaRow.RelativeItem();
                                 });
@@ -327,7 +327,7 @@ h2.klasor { font-size: 22px; color: #3d2817; margin: 50px 0 4px; padding-bottom:
                                         .Background("#fdf5ee").Padding(8).Column(tc =>
                                     {
                                         tc.Item().Text($"{n.TamamlayanKullanici?.AdSoyad ?? ""} tamamladı · {TarihTr(n.TamamlanmaZamani ?? DateTimeOffset.UtcNow, trZone)}")
-                                            .FontFamily(Fonts.Calibri).FontSize(8).FontColor("#8b6f4e");
+                                            .FontFamily("Calibri").FontSize(8).FontColor("#8b6f4e");
                                         tc.Item().PaddingTop(3).Text(n.TamamlanmaAciklamasi!)
                                             .FontSize(10).FontColor(CLAY_900);
                                     });
