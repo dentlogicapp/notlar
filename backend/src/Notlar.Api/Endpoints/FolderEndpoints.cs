@@ -93,23 +93,63 @@ public static class FolderEndpoints
                 await db.Klasorler.CountAsync(c => c.UstKlasorId == k.Id && !c.Silindi, ct)));
         });
 
-        // Soft delete
+        // İçerik özeti — silme onayı öncesi frontend buradan klasörde kaç not olduğunu öğrenir
+        g.MapGet("/{id:guid}/icerik-ozeti", async (
+            Guid id, AppDbContext db, CancellationToken ct) =>
+        {
+            var k = await db.Klasorler.FirstOrDefaultAsync(x => x.Id == id && !x.Silindi, ct);
+            if (k is null) return Results.NotFound();
+
+            var bekleyen = await db.Notlar.CountAsync(n => n.KlasorId == id && !n.Silindi && !n.Tamamlandi, ct);
+            var tamamlanan = await db.Notlar.CountAsync(n => n.KlasorId == id && !n.Silindi && n.Tamamlandi, ct);
+            var silinmis = await db.Notlar.CountAsync(n => n.KlasorId == id && n.Silindi, ct);
+
+            return Results.Ok(new KlasorIcerikOzetYaniti(
+                k.Id, k.Ad, bekleyen, tamamlanan, silinmis, bekleyen + tamamlanan + silinmis));
+        });
+
+        // Soft delete — içerikteki notları "kategorize edilmemiş"e taşıyıp klasörü siler
+        // (Frontend önce /icerik-ozeti ile kullanıcıya bilgi gösterir, onayla bu endpoint çağrılır)
         g.MapDelete("/{id:guid}", async (
             Guid id, AppDbContext db, IAuditService audit, CancellationToken ct) =>
         {
             var k = await db.Klasorler.FirstOrDefaultAsync(x => x.Id == id && !x.Silindi, ct);
             if (k is null) return Results.NotFound();
 
+            // Alt klasör kontrolü — 2 seviyeden fazla iç içe klasör mimariye aykırı,
+            // alt klasörler de varsa onları da kategori dışına almak yerine işlemi reddet.
             var altVar = await db.Klasorler.AnyAsync(c => c.UstKlasorId == id && !c.Silindi, ct);
-            var notVar = await db.Notlar.AnyAsync(n => n.KlasorId == id && !n.Silindi, ct);
-            if (altVar || notVar)
-                return Results.BadRequest(new { hata = "Klasör boş değil. İçerideki not ve alt klasörleri önce sil." });
+            if (altVar)
+                return Results.BadRequest(new {
+                    hata = "Bu klasörün alt klasörleri var. Önce onları sil veya başka klasöre taşı."
+                });
 
+            // İçerikteki tüm notları (bekleyen + tamamlanan + silinmiş) kategorize edilmemişe taşı
+            var tasinacakNotlar = await db.Notlar
+                .Where(n => n.KlasorId == id)
+                .ToListAsync(ct);
+            var tasinanSayi = tasinacakNotlar.Count;
+            foreach (var n in tasinacakNotlar)
+            {
+                n.KlasorId = null;
+                n.GuncellemeZamani = DateTimeOffset.UtcNow;
+            }
+
+            // Klasörü soft delete et
             k.Silindi = true;
             k.SilinmeZamani = DateTimeOffset.UtcNow;
+
             await db.SaveChangesAsync(ct);
 
-            await audit.YazAsync("klasor_silindi", "klasor", k.Id, detay: k.Ad, ct: ct);
+            // Audit — silme + içerik taşıma birlikte tek kayıt
+            await audit.YazAsync(
+                "klasor_silindi", "klasor", k.Id,
+                detay: tasinanSayi > 0
+                    ? $"{k.Ad} (içindeki {tasinanSayi} not kategorize edilmemişe taşındı)"
+                    : k.Ad,
+                degisenAlanlar: $"{{\"klasorAd\":\"{k.Ad}\",\"tasinanNotSayisi\":{tasinanSayi}}}",
+                ct: ct);
+
             return Results.NoContent();
         });
     }

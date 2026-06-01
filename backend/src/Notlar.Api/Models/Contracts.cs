@@ -24,6 +24,11 @@ public sealed record KlasorYaniti(
     Guid? UstKlasorId, string OlusturanAdSoyad,
     DateTimeOffset OlusturmaZamani, int NotSayisi, int AltKlasorSayisi);
 
+// Klasör içerik özeti — silme onayı öncesi kullanıcıya gösterilir
+public sealed record KlasorIcerikOzetYaniti(
+    Guid Id, string Ad,
+    int BekleyenNot, int TamamlananNot, int SilinmisNot, int ToplamNot);
+
 // Not
 public sealed record NotOlusturIstegi(string Baslik, string? Icerik, Guid? KlasorId);
 public sealed record NotGuncelleIstegi(string Baslik, string? Icerik, Guid? KlasorId, string? DegisiklikAciklamasi);

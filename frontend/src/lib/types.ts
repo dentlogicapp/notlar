@@ -31,6 +31,16 @@ export interface Klasor {
   altKlasorSayisi: number;
 }
 
+// Klasör silme onayı öncesi içerik özeti
+export interface KlasorIcerikOzeti {
+  id: string;
+  ad: string;
+  bekleyenNot: number;
+  tamamlananNot: number;
+  silinmisNot: number;
+  toplamNot: number;
+}
+
 export interface Not {
   id: string;
   baslik: string;

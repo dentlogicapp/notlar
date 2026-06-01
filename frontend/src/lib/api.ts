@@ -1,5 +1,5 @@
 import type {
-  Ben, Kullanici, Klasor, Not, NotGecmisi,
+  Ben, Kullanici, Klasor, KlasorIcerikOzeti, Not, NotGecmisi,
   DenetimListesi, TokenDogrulama
 } from "./types";
 
@@ -42,6 +42,7 @@ export const klasorApi = {
   update: (id: string, data: { ad: string; aciklama?: string | null; ikon?: string | null }) =>
     ist<Klasor>(`/api/klasorler/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   remove: (id: string) => ist<void>(`/api/klasorler/${id}`, { method: "DELETE" }),
+  icerikOzeti: (id: string) => ist<KlasorIcerikOzeti>(`/api/klasorler/${id}/icerik-ozeti`),
 };
 
 export const notApi = {
