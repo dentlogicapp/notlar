@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,9 +9,10 @@ import { toast } from "sonner";
 import Link from "next/link";
 import {
   Folder, FolderHeart, Plus, Heart, Sparkles, Calendar, Gem, Cake, Bell,
-  Pencil, Trash2, AlertTriangle, Loader2
+  Pencil, Trash2, AlertTriangle, Loader2, Lock, CheckCircle
 } from "lucide-react";
 import { klasorApi } from "@/lib/api";
+import { useEditLock } from "@/lib/useEditLock";
 import { Button } from "./ui/button";
 import { Input, Label } from "./ui/input";
 import {
@@ -139,6 +140,15 @@ export function KlasorDuzenleDialog({
   klasor, open, onOpenChange
 }: { klasor: Klasor; open: boolean; onOpenChange: (v: boolean) => void }) {
   const qc = useQueryClient();
+  const lock = useEditLock("klasor", klasor.id, open);
+
+  useEffect(() => {
+    if (open && lock.kilitSahibi) {
+      toast.error(`${lock.kilitSahibi} şu anda bu klasörü düzenliyor. Lütfen birkaç saniye sonra tekrar dene 🤍`);
+      onOpenChange(false);
+    }
+  }, [open, lock.kilitSahibi, onOpenChange]);
+
   const { register, handleSubmit, reset, formState: { errors }, watch, setValue } =
     useForm<z.infer<typeof schema>>({
       resolver: zodResolver(schema),
@@ -348,9 +358,12 @@ export function KlasorListesi({ aktifId }: { aktifId?: string | null } = {}) {
   const { data, isLoading } = useQuery({
     queryKey: ["klasorler"],
     queryFn: klasorApi.list,
+    refetchInterval: 60_000, // 60 saniye — klasör değişiklikleri yavaş
   });
 
   const klasorler = data ?? [];
+  const normal = klasorler.filter(k => !k.sistemMi);
+  const sistem = klasorler.filter(k => k.sistemMi);
 
   return (
     <aside className="kart p-3 sm:p-4 self-start md:sticky md:top-24">
@@ -365,12 +378,22 @@ export function KlasorListesi({ aktifId }: { aktifId?: string | null } = {}) {
         {!isLoading && klasorler.length === 0 && (
           <p className="px-2.5 py-2 text-xs text-clay-400 italic">Henüz klasör yok</p>
         )}
-        {klasorler.map((k) => (
+        {normal.map((k) => (
           <KlasorSatiri key={k.id} klasor={k} aktif={aktifId === k.id} />
         ))}
         <div className="pt-1">
           <YeniKlasorButonu compact />
         </div>
+
+        {/* Sistem klasörleri (Tamamlananlar) — ayraç çizgisi ile en altta */}
+        {sistem.length > 0 && (
+          <>
+            <div className="my-3 mx-2 border-t border-cream-300/70" />
+            {sistem.map((k) => (
+              <KlasorSatiri key={k.id} klasor={k} aktif={aktifId === k.id} />
+            ))}
+          </>
+        )}
       </nav>
     </aside>
   );
@@ -384,12 +407,16 @@ function KlasorSatiri({ klasor, aktif }: { klasor: Klasor; aktif: boolean }) {
   const [duzenleAcik, setDuzenleAcik] = useState(false);
   const [silAcik, setSilAcik] = useState(false);
 
+  const sistemMi = klasor.sistemMi;
+  const kilitli = !!klasor.kilitSahibiAdi;
+
   return (
     <>
       <div
         className={cn(
           "group flex items-center gap-1 rounded-lg transition-colors",
-          aktif ? "bg-terracotta/12" : "hover:bg-cream-200"
+          aktif ? "bg-terracotta/12" : "hover:bg-cream-200",
+          sistemMi && !aktif && "bg-cream-50/50"
         )}
       >
         {/* Klasör linki — alan büyük çoğunlukla bu */}
@@ -401,40 +428,58 @@ function KlasorSatiri({ klasor, aktif }: { klasor: Klasor; aktif: boolean }) {
             "h-8 w-8 rounded-lg flex items-center justify-center transition-colors shrink-0",
             aktif
               ? "bg-terracotta text-cream-50"
-              : "bg-cream-100 text-terracotta group-hover:bg-rose-100"
+              : sistemMi
+                ? "bg-terracotta/15 text-terracotta"
+                : "bg-cream-100 text-terracotta group-hover:bg-rose-100"
           )}>
             <IkonGoster ad={klasor.ikon} className="h-4 w-4" />
           </div>
           <div className="min-w-0 flex-1">
             <p className={cn(
-              "text-sm truncate leading-tight",
+              "text-sm truncate leading-tight flex items-center gap-1.5",
               aktif ? "text-clay-900 font-medium" : "text-clay-900"
-            )}>{klasor.ad}</p>
+            )}>
+              {klasor.ad}
+              {sistemMi && (
+                <span className="text-[9px] uppercase tracking-wider text-terracotta/70 font-medium">sistem</span>
+              )}
+            </p>
             <p className="text-[11px] text-clay-400 mt-0.5">
-              {klasor.notSayisi > 0 ? `${klasor.notSayisi} not` : "boş"}
+              {kilitli
+                ? <span className="text-terracotta inline-flex items-center gap-1"><Lock className="h-2.5 w-2.5" /> Aşkın düzenliyor</span>
+                : (klasor.notSayisi > 0 ? `${klasor.notSayisi} not` : "boş")}
             </p>
           </div>
         </Link>
 
-        {/* Aksiyon ikonları — sağda, kompakt */}
-        <div className="flex items-center pr-1.5 gap-0">
-          <button
-            type="button"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDuzenleAcik(true); }}
-            aria-label="Klasörü düzenle"
-            className="p-1.5 rounded-md text-clay-400 hover:text-clay-900 hover:bg-cream-300 active:bg-cream-400 transition-colors"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSilAcik(true); }}
-            aria-label="Klasörü sil"
-            className="p-1.5 rounded-md text-clay-400 hover:text-red-600 hover:bg-red-50 active:bg-red-100 transition-colors"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        </div>
+        {/* Aksiyon ikonları — sistem klasörü için gizli */}
+        {!sistemMi && (
+          <div className="flex items-center pr-1.5 gap-0">
+            {kilitli ? (
+              <span className="p-1.5 text-terracotta" title={`${klasor.kilitSahibiAdi} düzenliyor`}>
+                <Lock className="h-3.5 w-3.5" strokeWidth={2.5} />
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDuzenleAcik(true); }}
+                aria-label="Klasörü düzenle"
+                className="p-1.5 rounded-md text-clay-400 hover:text-clay-900 hover:bg-cream-300 active:bg-cream-400 transition-colors"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSilAcik(true); }}
+              aria-label="Klasörü sil"
+              disabled={kilitli}
+              className="p-1.5 rounded-md text-clay-400 hover:text-red-600 hover:bg-red-50 active:bg-red-100 transition-colors disabled:opacity-30"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
       </div>
 
       {duzenleAcik && (

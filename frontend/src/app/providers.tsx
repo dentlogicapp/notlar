@@ -7,7 +7,12 @@ import { useState } from "react";
 export function Providers({ children }: { children: React.ReactNode }) {
   const [qc] = useState(() => new QueryClient({
     defaultOptions: {
-      queries: { staleTime: 30_000, refetchOnWindowFocus: false, retry: 1 },
+      queries: {
+        staleTime: 30_000,
+        refetchOnWindowFocus: false,
+        refetchIntervalInBackground: false, // Sekme arka planda polling durur
+        retry: 1,
+      },
     },
   }));
 

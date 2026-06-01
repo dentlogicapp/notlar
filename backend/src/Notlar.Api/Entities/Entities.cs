@@ -55,6 +55,14 @@ public sealed class Klasor
     public required string Ad { get; set; }
     public string? Aciklama { get; set; }
     public string Ikon { get; set; } = "klasor";  // lucide icon ismi
+
+    // Sistem klasörü mü? (Tamamlananlar gibi — silinemez, düzenlenemez)
+    public bool SistemMi { get; set; }
+
+    // Yumuşak kilit (edit lock) — null = açık
+    public Guid? KilitKullaniciId { get; set; }
+    public DateTimeOffset? KilitZamani { get; set; }
+
     public Guid? UstKlasorId { get; set; }
     public Klasor? UstKlasor { get; set; }
     public ICollection<Klasor> AltKlasorler { get; set; } = new List<Klasor>();
@@ -82,6 +90,13 @@ public sealed class Not
 
     public Guid? KlasorId { get; set; }
     public Klasor? Klasor { get; set; }
+
+    // Tamamlandığında eski klasör hatırlanır → yeniden açılırsa geri taşınır
+    public Guid? EskiKlasorId { get; set; }
+
+    // Yumuşak kilit (edit lock) — null = açık
+    public Guid? KilitKullaniciId { get; set; }
+    public DateTimeOffset? KilitZamani { get; set; }
 
     public Guid OlusturanKullaniciId { get; set; }
     public Kullanici OlusturanKullanici { get; set; } = null!;

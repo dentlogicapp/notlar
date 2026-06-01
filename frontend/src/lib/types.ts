@@ -34,6 +34,8 @@ export interface Klasor {
   olusturmaZamani: string;
   notSayisi: number;
   altKlasorSayisi: number;
+  sistemMi: boolean;
+  kilitSahibiAdi: string | null;
 }
 
 // Klasör silme onayı öncesi içerik özeti
@@ -67,6 +69,9 @@ export interface Not {
   hatirlatmaKime: HatirlatmaKime | null;
   hatirlatmaSekli: HatirlatmaSekli | null;
   hatirlatmaGonderildiMi: boolean;
+  // Kilit
+  kilitSahibiAdi: string | null;
+  eskiKlasorId: string | null;
 }
 
 export interface NotGecmisi {

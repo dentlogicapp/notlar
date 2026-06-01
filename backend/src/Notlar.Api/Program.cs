@@ -12,6 +12,9 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// QuestPDF community lisansı (free for projects with <$1M annual revenue)
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+
 builder.Host.UseSerilog((ctx, cfg) => cfg
     .ReadFrom.Configuration(ctx.Configuration)
     .WriteTo.Console(outputTemplate:
@@ -128,11 +131,11 @@ using (var scope = app.Services.CreateScope())
     try
     {
         await db.Database.ExecuteSqlRawAsync(@"
-            -- kullanicilar.cinsiyet (v9 — Alt-3 davetiye + future-proof)
+            -- kullanicilar.cinsiyet (v9)
             ALTER TABLE kullanicilar
                 ADD COLUMN IF NOT EXISTS ""Cinsiyet"" character varying(10);
 
-            -- notlar tablosuna hatırlatma kolonları (v9 — Hatırlatıcı sistemi)
+            -- notlar hatırlatma kolonları (v9)
             ALTER TABLE notlar
                 ADD COLUMN IF NOT EXISTS ""HatirlatmaZamani"" timestamp with time zone;
             ALTER TABLE notlar
@@ -149,7 +152,7 @@ using (var scope = app.Services.CreateScope())
             CREATE INDEX IF NOT EXISTS ""IX_notlar_HatirlatmaZamani_HatirlatmaGonderildiMi""
                 ON notlar (""HatirlatmaZamani"", ""HatirlatmaGonderildiMi"");
 
-            -- bildirimler tablosu (v9 — Instagram-vari bildirim feed)
+            -- bildirimler tablosu (v9)
             CREATE TABLE IF NOT EXISTS bildirimler (
                 ""Id""                uuid PRIMARY KEY,
                 ""KullaniciId""       uuid NOT NULL REFERENCES kullanicilar(""Id"") ON DELETE CASCADE,
@@ -164,6 +167,25 @@ using (var scope = app.Services.CreateScope())
 
             CREATE INDEX IF NOT EXISTS ""IX_bildirimler_KullaniciId_OkunduMu_OlusturmaZamani""
                 ON bildirimler (""KullaniciId"", ""OkunduMu"", ""OlusturmaZamani"");
+
+            -- v10: notlar edit lock + eski klasör (yeniden açma için)
+            ALTER TABLE notlar
+                ADD COLUMN IF NOT EXISTS ""KilitKullaniciId"" uuid;
+            ALTER TABLE notlar
+                ADD COLUMN IF NOT EXISTS ""KilitZamani"" timestamp with time zone;
+            ALTER TABLE notlar
+                ADD COLUMN IF NOT EXISTS ""EskiKlasorId"" uuid;
+
+            -- v10: klasörler edit lock + sistem klasör flag
+            ALTER TABLE klasorler
+                ADD COLUMN IF NOT EXISTS ""KilitKullaniciId"" uuid;
+            ALTER TABLE klasorler
+                ADD COLUMN IF NOT EXISTS ""KilitZamani"" timestamp with time zone;
+            ALTER TABLE klasorler
+                ADD COLUMN IF NOT EXISTS ""SistemMi"" boolean NOT NULL DEFAULT false;
+
+            CREATE INDEX IF NOT EXISTS ""IX_klasorler_SistemMi""
+                ON klasorler (""SistemMi"");
         ");
         Log.Information("Şema güncellemeleri kontrol edildi (idempotent)");
     }
@@ -171,6 +193,44 @@ using (var scope = app.Services.CreateScope())
     {
         Log.Error(ex, "Şema güncellemeleri sırasında hata");
         throw;
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // SİSTEM KLASÖRÜ SEED — "Tamamlananlar"
+    // Sistemde her zaman var olur. İdempotent: zaten varsa hiçbir şey yapmaz.
+    // ──────────────────────────────────────────────────────────────────────────
+    try
+    {
+        var tamamlananlarVar = await db.Klasorler
+            .AnyAsync(k => k.SistemMi && k.Ad == "Tamamlananlar");
+
+        if (!tamamlananlarVar)
+        {
+            // İlk admin'i olusturan olarak ata (yoksa system bir kullanıcı yok henüz, seed atla)
+            var ilkAdmin = await db.Kullanicilar
+                .Where(u => u.Rol == "admin")
+                .OrderBy(u => u.OlusturmaZamani)
+                .FirstOrDefaultAsync();
+
+            if (ilkAdmin is not null)
+            {
+                db.Klasorler.Add(new Klasor
+                {
+                    Ad = "Tamamlananlar",
+                    Aciklama = "Tamamlanan tüm notlar burada toplanır",
+                    Ikon = "check-circle",
+                    SistemMi = true,
+                    OlusturanKullaniciId = ilkAdmin.Id,
+                });
+                await db.SaveChangesAsync();
+                Log.Information("Tamamlananlar sistem klasörü oluşturuldu");
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        Log.Error(ex, "Tamamlananlar sistem klasörü seed sırasında hata");
+        // Seed başarısız olsa bile uygulama açılabilir
     }
 
     var ilkEmail = builder.Configuration["IlkAdmin:Email"];
@@ -228,5 +288,7 @@ app.MapAdminEndpoints();
 app.MapFolderEndpoints();
 app.MapNoteEndpoints();
 app.MapNotificationEndpoints();
+app.MapLockEndpoints();
+app.MapExportEndpoints();
 
 app.Run();

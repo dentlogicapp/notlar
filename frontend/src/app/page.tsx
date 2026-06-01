@@ -30,6 +30,7 @@ function Icerik() {
   const notlarQuery = useQuery({
     queryKey: ["notlar", null],
     queryFn: () => notApi.list({ silindi: false }),
+    refetchInterval: 15_000, // 15 saniye — eşin değişiklikleri görünür
   });
   const notlarYuklendi = !notlarQuery.isLoading && !!notlarQuery.data;
 
@@ -80,7 +81,7 @@ function Icerik() {
         {/* Karşılama */}
         <section className="animate-fade-in pr-0 md:pr-48 lg:pr-64">
           <p className="font-display text-2xl sm:text-3xl md:text-4xl text-clay-900 leading-tight flex items-baseline gap-2 flex-wrap">
-            <span>Merhaba,</span>
+            <span>Merhaba</span>
             <span className="inline-flex items-center gap-1.5 sm:gap-2">
               <span className="text-terracotta">Aşkım</span>
               <Heart className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 text-terracotta animate-heart-beat" fill="currentColor" strokeWidth={1.5} />
@@ -102,7 +103,7 @@ function Icerik() {
 
           <section className="min-w-0">
             <h2 className="font-display text-lg sm:text-xl text-clay-900 mb-3 sm:mb-4 px-1">Tüm Notlar</h2>
-            <NotListesi klasorId={null} />
+            <NotListesi klasorId={null} sadeceBekleyen />
           </section>
         </div>
 

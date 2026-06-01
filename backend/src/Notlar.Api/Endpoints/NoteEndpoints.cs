@@ -15,7 +15,7 @@ public static class NoteEndpoints
 
         // LIST — filtreli (klasor, silindi, tamamlandi)
         g.MapGet("/", async (
-            AppDbContext db, Guid? klasor, bool? tamamlandi, bool? silindi,
+            AppDbContext db, IUserContext uc, Guid? klasor, bool? tamamlandi, bool? silindi,
             CancellationToken ct) =>
         {
             var sorgu = db.Notlar.AsQueryable();
@@ -23,13 +23,43 @@ public static class NoteEndpoints
             if (klasor.HasValue) sorgu = sorgu.Where(n => n.KlasorId == klasor.Value);
             if (tamamlandi.HasValue) sorgu = sorgu.Where(n => n.Tamamlandi == tamamlandi.Value);
 
-            var list = await sorgu
+            var notlar = await sorgu
                 .Include(n => n.OlusturanKullanici)
                 .Include(n => n.TamamlayanKullanici)
                 .Include(n => n.Klasor)
                 .OrderByDescending(n => n.GuncellemeZamani)
-                .Select(n => MapYanit(n))
                 .ToListAsync(ct);
+
+            // Kilit sahibi adlarını batch fetch et — başkasında kilit varsa frontend "Aşkın düzenliyor" görsün
+            var kilitSuresi = TimeSpan.FromSeconds(45);
+            var simdi = DateTimeOffset.UtcNow;
+            var aktifKilitIds = notlar
+                .Where(n => n.KilitKullaniciId.HasValue
+                         && n.KilitKullaniciId != uc.KullaniciId
+                         && n.KilitZamani.HasValue
+                         && (simdi - n.KilitZamani.Value) <= kilitSuresi)
+                .Select(n => n.KilitKullaniciId!.Value)
+                .Distinct()
+                .ToList();
+
+            var kilitSahipleri = aktifKilitIds.Count > 0
+                ? await db.Kullanicilar
+                    .Where(u => aktifKilitIds.Contains(u.Id))
+                    .ToDictionaryAsync(u => u.Id, u => u.AdSoyad, ct)
+                : new Dictionary<Guid, string>();
+
+            var list = notlar.Select(n =>
+            {
+                string? sahibi = null;
+                if (n.KilitKullaniciId.HasValue
+                    && n.KilitKullaniciId != uc.KullaniciId
+                    && n.KilitZamani.HasValue
+                    && (simdi - n.KilitZamani.Value) <= kilitSuresi)
+                {
+                    kilitSahipleri.TryGetValue(n.KilitKullaniciId.Value, out sahibi);
+                }
+                return MapYanit(n, sahibi);
+            }).ToList();
 
             return Results.Ok(list);
         });
@@ -114,6 +144,12 @@ public static class NoteEndpoints
             if (string.IsNullOrWhiteSpace(req.Baslik))
                 return Results.BadRequest(new { hata = "Başlık zorunlu." });
 
+            // Kilit kontrolü — başkasında kilit varsa engelle
+            var kilitSahibi = await LockEndpoints.KilitBaskasiMi(
+                db, n.KilitKullaniciId, n.KilitZamani, uc.KullaniciId.Value, ct);
+            if (kilitSahibi is not null)
+                return Results.Json(new { hata = $"{kilitSahibi} şu anda bu notu düzenliyor." }, statusCode: 409);
+
             var eski = JsonSerializer.Serialize(new { n.Baslik, n.Icerik, n.KlasorId });
             n.Baslik = req.Baslik.Trim();
             n.Icerik = req.Icerik?.Trim();
@@ -164,6 +200,14 @@ public static class NoteEndpoints
                 Aciklama = string.IsNullOrWhiteSpace(req.DegisiklikAciklamasi) ? null : req.DegisiklikAciklamasi.Trim(),
                 YapanKullaniciId = uc.KullaniciId.Value
             });
+
+            // Kaydet sonrası kilidi bırak (frontend de DELETE çağırır ama burada da güvence)
+            if (n.KilitKullaniciId == uc.KullaniciId.Value)
+            {
+                n.KilitKullaniciId = null;
+                n.KilitZamani = null;
+            }
+
             await db.SaveChangesAsync(ct);
 
             await audit.YazAsync("not_guncellendi", "not", n.Id, detay: n.Baslik, ct: ct);
@@ -186,11 +230,25 @@ public static class NoteEndpoints
             if (n is null) return Results.NotFound();
             if (n.Tamamlandi) return Results.BadRequest(new { hata = "Not zaten tamamlandı." });
 
+            // Kilit kontrolü
+            var kilitSahibi = await LockEndpoints.KilitBaskasiMi(
+                db, n.KilitKullaniciId, n.KilitZamani, uc.KullaniciId.Value, ct);
+            if (kilitSahibi is not null)
+                return Results.Json(new { hata = $"{kilitSahibi} şu anda bu notu düzenliyor." }, statusCode: 409);
+
             n.Tamamlandi = true;
             n.TamamlanmaAciklamasi = req.TamamlanmaAciklamasi.Trim();
             n.TamamlanmaZamani = DateTimeOffset.UtcNow;
             n.TamamlayanKullaniciId = uc.KullaniciId.Value;
             n.GuncellemeZamani = DateTimeOffset.UtcNow;
+
+            // Eski klasör hatırla + Tamamlananlar'a taşı
+            n.EskiKlasorId = n.KlasorId;
+            var tamamlananlar = await db.Klasorler
+                .Where(k => k.SistemMi && k.Ad == "Tamamlananlar")
+                .FirstOrDefaultAsync(ct);
+            if (tamamlananlar is not null)
+                n.KlasorId = tamamlananlar.Id;
 
             db.NotGecmisleri.Add(new NotGecmisi
             {
@@ -199,6 +257,11 @@ public static class NoteEndpoints
                 Aciklama = req.TamamlanmaAciklamasi.Trim(),
                 YapanKullaniciId = uc.KullaniciId.Value
             });
+
+            // Kilidi bırak
+            n.KilitKullaniciId = null;
+            n.KilitZamani = null;
+
             await db.SaveChangesAsync(ct);
 
             await audit.YazAsync("not_tamamlandi", "not", n.Id, detay: n.Baslik, ct: ct);
@@ -210,7 +273,7 @@ public static class NoteEndpoints
             return Results.Ok(MapYanit(loaded));
         });
 
-        // YENİDEN AÇ (tamamlandı'yı geri al)
+        // YENİDEN AÇ (tamamlandı'yı geri al) — eski klasöre geri taşı
         g.MapPost("/{id:guid}/yeniden-ac", async (
             Guid id, AppDbContext db, IUserContext uc,
             IAuditService audit, CancellationToken ct) =>
@@ -229,6 +292,10 @@ public static class NoteEndpoints
             n.TamamlayanKullaniciId = null;
             n.GuncellemeZamani = DateTimeOffset.UtcNow;
 
+            // Eski klasöre geri taşı (yoksa klasörsüz)
+            n.KlasorId = n.EskiKlasorId;
+            n.EskiKlasorId = null;
+
             db.NotGecmisleri.Add(new NotGecmisi
             {
                 NotId = n.Id,
@@ -238,7 +305,11 @@ public static class NoteEndpoints
             await db.SaveChangesAsync(ct);
 
             await audit.YazAsync("not_yeniden_acildi", "not", n.Id, detay: n.Baslik, ct: ct);
-            return Results.Ok(MapYanit(n));
+            var loaded = await db.Notlar
+                .Include(x => x.OlusturanKullanici)
+                .Include(x => x.Klasor)
+                .FirstAsync(x => x.Id == n.Id, ct);
+            return Results.Ok(MapYanit(loaded));
         });
 
         // SOFT DELETE
@@ -309,7 +380,8 @@ public static class NoteEndpoints
         });
     }
 
-    private static NotYaniti MapYanit(Not n) => new(
+    // NotYaniti'de KilitSahibiAdi async olarak alınmalı — ayrı overload
+    private static NotYaniti MapYanit(Not n, string? kilitSahibiAdi = null) => new(
         n.Id, n.Baslik, n.Icerik, n.Tamamlandi,
         n.TamamlanmaAciklamasi, n.TamamlanmaZamani,
         n.TamamlayanKullanici?.AdSoyad,
@@ -318,5 +390,7 @@ public static class NoteEndpoints
         n.OlusturmaZamani, n.GuncellemeZamani,
         n.Silindi, n.SilinmeZamani,
         n.HatirlatmaZamani, n.HatirlatmaKime, n.HatirlatmaSekli,
-        n.HatirlatmaGonderildiMi);
+        n.HatirlatmaGonderildiMi,
+        kilitSahibiAdi,
+        n.EskiKlasorId);
 }

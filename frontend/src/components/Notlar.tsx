@@ -5,11 +5,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
-  Eye, Pencil, Trash2, Plus, History, CheckCircle2, Loader2, FolderHeart, Tag, Bell
+  Eye, Pencil, Trash2, Plus, History, CheckCircle2, Loader2, FolderHeart, Tag, Bell, Lock
 } from "lucide-react";
 import { notApi, klasorApi } from "@/lib/api";
+import { useEditLock } from "@/lib/useEditLock";
 import { Button } from "./ui/button";
 import { Input, Textarea, Label } from "./ui/input";
 import { Checkbox } from "./ui/checkbox";
@@ -71,6 +72,15 @@ export function TamamlaDialog({
   not, open, onOpenChange
 }: { not: Not; open: boolean; onOpenChange: (v: boolean) => void }) {
   const qc = useQueryClient();
+  const lock = useEditLock("not", not.id, open);
+
+  useEffect(() => {
+    if (open && lock.kilitSahibi) {
+      toast.error(`${lock.kilitSahibi} şu anda bu notu düzenliyor. Lütfen birkaç saniye sonra tekrar dene 🤍`);
+      onOpenChange(false);
+    }
+  }, [open, lock.kilitSahibi, onOpenChange]);
+
   const [aciklama, setAciklama] = useState("");
 
   const m = useMutation({
@@ -126,6 +136,18 @@ export function DuzenleDialog({
   not, open, onOpenChange
 }: { not: Not; open: boolean; onOpenChange: (v: boolean) => void }) {
   const qc = useQueryClient();
+
+  // Edit lock — dialog açıkken kilit tutulur, kapanırken bırakılır
+  const lock = useEditLock("not", not.id, open);
+
+  // Başkası düzenliyorsa toast + kapat
+  useEffect(() => {
+    if (open && lock.kilitSahibi) {
+      toast.error(`${lock.kilitSahibi} şu anda bu notu düzenliyor. Lütfen birkaç saniye sonra tekrar dene 🤍`);
+      onOpenChange(false);
+    }
+  }, [open, lock.kilitSahibi, onOpenChange]);
+
   const [baslik, setBaslik] = useState(not.baslik);
   const [icerik, setIcerik] = useState(not.icerik ?? "");
   const [klasorId, setKlasorId] = useState<string | null>(not.klasorId);
@@ -566,17 +588,28 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
                   <Bell className="h-3.5 w-3.5" fill={not.hatirlatmaGonderildiMi ? "none" : "currentColor"} strokeWidth={2} />
                 </span>
               )}
-              <button
-                onClick={() => setDuzenleAcik(true)}
-                aria-label="Düzenle"
-                className="p-1.5 rounded-md text-clay-500 hover:text-clay-900 hover:bg-cream-200 active:bg-cream-300 transition-colors"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-              </button>
+              {not.kilitSahibiAdi ? (
+                <span
+                  aria-label={`${not.kilitSahibiAdi} düzenliyor`}
+                  title={`${not.kilitSahibiAdi} şu anda bu notu düzenliyor`}
+                  className="p-1.5 rounded-md text-terracotta bg-terracotta/10 inline-flex items-center gap-1 text-[10px] font-medium"
+                >
+                  <Lock className="h-3 w-3" strokeWidth={2.5} />
+                  <span className="hidden sm:inline">Aşkın düzenliyor</span>
+                </span>
+              ) : (
+                <button
+                  onClick={() => setDuzenleAcik(true)}
+                  aria-label="Düzenle"
+                  className="p-1.5 rounded-md text-clay-500 hover:text-clay-900 hover:bg-cream-200 active:bg-cream-300 transition-colors"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+              )}
               <button
                 onClick={() => sil.mutate()}
                 aria-label="Sil"
-                disabled={sil.isPending}
+                disabled={sil.isPending || !!not.kilitSahibiAdi}
                 className="p-1.5 rounded-md text-clay-500 hover:text-red-600 hover:bg-red-50 active:bg-red-100 transition-colors disabled:opacity-40"
               >
                 <Trash2 className="h-3.5 w-3.5" />
@@ -592,7 +625,12 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
               {not.olusturanAdSoyad.split(" ")[0]}
             </span>
             <span className="text-clay-300">·</span>
-            <span className="text-clay-400">{gorelizamandan(not.olusturmaZamani)}</span>
+            <span
+              className="text-clay-400"
+              title={`Oluşturma: ${tarihFormat(not.olusturmaZamani)}`}
+            >
+              {gorelizamandan(not.guncellemeZamani)}
+            </span>
           </div>
         </div>
       </div>
@@ -606,11 +644,16 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
 
 // Not listesi
 export function NotListesi({
-  klasorId, klasorBadgeGoster = true
-}: { klasorId?: string | null; klasorBadgeGoster?: boolean }) {
+  klasorId, klasorBadgeGoster = true, sadeceBekleyen = false
+}: { klasorId?: string | null; klasorBadgeGoster?: boolean; sadeceBekleyen?: boolean }) {
   const { data, isLoading, error } = useQuery({
-    queryKey: ["notlar", { klasor: klasorId, silindi: false }],
-    queryFn: () => notApi.list({ klasor: klasorId ?? undefined, silindi: false }),
+    queryKey: ["notlar", { klasor: klasorId, silindi: false, bekleyen: sadeceBekleyen }],
+    queryFn: () => notApi.list({
+      klasor: klasorId ?? undefined,
+      silindi: false,
+      tamamlandi: sadeceBekleyen ? false : undefined,
+    }),
+    refetchInterval: 15_000,
   });
 
   if (isLoading) {

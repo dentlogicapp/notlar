@@ -48,7 +48,7 @@ services:
       Smtp__Host: "mailpit"
       Smtp__Port: "1025"
       Smtp__From: "notlar@local.test"
-      Smtp__FromName: "Görev Defteri"
+      Smtp__FromName: "🔒 Planlama Defterimiz 🤍"
       Smtp__Ssl: "false"
       FrontendBaseUrl: "http://localhost:3000"
       IlkAdmin__Email: "musa@local.test"

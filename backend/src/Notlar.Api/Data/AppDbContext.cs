@@ -53,6 +53,7 @@ public sealed class AppDbContext : DbContext
              .HasForeignKey(x => x.OlusturanKullaniciId).OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(x => x.UstKlasorId);
             e.HasIndex(x => x.Silindi);
+            e.HasIndex(x => x.SistemMi);  // Tamamlananlar lookup için
         });
 
         m.Entity<Not>(e =>

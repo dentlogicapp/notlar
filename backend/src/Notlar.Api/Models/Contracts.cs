@@ -24,7 +24,10 @@ public sealed record KlasorGuncelleIstegi(string Ad, string? Aciklama, string? I
 public sealed record KlasorYaniti(
     Guid Id, string Ad, string? Aciklama, string Ikon,
     Guid? UstKlasorId, string OlusturanAdSoyad,
-    DateTimeOffset OlusturmaZamani, int NotSayisi, int AltKlasorSayisi);
+    DateTimeOffset OlusturmaZamani, int NotSayisi, int AltKlasorSayisi,
+    bool SistemMi,
+    // Kilit (null = açık, dolu = kim düzenliyor)
+    string? KilitSahibiAdi);
 
 // Klasör içerik özeti — silme onayı öncesi kullanıcıya gösterilir
 public sealed record KlasorIcerikOzetYaniti(
@@ -61,7 +64,10 @@ public sealed record NotYaniti(
     DateTimeOffset? HatirlatmaZamani,
     string? HatirlatmaKime,
     string? HatirlatmaSekli,
-    bool HatirlatmaGonderildiMi);
+    bool HatirlatmaGonderildiMi,
+    // Kilit
+    string? KilitSahibiAdi,
+    Guid? EskiKlasorId);
 
 public sealed record NotGecmisiYaniti(
     Guid Id, string Eylem, string? Aciklama,
@@ -84,3 +90,6 @@ public sealed record DenetimYaniti(
     string? Ip, string? Detay,
     string? DegisenAlanlar,
     DateTimeOffset Zaman);
+
+// Kilit (edit lock) yanıtı
+public sealed record KilitYaniti(bool BasariliMi, string? KilitSahibiAdi);

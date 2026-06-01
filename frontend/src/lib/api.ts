@@ -99,6 +99,57 @@ export const bildirimApi = {
     ist<void>("/api/bildirimler/hepsi-okundu", { method: "POST" }),
 };
 
+// Edit lock (yumuşak kilit)
+export interface KilitYanit {
+  basariliMi: boolean;
+  kilitSahibiAdi: string | null;
+}
+
+export const lockApi = {
+  // Not
+  notAl: (id: string) =>
+    ist<KilitYanit>(`/api/notlar/${id}/kilit`, { method: "POST" }),
+  notHeartbeat: (id: string) =>
+    ist<void>(`/api/notlar/${id}/kilit/heartbeat`, { method: "POST" }),
+  notBirak: (id: string) =>
+    ist<void>(`/api/notlar/${id}/kilit`, { method: "DELETE" }),
+  // Klasör
+  klasorAl: (id: string) =>
+    ist<KilitYanit>(`/api/klasorler/${id}/kilit`, { method: "POST" }),
+  klasorHeartbeat: (id: string) =>
+    ist<void>(`/api/klasorler/${id}/kilit/heartbeat`, { method: "POST" }),
+  klasorBirak: (id: string) =>
+    ist<void>(`/api/klasorler/${id}/kilit`, { method: "DELETE" }),
+};
+
+export type DefteriIndirFormat = "html" | "pdf" | "docx" | "xlsx";
+
+export async function defteriIndir(format: DefteriIndirFormat): Promise<void> {
+  const r = await fetch(`${API}/api/defteri-indir/?format=${format}`, {
+    credentials: "include",
+  });
+  if (!r.ok) {
+    let m = `İndirme başarısız (${r.status})`;
+    try { const b = await r.json(); if (b?.hata) m = b.hata; } catch {}
+    throw new Error(m);
+  }
+  // Dosyayı blob olarak al + tarayıcıya indir
+  const blob = await r.blob();
+  // Content-Disposition'dan filename çek
+  const cd = r.headers.get("content-disposition") || "";
+  const match = cd.match(/filename\*?=(?:UTF-8'')?["']?([^"';]+)["']?/i);
+  const filename = match ? decodeURIComponent(match[1]) : `planlama-defterimiz.${format}`;
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export const adminApi = {
   listUsers: () => ist<Kullanici[]>("/api/admin/kullanicilar"),
   createUser: (data: { email: string; adSoyad: string; rol: "admin" | "kullanici"; cinsiyet: Cinsiyet }) =>

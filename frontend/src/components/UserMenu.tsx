@@ -2,14 +2,24 @@
 
 import * as DM from "@radix-ui/react-dropdown-menu";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { LogOut, Shield, Trash2, ListTodo, Bell } from "lucide-react";
+import {
+  LogOut, Shield, Trash2, ListTodo, Bell, Download,
+  FileText, FileSpreadsheet, FileType, FileCode, Loader2, X
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { authApi, bildirimApi } from "@/lib/api";
+import { authApi, bildirimApi, defteriIndir, type DefteriIndirFormat } from "@/lib/api";
 import { useBen } from "@/lib/useBen";
 import { cn, bastari } from "@/lib/utils";
 import type { Bildirim } from "@/lib/types";
+import { toast } from "sonner";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription
+} from "./ui/dialog";
+
+const ILK_BILDIRIM = 5;
+const MAX_BILDIRIM = 30;
 
 function gecenSureMetni(zaman: string): string {
   const t = new Date(zaman).getTime();
@@ -29,12 +39,14 @@ export function UserMenu() {
   const router = useRouter();
   const qc = useQueryClient();
   const [acik, setAcik] = useState(false);
+  const [indirAcik, setIndirAcik] = useState(false);
+  const [gosterilen, setGosterilen] = useState(ILK_BILDIRIM);
 
   const bildirimSorgu = useQuery({
     queryKey: ["bildirimler"],
     queryFn: () => bildirimApi.list(),
     enabled: !!ben,
-    refetchInterval: 30_000,
+    refetchInterval: 10_000, // 10 saniye — bildirim için daha sık
     refetchOnWindowFocus: true,
   });
 
@@ -49,12 +61,15 @@ export function UserMenu() {
   });
 
   const okunmamis = bildirimSorgu.data?.okunmamisSayisi ?? 0;
-  const bildirimler = bildirimSorgu.data?.bildirimler ?? [];
+  const tumBildirimler = (bildirimSorgu.data?.bildirimler ?? []).slice(0, MAX_BILDIRIM);
+  const goruntuBildirimler = tumBildirimler.slice(0, gosterilen);
+  const dahaVar = tumBildirimler.length > gosterilen;
 
-  // Dropdown açıldığında okunmamış varsa "hepsi okundu" tetikle
+  // Dropdown açıldığında okunmamış varsa "hepsi okundu" tetikle + gösterileni sıfırla
   useEffect(() => {
-    if (acik && okunmamis > 0) {
-      hepsiOkundu.mutate();
+    if (acik) {
+      if (okunmamis > 0) hepsiOkundu.mutate();
+      setGosterilen(ILK_BILDIRIM);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [acik]);
@@ -69,68 +84,121 @@ export function UserMenu() {
   if (!ben) return null;
 
   return (
-    <DM.Root open={acik} onOpenChange={setAcik}>
-      <DM.Trigger asChild>
-        <button
-          aria-label="Kullanıcı menüsü"
-          className={cn(
-            "relative flex items-center gap-2 rounded-full pl-1 pr-2 py-1 hover:bg-cream-200 transition-colors",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta/40"
-          )}
-        >
-          <div
+    <>
+      <DM.Root open={acik} onOpenChange={setAcik}>
+        <DM.Trigger asChild>
+          <button
+            aria-label="Kullanıcı menüsü"
             className={cn(
-              "h-9 w-9 rounded-full text-cream-50 flex items-center justify-center text-xs font-medium relative",
-              okunmamis > 0
-                ? "bg-red-500 animate-pulse-red-bildirim"
-                : "bg-clay-800"
+              "relative flex items-center gap-2 rounded-full pl-1 pr-2 py-1 hover:bg-cream-200 transition-colors",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta/40"
             )}
           >
-            {bastari(ben.adSoyad)}
-            {okunmamis > 0 && (
-              <span
-                aria-label={`${okunmamis} okunmamış bildirim`}
-                className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-white text-red-600 text-[10px] font-semibold flex items-center justify-center border border-red-500"
-              >
-                {okunmamis > 9 ? "9+" : okunmamis}
-              </span>
-            )}
-          </div>
-          <span className="text-sm text-clay-700 hidden sm:inline pr-1">
-            {ben.adSoyad.split(" ")[0]}
-          </span>
-        </button>
-      </DM.Trigger>
+            <div
+              className={cn(
+                "h-9 w-9 rounded-full text-cream-50 flex items-center justify-center text-xs font-medium relative",
+                okunmamis > 0
+                  ? "bg-red-500 animate-pulse-red-bildirim"
+                  : "bg-clay-800"
+              )}
+            >
+              {bastari(ben.adSoyad)}
+              {okunmamis > 0 && (
+                <span
+                  aria-label={`${okunmamis} okunmamış bildirim`}
+                  className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-white text-red-600 text-[10px] font-semibold flex items-center justify-center border border-red-500"
+                >
+                  {okunmamis > 9 ? "9+" : okunmamis}
+                </span>
+              )}
+            </div>
+            <span className="text-sm text-clay-700 hidden sm:inline pr-1">
+              {ben.adSoyad.split(" ")[0]}
+            </span>
+          </button>
+        </DM.Trigger>
 
-      <DM.Portal>
-        <DM.Content
-          align="end" sideOffset={8}
-          className="min-w-[300px] max-w-[340px] kart p-1 z-50 animate-fade-in"
-        >
-          {/* User identity */}
-          <div className="px-3 py-2.5 border-b border-cream-300">
-            <p className="text-sm font-medium text-clay-900">{ben.adSoyad}</p>
-            <p className="text-xs text-clay-400 truncate">{ben.email}</p>
+        <DM.Portal>
+          <DM.Content
+            align="end" sideOffset={8}
+            className="min-w-[320px] max-w-[360px] kart p-1 z-50 animate-fade-in"
+          >
+            {/* User identity */}
+            <div className="px-3 py-2.5 border-b border-cream-300">
+              <p className="text-sm font-medium text-clay-900">{ben.adSoyad}</p>
+              <p className="text-xs text-clay-400 truncate">{ben.email}</p>
+              {ben.rol === "admin" && (
+                <p className="text-xs text-terracotta mt-1 font-medium">⚜ Yönetici</p>
+              )}
+            </div>
+
+            {/* MENÜ — Yeni sıra: Notlar → Yönetim → Çöp Kutusu → Defteri İndir → Bildirimler → Çıkış */}
+            <DM.Item asChild>
+              <Link href="/" className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-cream-200 cursor-pointer outline-none">
+                <ListTodo className="h-4 w-4 text-clay-500" />
+                Notlar
+              </Link>
+            </DM.Item>
+
             {ben.rol === "admin" && (
-              <p className="text-xs text-terracotta mt-1 font-medium">⚜ Yönetici</p>
+              <DM.Item asChild>
+                <Link href="/admin" className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-cream-200 cursor-pointer outline-none">
+                  <Shield className="h-4 w-4 text-clay-500" />
+                  Yönetim
+                </Link>
+              </DM.Item>
             )}
-          </div>
 
-          {/* BİLDİRİMLER — Instagram-vari özet feed */}
-          <div className="border-b border-cream-300 max-h-[280px] overflow-y-auto">
-            <div className="flex items-center gap-2 px-3 py-2 sticky top-0 bg-white">
+            <DM.Item asChild>
+              <Link href="/cop-kutusu" className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-cream-200 cursor-pointer outline-none">
+                <Trash2 className="h-4 w-4 text-clay-500" />
+                Çöp Kutusu
+              </Link>
+            </DM.Item>
+
+            <DM.Item
+              onSelect={(e) => {
+                e.preventDefault();
+                setAcik(false);
+                // Küçük gecikme — menü kapanması bitsin sonra dialog açılsın
+                setTimeout(() => setIndirAcik(true), 50);
+              }}
+              className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-cream-200 cursor-pointer outline-none text-clay-700"
+            >
+              <Download className="h-4 w-4 text-terracotta" />
+              Defteri İndir
+            </DM.Item>
+
+            {/* BİLDİRİMLER — Çöp Kutusu altı, Çıkış üstü, paginate edilmiş */}
+            <DM.Separator className="h-px bg-cream-300 my-1" />
+
+            <div className="px-3 pt-2 pb-1 flex items-center gap-2">
               <Bell className="h-3.5 w-3.5 text-terracotta" />
               <span className="text-[11px] uppercase tracking-wider text-clay-500 font-semibold">
                 Bildirimler
               </span>
+              {tumBildirimler.length > 0 && (
+                <span className="text-[10px] text-clay-400 ml-auto">
+                  {tumBildirimler.length}{tumBildirimler.length >= MAX_BILDIRIM ? "+" : ""} adet
+                </span>
+              )}
             </div>
-            {bildirimler.length === 0 ? (
+
+            {tumBildirimler.length === 0 ? (
               <p className="px-3 pb-2.5 text-xs text-clay-400 italic">
                 Henüz bildirim yok.
               </p>
             ) : (
-              <div className="px-1 pb-1.5">
-                {bildirimler.slice(0, 8).map((b) => (
+              <div className="relative px-1 pb-1.5 max-h-[300px] overflow-y-auto bildirim-scroll">
+                {/* Üst gradient fade — paginate olduğunda "üstte daha var" hissi */}
+                {gosterilen > ILK_BILDIRIM && (
+                  <div
+                    className="sticky top-0 z-10 h-3 -mx-1 mb-[-12px] pointer-events-none"
+                    style={{ background: "linear-gradient(to bottom, #ffffff, transparent)" }}
+                  />
+                )}
+
+                {goruntuBildirimler.map((b) => (
                   <button
                     key={b.id}
                     onClick={() => bildirimeTikla(b)}
@@ -153,45 +221,159 @@ export function UserMenu() {
                     </div>
                   </button>
                 ))}
+
+                {/* "Daha eski bildirimleri gör" — sticky bottom */}
+                {dahaVar && (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setGosterilen(g => Math.min(g + 5, MAX_BILDIRIM));
+                    }}
+                    className="w-full text-center text-[11px] text-terracotta hover:text-terracotta/80 py-2 mt-1 font-medium hover:bg-cream-50 rounded-lg transition-colors"
+                  >
+                    ⌄ Daha eski bildirimleri gör ({tumBildirimler.length - gosterilen})
+                  </button>
+                )}
+                {!dahaVar && tumBildirimler.length > ILK_BILDIRIM && (
+                  <p className="text-center text-[10px] text-clay-400 italic py-1.5">
+                    {tumBildirimler.length >= MAX_BILDIRIM
+                      ? "Yalnızca son 30 bildirim görüntülenir"
+                      : "Daha eski bildirim yok"}
+                  </p>
+                )}
               </div>
             )}
-          </div>
 
-          {/* Menü */}
-          <DM.Item asChild>
-            <Link href="/" className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-cream-200 cursor-pointer outline-none">
-              <ListTodo className="h-4 w-4 text-clay-500" />
-              Notlar
-            </Link>
-          </DM.Item>
+            <DM.Separator className="h-px bg-cream-300 my-1" />
 
-          {ben.rol === "admin" && (
-            <DM.Item asChild>
-              <Link href="/admin" className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-cream-200 cursor-pointer outline-none">
-                <Shield className="h-4 w-4 text-clay-500" />
-                Yönetim
-              </Link>
+            <DM.Item
+              onSelect={() => cikis.mutate()}
+              className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-rose-50 hover:text-red-700 cursor-pointer outline-none text-clay-700"
+            >
+              <LogOut className="h-4 w-4" />
+              Çıkış
             </DM.Item>
-          )}
+          </DM.Content>
+        </DM.Portal>
+      </DM.Root>
 
-          <DM.Item asChild>
-            <Link href="/cop-kutusu" className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-cream-200 cursor-pointer outline-none">
-              <Trash2 className="h-4 w-4 text-clay-500" />
-              Çöp Kutusu
-            </Link>
-          </DM.Item>
+      {/* Defteri İndir — Format seçim dialog'u */}
+      <DefteriIndirDialog open={indirAcik} onOpenChange={setIndirAcik} />
+    </>
+  );
+}
 
-          <DM.Separator className="h-px bg-cream-300 my-1" />
+// ──────── Defteri İndir Dialog ────────
 
-          <DM.Item
-            onSelect={() => cikis.mutate()}
-            className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-rose-50 hover:text-red-700 cursor-pointer outline-none text-clay-700"
-          >
-            <LogOut className="h-4 w-4" />
-            Çıkış
-          </DM.Item>
-        </DM.Content>
-      </DM.Portal>
-    </DM.Root>
+function DefteriIndirDialog({
+  open, onOpenChange
+}: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const [yuklenenFormat, setYuklenenFormat] = useState<DefteriIndirFormat | null>(null);
+
+  const indir = async (format: DefteriIndirFormat) => {
+    setYuklenenFormat(format);
+    try {
+      await defteriIndir(format);
+      toast.success(`Defterin indirildi 🤍`);
+      onOpenChange(false);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setYuklenenFormat(null);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Defteri İndir 🤍</DialogTitle>
+          <DialogDescription>
+            Sevdiğin formatı seç — tüm klasör ve notlarımız özenle hazırlanıp indirilecek.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid grid-cols-2 gap-3 mt-3">
+          <FormatKart
+            ad="PDF"
+            etiket="Kağıda Baskı"
+            aciklama="Kalemle üzerinde çalış"
+            icon={<FileType className="h-7 w-7" />}
+            renk="bg-red-50 text-red-700 border-red-200 hover:border-red-400"
+            yukleniyor={yuklenenFormat === "pdf"}
+            disabled={!!yuklenenFormat}
+            onClick={() => indir("pdf")}
+          />
+          <FormatKart
+            ad="Word"
+            etiket="Düzenlenebilir"
+            aciklama="Üzerinde yazıp değiştir"
+            icon={<FileText className="h-7 w-7" />}
+            renk="bg-blue-50 text-blue-700 border-blue-200 hover:border-blue-400"
+            yukleniyor={yuklenenFormat === "docx"}
+            disabled={!!yuklenenFormat}
+            onClick={() => indir("docx")}
+          />
+          <FormatKart
+            ad="Excel"
+            etiket="Liste / Tablo"
+            aciklama="Filtre + sırala"
+            icon={<FileSpreadsheet className="h-7 w-7" />}
+            renk="bg-green-50 text-green-700 border-green-200 hover:border-green-400"
+            yukleniyor={yuklenenFormat === "xlsx"}
+            disabled={!!yuklenenFormat}
+            onClick={() => indir("xlsx")}
+          />
+          <FormatKart
+            ad="HTML"
+            etiket="Tarayıcıda"
+            aciklama="Görsel önizleme"
+            icon={<FileCode className="h-7 w-7" />}
+            renk="bg-purple-50 text-purple-700 border-purple-200 hover:border-purple-400"
+            yukleniyor={yuklenenFormat === "html"}
+            disabled={!!yuklenenFormat}
+            onClick={() => indir("html")}
+          />
+        </div>
+
+        <p className="text-[11px] text-clay-400 italic text-center mt-3">
+          Defterimizdeki klasör, not, açıklama ve hatırlatıcılar dahil her şey indirilecek.
+        </p>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function FormatKart({
+  ad, etiket, aciklama, icon, renk, yukleniyor, disabled, onClick
+}: {
+  ad: string;
+  etiket: string;
+  aciklama: string;
+  icon: React.ReactNode;
+  renk: string;
+  yukleniyor: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "border-2 rounded-xl p-4 text-left transition-all hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed",
+        renk
+      )}
+    >
+      <div className="flex items-start justify-between mb-2">
+        {yukleniyor ? <Loader2 className="h-7 w-7 animate-spin" /> : icon}
+        <span className="text-[10px] uppercase tracking-wider font-semibold opacity-70">
+          {etiket}
+        </span>
+      </div>
+      <p className="font-display text-xl">{ad}</p>
+      <p className="text-[11px] mt-0.5 opacity-80">{aciklama}</p>
+    </button>
   );
 }

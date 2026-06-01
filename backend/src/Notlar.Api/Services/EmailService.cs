@@ -70,7 +70,7 @@ public sealed class EmailService : IEmailService
         var pass = _cfg["Smtp:Pass"];
         var ssl = bool.Parse(_cfg["Smtp:Ssl"] ?? "false");
         var from = _cfg["Smtp:From"] ?? "notlar@local.test";
-        var fromAd = _cfg["Smtp:FromName"] ?? "Planlama Defterimiz";
+        var fromAd = _cfg["Smtp:FromName"] ?? "🔒 Planlama Defterimiz 🤍";
 
         var msg = new MimeMessage();
         msg.From.Add(new MailboxAddress(fromAd, from));
@@ -155,7 +155,7 @@ public sealed class EmailService : IEmailService
         <p style='color:#5d4a37;font-size:15px;line-height:1.7;margin:0 0 14px;text-align:justify;hyphens:auto;'>
           Bu küçük sistemi, en güzel günümüze adım adım hazırlanırken
           aklımıza gelen her şeyi <em>birlikte</em> planlayalım,
-          <em>birlikte</em> tamamlayalım diye yaptım. Bir köşesi davetiyeler,
+          <em>birlikte</em> tamamlayalım diye hayal ettim. Bir köşesi davetiyeler,
           bir köşesi nikâh hazırlığı, bir köşesi düğün öncesi alacaklarımız…
           Senin defterin, benim defterim, ikimizin defteri.
         </p>
@@ -206,7 +206,7 @@ public sealed class EmailService : IEmailService
         "Her notun altında küçük ikonlar göreceksin: <strong>göz</strong> (detaylar), <strong>kalem</strong> (düzenle), <strong>çöp kutusu</strong> (sil). Kalem ikonuna tıklayıp başlığı, içeriği veya hangi klasöre ait olduğunu istediğin gibi değiştirebilirsin.")}
 
       {Madde("05", "Hatırlatıcı kurmak",
-        "Bir notu unutmayalım istersen kalem ikonuyla düzenle penceresini aç, en altta <strong>“Hatırlatıcı kur”</strong> seçeneğini göreceksin. Tarih ve saati seç, kime hatırlatılacağını (sana, bana veya ikimize) ve nasıl bildirim alacağımızı (uygulama içinde, e-postayla veya her ikisi) belirle. Zamanı geldiğinde haber veririm.")}
+        "Bir notu unutmayalım istersen kalem ikonuyla düzenle penceresini aç, en altta <strong>“Hatırlatıcı kur”</strong> seçeneğini göreceksin. Tarih ve saati seç, kime hatırlatılacağını (sana, bana veya ikimize) ve nasıl bildirim alacağımızı (uygulama içinde, e-postayla veya her ikisi) belirle. Zamanı geldiğinde hatırlatma gönderilecek.")}
 
       {Madde("06", "Bir notun geçmişini görmek",
         "Aynı satırdaki <strong>göz</strong> ikonu, notun bütün geçmişini gösteriyor: ne zaman oluşturuldu, ne zaman ne değişti, kim ne yazdı, ne zaman tamamlandı… Hiçbir şey kaybolmuyor; ikimiz de birbirimizin dokunuşlarını görebiliyoruz.")}
@@ -294,9 +294,10 @@ public sealed class EmailService : IEmailService
     private static string HatirlaticiHtmlSablonu(string aliciIlkAd, string notBaslik, string? notIcerik,
         string? klasorAdi, string kimeMetin, DateTimeOffset hatirlatmaZamani, string notLink)
     {
+        // İçerik 400 karaktere kadar (önceki 200 çok azdı)
         var icerikKisa = string.IsNullOrWhiteSpace(notIcerik)
             ? ""
-            : (notIcerik.Length > 200 ? notIcerik.Substring(0, 200) + "…" : notIcerik);
+            : (notIcerik.Length > 400 ? notIcerik.Substring(0, 400) + "…" : notIcerik);
 
         // TR saat dilimi gösterimi
         var trZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Istanbul");
@@ -304,18 +305,24 @@ public sealed class EmailService : IEmailService
         var zamanMetni = trZaman.ToString("dd MMMM yyyy, HH:mm",
             System.Globalization.CultureInfo.GetCultureInfo("tr-TR"));
 
-        var klasorRozeti = string.IsNullOrWhiteSpace(klasorAdi)
+        var klasorPill = string.IsNullOrWhiteSpace(klasorAdi)
             ? ""
-            : $@"<div style='margin-top:14px;'>
-                  <span style='display:inline-block;background:#f5ede0;color:#8b6f4e;padding:4px 12px;border-radius:14px;font-size:12px;font-weight:500;'>
+            : $@"<td style='padding-right:8px;'>
+                  <span style='display:inline-block;background:#f5ede0;color:#8b6f4e;padding:6px 14px;border-radius:16px;font-size:12px;font-weight:500;'>
                     📁 {klasorAdi}
                   </span>
-                </div>";
+                </td>";
+
+        var zamanPill = $@"<td>
+              <span style='display:inline-block;background:#c4704d;color:#ffffff;padding:6px 14px;border-radius:16px;font-size:12px;font-weight:500;'>
+                ⏰ {zamanMetni}
+              </span>
+            </td>";
 
         var icerikSatiri = string.IsNullOrWhiteSpace(icerikKisa)
             ? ""
-            : $@"<p style='color:#5d4a37;font-size:14px;line-height:1.7;margin:12px 0 0;text-align:justify;hyphens:auto;'>
-                  {icerikKisa}
+            : $@"<p style='color:#5d4a37;font-size:14px;line-height:1.75;margin:14px 0 0;text-align:justify;hyphens:auto;'>
+                  {System.Net.WebUtility.HtmlEncode(icerikKisa).Replace("\n", "<br>")}
                 </p>";
 
         return $@"<!DOCTYPE html>
@@ -326,43 +333,69 @@ public sealed class EmailService : IEmailService
   <tr><td align='center'>
     <table role='presentation' width='560' cellpadding='0' cellspacing='0' border='0' style='max-width:560px;background:#ffffff;border-radius:18px;border:1px solid #ebe3d4;overflow:hidden;'>
 
-      <tr><td style='padding:36px 40px 8px;text-align:center;'>
-        <div style='font-size:32px;color:#c4704d;line-height:1;'>♡</div>
+      <!-- Üst kalp -->
+      <tr><td style='padding:40px 40px 12px;text-align:center;'>
+        <div style='font-size:36px;color:#c4704d;line-height:1;'>♡</div>
       </td></tr>
 
-      <tr><td style='padding:6px 40px 0;text-align:center;'>
-        <h1 style='font-family:Georgia,""Times New Roman"",serif;font-size:22px;color:#3d2817;margin:0 0 4px;font-weight:600;letter-spacing:-0.01em;'>
+      <!-- Başlık -->
+      <tr><td style='padding:8px 40px 0;text-align:center;'>
+        <h1 style='font-family:Georgia,""Times New Roman"",serif;font-size:24px;color:#3d2817;margin:0 0 6px;font-weight:600;letter-spacing:-0.01em;line-height:1.3;'>
           {aliciIlkAd}, hatırlatıcının zamanı geldi
         </h1>
-        <p style='color:#9c8a73;font-size:13px;margin:0;font-style:italic;'>
+        <p style='color:#c4704d;font-size:13px;margin:0;font-style:italic;letter-spacing:0.04em;'>
           {kimeMetni(kimeMetin)}
         </p>
       </td></tr>
 
-      <tr><td style='padding:28px 40px 0;'>
-        <div style='background:#faf6ef;border-radius:12px;border:1px solid #ebe3d4;padding:22px 24px;'>
-          <h2 style='font-family:Georgia,""Times New Roman"",serif;font-size:18px;color:#3d2817;margin:0;font-weight:600;line-height:1.4;'>
-            {notBaslik}
+      <!-- İçerik kartı -->
+      <tr><td style='padding:30px 40px 0;'>
+        <div style='background:#faf6ef;border-radius:14px;border:1px solid #ebe3d4;padding:28px 28px 24px;'>
+          <h2 style='font-family:Georgia,""Times New Roman"",serif;font-size:20px;color:#3d2817;margin:0;font-weight:600;line-height:1.4;letter-spacing:-0.01em;'>
+            {System.Net.WebUtility.HtmlEncode(notBaslik)}
           </h2>
+          <div style='width:36px;height:2px;background:#c4704d;margin:10px 0 0;'></div>
           {icerikSatiri}
-          {klasorRozeti}
+
+          <!-- İki pill yan yana: klasör + zaman -->
+          <table role='presentation' cellpadding='0' cellspacing='0' border='0' style='margin-top:20px;'>
+            <tr>
+              {klasorPill}
+              {zamanPill}
+            </tr>
+          </table>
         </div>
       </td></tr>
 
-      <tr><td style='padding:18px 40px 0;text-align:center;'>
-        <p style='color:#9c8a73;font-size:12px;margin:0;letter-spacing:0.02em;'>
-          Hatırlatma zamanı: <strong>{zamanMetni}</strong>
-        </p>
-      </td></tr>
-
-      <tr><td style='padding:24px 40px 36px;text-align:center;'>
+      <!-- CTA buton -->
+      <tr><td style='padding:32px 40px 12px;text-align:center;'>
         <a href='{notLink}'
-           style='display:inline-block;background:#3d2817;color:#faf6ef;padding:14px 32px;border-radius:10px;text-decoration:none;font-weight:500;font-size:14px;letter-spacing:0.01em;'>
-          Notu Defterimde Aç →
+           style='display:inline-block;background:#3d2817;color:#faf6ef;padding:16px 36px;border-radius:10px;text-decoration:none;font-weight:500;font-size:15px;letter-spacing:0.01em;'>
+          Notu Defterimde Aç &nbsp;→
         </a>
       </td></tr>
 
-      <tr><td style='padding:0 40px 28px;text-align:center;'>
+      <!-- Ayırıcı -->
+      <tr><td style='padding:28px 40px 8px;'>
+        <table role='presentation' width='100%' cellpadding='0' cellspacing='0' border='0'>
+          <tr>
+            <td style='border-top:1px solid #ebe3d4;'></td>
+            <td style='padding:0 14px;color:#c4704d;font-size:16px;'>♡</td>
+            <td style='border-top:1px solid #ebe3d4;'></td>
+          </tr>
+        </table>
+      </td></tr>
+
+      <!-- İmza -->
+      <tr><td style='padding:20px 40px 0;text-align:center;'>
+        <p style='color:#3d2817;font-size:14px;margin:0;'>
+          Sevgilerle,<br>
+          <strong style='font-family:Georgia,""Times New Roman"",serif;color:#c4704d;font-size:16px;'>Aşkın</strong> 🤍
+        </p>
+      </td></tr>
+
+      <!-- Footer -->
+      <tr><td style='padding:32px 40px 32px;text-align:center;'>
         <p style='color:#9c8a73;font-size:11px;margin:0;line-height:1.6;'>
           Planlama Defterimiz · <a href='https://notlar.dentlogicapp.com' style='color:#9c8a73;text-decoration:none;'>notlar.dentlogicapp.com</a>
         </p>
@@ -375,11 +408,13 @@ public sealed class EmailService : IEmailService
 </html>";
     }
 
+    // Hatırlatma "kime" alt-metni — 4 doğru varyant
     private static string kimeMetni(string kime) => kime switch
     {
-        "Sen kurdun · Bana hatırlatıldı" => kime,
+        "Sen kurdun · Sana hatırlatıldı" => kime,
+        "Sen kurdun · Aşkına ve sana hatırlatıldı" => kime,
         "Aşkın kurdu · Sana hatırlatıldı" => kime,
-        "Aşkın kurdu · İkimize hatırlatıldı" => kime,
+        "Aşkın kurdu · Aşkına ve sana hatırlatıldı" => kime,
         _ => "Hatırlatıcı"
     };
 }

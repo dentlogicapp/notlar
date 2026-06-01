@@ -81,7 +81,7 @@ public sealed class HatirlaticiKontrolcusu : BackgroundService
 
                 foreach (var hedef in hedefler)
                 {
-                    var kimeMetin = KimeMetinUret(hedef, kuran);
+                    var kimeMetin = KimeMetinUret(hedef, kuran, not.HatirlatmaKime ?? "bana");
 
                     // Uygulama içi bildirim
                     if (not.HatirlatmaSekli == "uygulama" || not.HatirlatmaSekli == "her_ikisi")
@@ -145,10 +145,15 @@ public sealed class HatirlaticiKontrolcusu : BackgroundService
         };
     }
 
-    private static string KimeMetinUret(Kullanici hedef, Kullanici kuran)
+    private static string KimeMetinUret(Kullanici hedef, Kullanici kuran, string kime)
     {
-        if (hedef.Id == kuran.Id) return "Sen kurdun · Bana hatırlatıldı";
-        // İki kişilik çiftte aşkın kurdu
-        return "Aşkın kurdu · Sana hatırlatıldı";
+        // 4 doğru varyant (kuran perspektifi: "Sen" | "Aşkın")
+        var hedefKurdu = hedef.Id == kuran.Id;
+        var ikimize = kime == "ikimize";
+
+        if (hedefKurdu && !ikimize) return "Sen kurdun · Sana hatırlatıldı";
+        if (hedefKurdu && ikimize)  return "Sen kurdun · Aşkına ve sana hatırlatıldı";
+        if (!hedefKurdu && !ikimize) return "Aşkın kurdu · Sana hatırlatıldı";
+        return "Aşkın kurdu · Aşkına ve sana hatırlatıldı";
     }
 }
