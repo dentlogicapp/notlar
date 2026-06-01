@@ -207,7 +207,7 @@ h2.klasor { font-size: 22px; color: #3d2817; margin: 50px 0 4px; padding-bottom:
         var CREAM = "#faf6ef";
         var EBE = "#ebe3d4";
 
-        var doc = Document.Create(container =>
+        var doc = QuestPDF.Fluent.Document.Create(container =>
         {
             // KAPAK SAYFASI
             container.Page(page =>
@@ -362,7 +362,7 @@ h2.klasor { font-size: 22px; color: #3d2817; margin: 50px 0 4px; padding-bottom:
         using (var wordDoc = WordprocessingDocument.Create(ms, WordprocessingDocumentType.Document))
         {
             var mainPart = wordDoc.AddMainDocumentPart();
-            mainPart.Document = new Document(new Body());
+            mainPart.Document = new DocumentFormat.OpenXml.Wordprocessing.Document(new Body());
             var body = mainPart.Document.Body!;
 
             // Kapak
@@ -444,7 +444,7 @@ h2.klasor { font-size: 22px; color: #3d2817; margin: 50px 0 4px; padding-bottom:
         var rPr = new RunProperties();
         rPr.AppendChild(new Bold());
         rPr.AppendChild(new FontSize { Val = (sizeHalfPoint * 2).ToString() });
-        rPr.AppendChild(new Color { Val = colorHex });
+        rPr.AppendChild(new DocumentFormat.OpenXml.Wordprocessing.Color { Val = colorHex });
         rPr.AppendChild(new RunFonts { Ascii = "Georgia", HighAnsi = "Georgia" });
         run.PrependChild(rPr);
 
@@ -464,7 +464,7 @@ h2.klasor { font-size: 22px; color: #3d2817; margin: 50px 0 4px; padding-bottom:
         var run = new Run();
         var rPr = new RunProperties();
         rPr.AppendChild(new FontSize { Val = (sizeHalfPoint * 2).ToString() });
-        rPr.AppendChild(new Color { Val = colorHex });
+        rPr.AppendChild(new DocumentFormat.OpenXml.Wordprocessing.Color { Val = colorHex });
         if (italic) rPr.AppendChild(new Italic());
         rPr.AppendChild(new RunFonts { Ascii = "Calibri", HighAnsi = "Calibri" });
         run.PrependChild(rPr);
