@@ -22,6 +22,9 @@ export interface Kullanici {
   kilitli: boolean;
   olusturmaZamani: string;
   sonGirisZamani: string | null;
+  // v12 — Silme onayında gösterilen veriler
+  notSayisi: number;
+  klasorSayisi: number;
 }
 
 export interface Klasor {

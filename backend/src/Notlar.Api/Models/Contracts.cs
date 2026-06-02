@@ -14,7 +14,9 @@ public sealed record KullaniciYaniti(
     Guid Id, string Email, string AdSoyad, string Rol, bool Aktif,
     string? Cinsiyet,
     bool SifreBelirlendi, bool Kilitli,
-    DateTimeOffset OlusturmaZamani, DateTimeOffset? SonGirisZamani);
+    DateTimeOffset OlusturmaZamani, DateTimeOffset? SonGirisZamani,
+    // v12 — Silme onayında kullanıcıya gösterilen veriler
+    int NotSayisi, int KlasorSayisi);
 
 public sealed record BenYaniti(Guid Id, string Email, string AdSoyad, string Rol, string? Cinsiyet);
 

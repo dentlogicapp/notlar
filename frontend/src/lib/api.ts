@@ -186,7 +186,8 @@ export const adminApi = {
     ist<Kullanici>(`/api/admin/kullanicilar/${id}/aktiflestir`, { method: "PATCH" }),
   kilidiAc: (id: string) =>
     ist<{ mesaj: string }>(`/api/admin/kullanicilar/${id}/kilit-ac`, { method: "POST" }),
-  removeUser: (id: string) => ist<void>(`/api/admin/kullanicilar/${id}`, { method: "DELETE" }),
+  removeUser: (id: string, devret = false) =>
+    ist<void>(`/api/admin/kullanicilar/${id}${devret ? "?devret=true" : ""}`, { method: "DELETE" }),
   denetim: (skip = 0, take = 50) =>
     ist<DenetimListesi>(`/api/admin/denetim?skip=${skip}&take=${take}`),
 };

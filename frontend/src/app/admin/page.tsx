@@ -9,7 +9,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import {
   ChevronLeft, Heart, Loader2, Plus, KeyRound,
-  ShieldOff, Trash2, Lock, FileText
+  ShieldOff, Trash2, Lock, FileText, AlertTriangle, FolderHeart, FileEdit
 } from "lucide-react";
 import { AuthGuard } from "@/components/AuthGuard";
 import { CountdownWidget } from "@/components/CountdownWidget";
@@ -67,13 +67,19 @@ function Icerik() {
   });
 
   const sil = useMutation({
-    mutationFn: (id: string) => adminApi.removeUser(id),
+    mutationFn: ({ id, devret }: { id: string; devret: boolean }) =>
+      adminApi.removeUser(id, devret),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["users"] });
-      toast.success("Kullanıcı silindi");
+      qc.invalidateQueries({ queryKey: ["notlar"] });
+      qc.invalidateQueries({ queryKey: ["klasorler"] });
+      toast.success("Kullanıcı silindi 🤍");
+      setSilDialogKullanici(null);
     },
     onError: (err: Error) => toast.error(err.message),
   });
+
+  const [silDialogKullanici, setSilDialogKullanici] = useState<Kullanici | null>(null);
 
   return (
     <main className="min-h-screen pb-24">
@@ -124,7 +130,7 @@ function Icerik() {
                     onSifre={() => sifre.mutate(u.id)}
                     onToggle={() => toggle.mutate(u.id)}
                     onKilit={() => kilit.mutate(u.id)}
-                    onSil={() => { if (confirm(`${u.email} kullanıcısını silmek istediğine emin misin?`)) sil.mutate(u.id); }}
+                    onSil={() => setSilDialogKullanici(u)}
                   />
                 ))}
               </tbody>
@@ -132,6 +138,16 @@ function Icerik() {
           </div>
         )}
       </div>
+
+      {/* v12 — Devret + Sil dialog'u */}
+      {silDialogKullanici && (
+        <KullaniciSilDialog
+          kullanici={silDialogKullanici}
+          onClose={() => setSilDialogKullanici(null)}
+          onSil={(devret) => sil.mutate({ id: silDialogKullanici.id, devret })}
+          beklemede={sil.isPending}
+        />
+      )}
     </main>
   );
 }
@@ -271,6 +287,101 @@ function KullaniciEkleDialog() {
             <Button type="submit" disabled={m.isPending}>Davet Gönder</Button>
           </div>
         </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// v12 — Devret + Sil Dialog'u
+// Kullanıcının notları/klasörleri varsa "Devret + Sil" veya "Pasifleştir" seç.
+// Veri yoksa basit onay → direkt sil.
+function KullaniciSilDialog({
+  kullanici, onClose, onSil, beklemede
+}: {
+  kullanici: Kullanici;
+  onClose: () => void;
+  onSil: (devret: boolean) => void;
+  beklemede: boolean;
+}) {
+  const veriVar = kullanici.notSayisi > 0 || kullanici.klasorSayisi > 0;
+
+  return (
+    <Dialog open={true} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-terracotta" />
+            Kullanıcıyı Sil
+          </DialogTitle>
+          <DialogDescription>
+            <strong className="text-clay-900 dark:text-ink-50">{kullanici.adSoyad}</strong> ({kullanici.email})
+          </DialogDescription>
+        </DialogHeader>
+
+        {veriVar ? (
+          <>
+            <div className="mt-2 space-y-2">
+              <p className="text-sm text-clay-700 dark:text-ink-100">
+                Bu kullanıcının aşağıdaki verileri var:
+              </p>
+              <div className="bg-cream-100/60 dark:bg-ink-800/60 border border-cream-300 dark:border-ink-700 rounded-xl p-3 space-y-1.5">
+                {kullanici.notSayisi > 0 && (
+                  <div className="flex items-center gap-2 text-sm text-clay-700 dark:text-ink-100">
+                    <FileEdit className="h-4 w-4 text-terracotta" />
+                    <strong>{kullanici.notSayisi}</strong> not
+                  </div>
+                )}
+                {kullanici.klasorSayisi > 0 && (
+                  <div className="flex items-center gap-2 text-sm text-clay-700 dark:text-ink-100">
+                    <FolderHeart className="h-4 w-4 text-terracotta" />
+                    <strong>{kullanici.klasorSayisi}</strong> klasör
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-clay-500 dark:text-ink-200 italic leading-relaxed">
+                Silersen bu veriler senin üzerine devredilir — kaybolmaz. Audit kayıtlarında
+                kullanıcı referansları "(Silinmiş kullanıcı)" olarak gösterilir.
+              </p>
+            </div>
+
+            <div className="flex flex-col-reverse sm:flex-row gap-2 mt-5 sm:justify-end">
+              <Button variant="outline" onClick={onClose} disabled={beklemede}>
+                İptal
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => onSil(true)}
+                disabled={beklemede}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                {beklemede
+                  ? <><Loader2 className="h-4 w-4 animate-spin mr-1.5" /> Siliniyor</>
+                  : <><Trash2 className="h-4 w-4 mr-1.5" /> Verileri Devret + Sil</>}
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="mt-2 text-sm text-clay-700 dark:text-ink-100">
+              Bu kullanıcının notu veya klasörü yok. Hesap kalıcı olarak silinecek.
+            </p>
+            <div className="flex flex-col-reverse sm:flex-row gap-2 mt-5 sm:justify-end">
+              <Button variant="outline" onClick={onClose} disabled={beklemede}>
+                İptal
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => onSil(false)}
+                disabled={beklemede}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                {beklemede
+                  ? <><Loader2 className="h-4 w-4 animate-spin mr-1.5" /> Siliniyor</>
+                  : <><Trash2 className="h-4 w-4 mr-1.5" /> Kullanıcıyı Sil</>}
+              </Button>
+            </div>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
