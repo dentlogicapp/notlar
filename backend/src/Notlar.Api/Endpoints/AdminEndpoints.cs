@@ -101,7 +101,8 @@ public static class AdminEndpoints
 
             return Results.Created($"/api/admin/kullanicilar/{user.Id}",
                 new KullaniciYaniti(user.Id, user.Email, user.AdSoyad, user.Rol,
-                    user.Aktif, user.Cinsiyet, false, false, user.OlusturmaZamani, null));
+                    user.Aktif, user.Cinsiyet, false, false, user.OlusturmaZamani, null,
+                    0, 0));  // Yeni kullanıcı: henüz veri yok
         });
 
         // Admin trigger şifre sıfırlama → kullanıcıya mail
@@ -145,10 +146,16 @@ public static class AdminEndpoints
             await db.SaveChangesAsync(ct);
             await audit.YazAsync(u.Aktif ? "kullanici_aktif" : "kullanici_pasif",
                 "kullanici", u.Id, detay: u.Email, ct: ct);
+
+            // v12 — Not/klasör sayıları DTO'ya
+            var notSayisi = await db.Notlar.CountAsync(n => n.OlusturanKullaniciId == id && !n.Silindi, ct);
+            var klasorSayisi = await db.Klasorler.CountAsync(k => k.OlusturanKullaniciId == id && !k.SistemMi && !k.Silindi, ct);
+
             return Results.Ok(new KullaniciYaniti(u.Id, u.Email, u.AdSoyad, u.Rol, u.Aktif,
                 u.Cinsiyet,
                 u.SifreBelirlenmeZamani != null, u.KilitlenmeZamani != null,
-                u.OlusturmaZamani, u.SonGirisZamani));
+                u.OlusturmaZamani, u.SonGirisZamani,
+                notSayisi, klasorSayisi));
         });
 
         // Kilidi aç (admin)
