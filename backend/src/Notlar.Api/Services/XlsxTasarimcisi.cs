@@ -38,7 +38,9 @@ public static class XlsxTasarimcisi
     private static readonly XLColor Amber50 = XLColor.FromArgb(255, 251, 235);
     private static readonly XLColor Yesil = XLColor.FromArgb(77, 110, 47);
 
-    public static byte[] Uret(List<(string Ad, bool SistemMi, List<Not> Notlar)> gruplar)
+    public static byte[] Uret(
+        List<(string Ad, bool SistemMi, List<Not> Notlar)> gruplar,
+        DateTime dugunTarihi)
     {
         using var wb = new XLWorkbook();
         wb.Properties.Title = "Planlama Defterimiz";
@@ -59,7 +61,7 @@ public static class XlsxTasarimcisi
         }
 
         // Şimdi Genel Bakış'ı doldur (sheet adları belli oldu, hyperlink kurabiliriz)
-        GenelBakisYaz(genelBakis, sheetAdlari);
+        GenelBakisYaz(genelBakis, sheetAdlari, dugunTarihi);
 
         // İlk sheet seçili açılsın
         genelBakis.SetTabActive();
@@ -84,12 +86,12 @@ public static class XlsxTasarimcisi
     /// Sheet 1: Davetiye stilinde başlık + istatistik kartları + klasör listesi (tıklanabilir köprülerle)
     /// </summary>
     private static void GenelBakisYaz(IXLWorksheet ws,
-        List<(string Orijinal, string Sheet, bool SistemMi, int NotSayisi, int Tamamlanan)> klasorler)
+        List<(string Orijinal, string Sheet, bool SistemMi, int NotSayisi, int Tamamlanan)> klasorler,
+        DateTime dugunTarihi)
     {
         var bugun = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, IstanbulTz)
             .ToString("d MMMM yyyy", new CultureInfo("tr-TR"));
-        var dugun = new DateTime(2026, 9, 1);
-        var kalanGun = Math.Max(0, (dugun - DateTime.UtcNow.Date).Days);
+        var kalanGun = Math.Max(0, (dugunTarihi - DateTime.UtcNow.Date).Days);
         var toplamNot = klasorler.Sum(k => k.NotSayisi);
         var toplamTamamlanan = klasorler.Sum(k => k.Tamamlanan);
 

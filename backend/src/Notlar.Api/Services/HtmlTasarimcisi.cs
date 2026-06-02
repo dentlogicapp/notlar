@@ -39,18 +39,23 @@ public static class HtmlTasarimcisi
     /// <summary>
     /// Defterimizin tam HTML çıktısını üretir. Print-friendly CSS @page kuralları dahil.
     /// </summary>
-    public static string Uret(List<(string Ad, bool SistemMi, List<Not> Notlar)> gruplar)
+    /// <param name="gruplar">Klasör + notları listesi</param>
+    /// <param name="ciftIsmi">Aktif kullanıcılardan dinamik çekilir: "Ad Soyad &amp; Ad Soyad"</param>
+    /// <param name="dugunTarihi">Hedef tarih — kalan gün hesabı için (UTC)</param>
+    public static string Uret(
+        List<(string Ad, bool SistemMi, List<Not> Notlar)> gruplar,
+        string ciftIsmi,
+        DateTime dugunTarihi)
     {
         var bugun = Tr(DateTimeOffset.UtcNow);
-        var dugun = new DateTime(2026, 9, 1);
-        var kalanGun = Math.Max(0, (dugun - DateTime.UtcNow.Date).Days);
+        var kalanGun = Math.Max(0, (dugunTarihi - DateTime.UtcNow.Date).Days);
         var toplamNot = gruplar.Sum(g => g.Notlar.Count);
         var toplamTamamlanan = gruplar.Sum(g => g.Notlar.Count(n => n.Tamamlandi));
 
         var sb = new StringBuilder(64_000);
         BasligiYaz(sb);
         AcKapaksizSayfayi(sb);
-        KapakYaz(sb, bugun, kalanGun, toplamNot, toplamTamamlanan);
+        KapakYaz(sb, bugun, kalanGun, toplamNot, toplamTamamlanan, ciftIsmi);
         IcindekilerYaz(sb, gruplar);
         foreach (var (ad, sistemMi, notlar) in gruplar)
         {
@@ -96,7 +101,7 @@ public static class HtmlTasarimcisi
     // ─────────────────── KAPAK ───────────────────
 
     private static void KapakYaz(StringBuilder sb, string bugun, int kalanGun,
-        int toplamNot, int toplamTamamlanan)
+        int toplamNot, int toplamTamamlanan, string ciftIsmi)
     {
         sb.AppendLine("<section class=\"kapak\">");
         sb.AppendLine("  <div class=\"kapak-asma kapak-asma--sol\">" + SvgAsma + "</div>");
@@ -112,7 +117,7 @@ public static class HtmlTasarimcisi
         sb.AppendLine($"      <div class=\"istatistik-kart\"><span class=\"istatistik-sayi\">{kalanGun}</span><span class=\"istatistik-etiket\">gün kaldı</span></div>");
         sb.AppendLine("    </div>");
         sb.AppendLine($"    <p class=\"kapak-tarih\">{Esc(bugun)}</p>");
-        sb.AppendLine("    <p class=\"kapak-isim\">Musa &amp; Esma</p>");
+        sb.AppendLine($"    <p class=\"kapak-isim\">{Esc(ciftIsmi)}</p>");
         sb.AppendLine("  </div>");
         sb.AppendLine("</section>");
     }
