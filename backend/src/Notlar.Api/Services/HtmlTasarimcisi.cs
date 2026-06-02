@@ -211,7 +211,7 @@ public static class HtmlTasarimcisi
             sb.AppendLine("  </div>");
         }
 
-        if (not.Tamamlandi && !string.IsNullOrWhiteSpace(not.TamamlamaAciklamasi))
+        if (not.Tamamlandi && !string.IsNullOrWhiteSpace(not.TamamlanmaAciklamasi))
         {
             var tamamlayanAd = not.TamamlayanKullanici?.AdSoyad ?? "—";
             var tamamlanmaTarih = not.TamamlanmaZamani.HasValue
@@ -221,7 +221,7 @@ public static class HtmlTasarimcisi
             sb.AppendLine("      <span class=\"tamamlama-aciklama-ikon\">" + SvgYildiz + "</span>");
             sb.AppendLine("      <span>Tamamlama Açıklaması</span>");
             sb.AppendLine("    </div>");
-            sb.AppendLine($"    <p>{Esc(not.TamamlamaAciklamasi)}</p>");
+            sb.AppendLine($"    <p>{Esc(not.TamamlanmaAciklamasi)}</p>");
             sb.AppendLine($"    <p class=\"tamamlama-aciklama-meta\">{Esc(tamamlayanAd)} · {Esc(tamamlanmaTarih)}</p>");
             sb.AppendLine("  </aside>");
         }

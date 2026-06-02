@@ -217,7 +217,6 @@ public static class XlsxTasarimcisi
 
         // Tipografi default
         ws.Style.Font.FontName = "Calibri";
-        ws.SheetView.ShowGridLines = false;
 
         // Dipnot
         var dipRow = tabloBaslangic + 1 + klasorler.Count + 2;
@@ -309,7 +308,7 @@ public static class XlsxTasarimcisi
         {
             ws.Cell("B5").Value = "Bu klasörde henüz hiç notumuz yok.";
             ws.Range("B5:G5").Merge();
-            ws.Cell("B5").Style.Font.FontItalic = true;
+            ws.Cell("B5").Style.Font.Italic = true;
             ws.Cell("B5").Style.Font.FontColor = Clay500;
             ws.Cell("B5").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
             ws.Cell("B5").Style.Font.FontName = "Calibri";
@@ -400,7 +399,6 @@ public static class XlsxTasarimcisi
         ws.Column("H").Width = 2;
 
         ws.Style.Font.FontName = "Calibri";
-        ws.SheetView.ShowGridLines = false;
     }
 
     /// <summary>
