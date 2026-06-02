@@ -32,6 +32,11 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 
+// v14 — Defteri İndir servisleri
+// PdfRender: Playwright Chromium browser tek instance (singleton, lazy-init), her PDF için yeni context
+builder.Services.AddSingleton<IPdfRender, PdfRender>();
+builder.Services.AddScoped<IDocxDonusturucu, DocxDonusturucu>();
+
 // Arka plan
 builder.Services.AddHostedService<CopKutusuTemizleyici>();
 builder.Services.AddHostedService<HatirlaticiKontrolcusu>();
