@@ -130,8 +130,9 @@ public sealed class NotGecmisi
     public string? YeniDeger { get; set; }
     public string? Aciklama { get; set; }       // Kullanıcının yazdığı opsiyonel/zorunlu not
 
-    public Guid YapanKullaniciId { get; set; }
-    public Kullanici YapanKullanici { get; set; } = null!;
+    // v11 — Kullanıcı silindiğinde audit kaydı kalır, YapanKullaniciId null olur (anonim audit)
+    public Guid? YapanKullaniciId { get; set; }
+    public Kullanici? YapanKullanici { get; set; }
     public DateTimeOffset YapilisZamani { get; set; } = DateTimeOffset.UtcNow;
 }
 

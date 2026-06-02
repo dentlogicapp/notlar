@@ -88,7 +88,7 @@ public sealed class AppDbContext : DbContext
             e.HasOne(x => x.Not).WithMany(n => n.Gecmis)
              .HasForeignKey(x => x.NotId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.YapanKullanici).WithMany()
-             .HasForeignKey(x => x.YapanKullaniciId).OnDelete(DeleteBehavior.Restrict);
+             .HasForeignKey(x => x.YapanKullaniciId).OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(x => new { x.NotId, x.YapilisZamani });
         });
 

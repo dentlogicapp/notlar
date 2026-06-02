@@ -236,6 +236,28 @@ using (var scope = app.Services.CreateScope())
 
             CREATE INDEX IF NOT EXISTS ""IX_klasorler_SistemMi""
                 ON klasorler (""SistemMi"");
+
+            -- v11: not_gecmisi.YapanKullaniciId nullable + FK ON DELETE SET NULL
+            -- Kullanıcı silindiğinde audit kayıtları kalır, YapanKullaniciId null olur.
+            -- Idempotent: kolon zaten nullable ise hata vermez, FK varsa drop+recreate.
+            ALTER TABLE not_gecmisi
+                ALTER COLUMN ""YapanKullaniciId"" DROP NOT NULL;
+
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.referential_constraints
+                    WHERE constraint_name = 'FK_not_gecmisi_kullanicilar_YapanKullaniciId'
+                ) THEN
+                    ALTER TABLE not_gecmisi DROP CONSTRAINT ""FK_not_gecmisi_kullanicilar_YapanKullaniciId"";
+                END IF;
+            END $$;
+
+            ALTER TABLE not_gecmisi
+                ADD CONSTRAINT ""FK_not_gecmisi_kullanicilar_YapanKullaniciId""
+                FOREIGN KEY (""YapanKullaniciId"")
+                REFERENCES kullanicilar (""Id"")
+                ON DELETE SET NULL;
         ");
         Log.Information("Şema güncellemeleri kontrol edildi (idempotent)");
     }

@@ -148,13 +148,43 @@ public static class AdminEndpoints
 
         // DELETE
         g.MapDelete("/kullanicilar/{id:guid}", async (
-            Guid id, AppDbContext db, IAuditService audit, CancellationToken ct) =>
+            Guid id, AppDbContext db, IUserContext uc, IAuditService audit, CancellationToken ct) =>
         {
+            // v11 — Kendini silmeye karşı koruma
+            if (uc.KullaniciId == id)
+                return Results.BadRequest(new { hata = "Kendi hesabını silemezsin." });
+
             var u = await db.Kullanicilar.FindAsync([id], ct);
             if (u is null) return Results.NotFound();
+
+            // FK kontrolü 1: kullanıcının oluşturduğu notlar
             var notVar = await db.Notlar.AnyAsync(n => n.OlusturanKullaniciId == id, ct);
             if (notVar)
-                return Results.BadRequest(new { hata = "Bu kullanıcının notları var. Önce pasifleştir." });
+                return Results.BadRequest(new { hata = "Bu kullanıcının notları var. Önce notları başkasına devret veya pasifleştir." });
+
+            // v11 — FK kontrolü 2: kullanıcının oluşturduğu klasörler (sistem klasörü hariç)
+            var klasorVar = await db.Klasorler.AnyAsync(k => k.OlusturanKullaniciId == id && !k.SistemMi, ct);
+            if (klasorVar)
+                return Results.BadRequest(new { hata = "Bu kullanıcının oluşturduğu klasörler var. Önce klasörleri başkasına devret veya pasifleştir." });
+
+            // v11 — Sistem klasörlerini başka admin'e devret (Tamamlananlar gibi)
+            // İlk admin'i bul (kendisi olmasın)
+            var devralanAdmin = await db.Kullanicilar
+                .Where(k => k.Rol == "admin" && k.Id != id && k.Aktif)
+                .OrderBy(k => k.OlusturmaZamani)
+                .Select(k => k.Id)
+                .FirstOrDefaultAsync(ct);
+
+            if (devralanAdmin != Guid.Empty)
+            {
+                var sistemKlasorler = await db.Klasorler
+                    .Where(k => k.OlusturanKullaniciId == id && k.SistemMi)
+                    .ToListAsync(ct);
+                foreach (var sk in sistemKlasorler)
+                    sk.OlusturanKullaniciId = devralanAdmin;
+            }
+            // not_gecmisi'ndeki YapanKullaniciId otomatik SET NULL olacak (v11 FK)
+
             db.Kullanicilar.Remove(u);
             await db.SaveChangesAsync(ct);
             await audit.YazAsync("kullanici_silindi", "kullanici", id, detay: u.Email, ct: ct);
