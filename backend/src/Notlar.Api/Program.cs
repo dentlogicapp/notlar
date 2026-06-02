@@ -68,28 +68,47 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             // Not: Silme = hard delete (kayıt yok) → durum null gelir.
             OnTokenValidated = async ctx =>
             {
-                var sub = ctx.Principal?.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value
-                       ?? ctx.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-                if (!Guid.TryParse(sub, out var kullaniciId))
+                try
                 {
-                    ctx.Fail("GECERSIZ_TOKEN");
-                    return;
+                    var sub = ctx.Principal?.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value
+                           ?? ctx.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+                    if (!Guid.TryParse(sub, out var kullaniciId))
+                    {
+                        ctx.Fail("GECERSIZ_TOKEN");
+                        return;
+                    }
+
+                    var db = ctx.HttpContext.RequestServices.GetRequiredService<Notlar.Api.Data.AppDbContext>();
+                    var durum = await db.Kullanicilar
+                        .Where(u => u.Id == kullaniciId)
+                        .Select(u => new { u.Aktif })
+                        .FirstOrDefaultAsync(ctx.HttpContext.RequestAborted);
+
+                    // durum null = kullanıcı silinmiş (hard delete)
+                    // !durum.Aktif = pasifleştirilmiş
+                    if (durum is null || !durum.Aktif)
+                    {
+                        // Cookie'yi de temizle — tarayıcı yeniden istek atmasın
+                        ctx.HttpContext.Response.Cookies.Delete("auth_token", new Microsoft.AspNetCore.Http.CookieOptions
+                        {
+                            HttpOnly = true,
+                            Secure = ctx.HttpContext.Request.IsHttps,
+                            SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax,
+                            Path = "/"
+                        });
+                        ctx.Fail("KULLANICI_PASIF_VEYA_SILINDI");
+                    }
                 }
-
-                var db = ctx.HttpContext.RequestServices.GetRequiredService<Notlar.Api.Data.AppDbContext>();
-                var durum = await db.Kullanicilar
-                    .Where(u => u.Id == kullaniciId)
-                    .Select(u => new { u.Aktif })
-                    .FirstOrDefaultAsync(ctx.HttpContext.RequestAborted);
-
-                // durum null = kullanıcı silinmiş (hard delete)
-                // !durum.Aktif = pasifleştirilmiş
-                if (durum is null || !durum.Aktif)
+                catch (OperationCanceledException)
                 {
-                    // Cookie'yi de temizle — tarayıcı yeniden istek atmasın
-                    ctx.HttpContext.Response.Cookies.Delete("auth_token");
-                    ctx.Fail("KULLANICI_PASIF_VEYA_SILINDI");
+                    // İstek iptal edildi — sessizce geç, exception loglamaya gerek yok
+                }
+                catch (Exception ex)
+                {
+                    // Beklenmedik hata — logla ama auth pipeline'ı kırma
+                    // (kullanıcı yine de işlem yapabilsin, hata kalıcı olmasın)
+                    Log.Warning(ex, "OnTokenValidated kullanıcı durumu kontrolü başarısız (token validation devam ediyor)");
                 }
             }
         };

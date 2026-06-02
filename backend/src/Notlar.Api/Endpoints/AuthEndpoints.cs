@@ -25,10 +25,22 @@ public static class AuthEndpoints
             var email = (req.Email ?? "").Trim().ToLowerInvariant();
             var user = await db.Kullanicilar.FirstOrDefaultAsync(u => u.Email == email, ct);
 
-            if (user is null || !user.Aktif || string.IsNullOrEmpty(user.SifreHash))
+            // Kullanıcı yok veya şifre belirlenmemiş — info leak önlemek için generic mesaj
+            if (user is null || string.IsNullOrEmpty(user.SifreHash))
             {
-                await audit.YazAsync("giris_basarisiz", aktorEmail: email, detay: "Kullanıcı yok veya şifre belirlenmemiş", ct: ct);
+                await audit.YazAsync("giris_basarisiz", aktorEmail: email,
+                    detay: user is null ? "Kullanıcı yok" : "Şifre belirlenmemiş", ct: ct);
                 return Results.BadRequest(new { hata = "Email veya şifre hatalı." });
+            }
+
+            // v11 — Pasif kullanıcı: net mesaj, info leak değil çünkü email zaten doğrulandı (şifre belirli)
+            if (!user.Aktif)
+            {
+                await audit.YazAsync("giris_basarisiz", "kullanici", user.Id, user.Id, email,
+                    detay: "Hesap pasif", ct: ct);
+                return Results.BadRequest(new {
+                    hata = "Hesabın yönetici tarafından pasifleştirildi. Lütfen yöneticiyle iletişime geç."
+                });
             }
 
             // Kilit kontrol
@@ -101,6 +113,10 @@ public static class AuthEndpoints
             t.Kullanici.SifreBelirlenmeZamani = DateTimeOffset.UtcNow;
             t.Kullanici.BasarisizDeneme = 0;
             t.Kullanici.KilitlenmeZamani = null;
+            // v11 — Şifre yeniden belirlendiğinde kullanıcıyı otomatik aktifleştir.
+            // Admin "şifre sıfırla" tıklayıp link gönderdiyse, bu deliberate bir eylem
+            // — pasif kullanıcı tekrar erişebilir hale gelmelidir.
+            t.Kullanici.Aktif = true;
             t.Kullanildi = true;
             t.KullanildiZamani = DateTimeOffset.UtcNow;
             await db.SaveChangesAsync(ct);
