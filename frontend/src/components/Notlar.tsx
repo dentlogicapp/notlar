@@ -7,7 +7,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import {
-  Eye, Pencil, Trash2, Plus, History, CheckCircle2, Loader2, FolderHeart, Tag, Bell, Lock
+  Eye, Pencil, Trash2, Plus, History, CheckCircle2, Loader2, FolderHeart, Tag, Bell, Lock, AlertTriangle
 } from "lucide-react";
 import { notApi, klasorApi } from "@/lib/api";
 import { useEditLock } from "@/lib/useEditLock";
@@ -87,6 +87,7 @@ export function TamamlaDialog({
     mutationFn: () => notApi.tamamla(not.id, aciklama.trim()),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["notlar"] });
+      qc.invalidateQueries({ queryKey: ["klasorler"] }); // v12 — Tamamlananlar sayısı anlık güncellensin
       setAciklama("");
       onOpenChange(false);
       toast.success("Tamamlandı 🤍");
@@ -495,11 +496,13 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
   const [tamamlaAcik, setTamamlaAcik] = useState(false);
   const [duzenleAcik, setDuzenleAcik] = useState(false);
   const [detayAcik, setDetayAcik] = useState(false);
+  const [silAcik, setSilAcik] = useState(false);  // v12 — not silme onay dialog'u
 
   const yenidenAc = useMutation({
     mutationFn: () => notApi.yenidenAc(not.id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["notlar"] });
+      qc.invalidateQueries({ queryKey: ["klasorler"] }); // v12 — eski klasöre geri taşıma sayıları
       toast.success("Yeniden açıldı");
     },
     onError: (err: Error) => toast.error(err.message),
@@ -510,6 +513,7 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["notlar"] });
       qc.invalidateQueries({ queryKey: ["klasorler"] });
+      setSilAcik(false);
       toast.success("Çöp kutusuna taşındı");
     },
     onError: (err: Error) => toast.error(err.message),
@@ -607,7 +611,7 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
                 </button>
               )}
               <button
-                onClick={() => sil.mutate()}
+                onClick={() => setSilAcik(true)}
                 aria-label="Sil"
                 disabled={sil.isPending || !!not.kilitSahibiAdi}
                 className="p-1.5 rounded-md text-clay-500 dark:text-ink-200 hover:text-red-600 hover:bg-red-50 active:bg-red-100 transition-colors disabled:opacity-40"
@@ -638,6 +642,15 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
       {tamamlaAcik && <TamamlaDialog not={not} open={tamamlaAcik} onOpenChange={setTamamlaAcik} />}
       {duzenleAcik && <DuzenleDialog not={not} open={duzenleAcik} onOpenChange={setDuzenleAcik} />}
       {detayAcik && <DetayDialog not={not} open={detayAcik} onOpenChange={setDetayAcik} />}
+      {silAcik && (
+        <NotSilDialog
+          not={not}
+          open={silAcik}
+          onOpenChange={setSilAcik}
+          onConfirm={() => sil.mutate()}
+          beklemede={sil.isPending}
+        />
+      )}
     </div>
   );
 }
@@ -697,5 +710,78 @@ export function NotListesi({
         </section>
       )}
     </div>
+  );
+}
+
+// v12 — Not silme onay dialog'u (klasör silme dialog'u tonunda, geri alınamaz uyarısı)
+function NotSilDialog({
+  not, open, onOpenChange, onConfirm, beklemede
+}: {
+  not: Not;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onConfirm: () => void;
+  beklemede: boolean;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-terracotta" />
+            Notu Sil
+          </DialogTitle>
+          <DialogDescription>
+            <span className="font-medium text-clay-900 dark:text-ink-50">{not.baslik}</span> notunu silmek üzeresin.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3 mt-1">
+          {/* Uyarı bloğu — KlasorSilDialog ile aynı ton */}
+          <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border-l-4 border-amber-400 rounded-r-lg">
+            <p className="text-sm text-amber-900 dark:text-amber-200 leading-relaxed">
+              Bu not <span className="font-semibold">çöp kutusuna</span> taşınacak.
+              {not.tamamlandi && " Tamamlanma açıklaması ve geçmişi korunur."}
+              {" "}Geri almak istersen <span className="font-semibold">Çöp Kutusu</span> sayfasından kurtarabilirsin.
+            </p>
+          </div>
+
+          {/* İçerik önizleme — kullanıcı yanlış notu silmesin */}
+          {not.icerik && (
+            <div className="rounded-lg border border-cream-300 dark:border-ink-700 bg-cream-50 dark:bg-ink-900 px-3 py-2">
+              <p className="text-[11px] uppercase tracking-wider text-clay-400 dark:text-ink-300 mb-1">İçerik önizleme</p>
+              <p className="text-sm text-clay-700 dark:text-ink-100 line-clamp-3 leading-relaxed">
+                {not.icerik}
+              </p>
+            </div>
+          )}
+
+          {not.klasorAdi && (
+            <div className="flex items-center gap-1.5 text-xs text-clay-500 dark:text-ink-200">
+              <FolderHeart className="h-3.5 w-3.5 text-terracotta" />
+              <span>Klasör: <span className="font-medium text-clay-700 dark:text-ink-100">{not.klasorAdi}</span></span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col-reverse sm:flex-row gap-2 mt-5 sm:justify-end">
+          <DialogClose asChild>
+            <Button type="button" variant="outline" disabled={beklemede}>
+              İptal
+            </Button>
+          </DialogClose>
+          <Button
+            type="button"
+            onClick={onConfirm}
+            disabled={beklemede}
+            className="bg-red-600 hover:bg-red-700 text-white"
+          >
+            {beklemede
+              ? <><Loader2 className="h-4 w-4 animate-spin mr-1.5" /> Siliniyor</>
+              : <><Trash2 className="h-4 w-4 mr-1.5" /> Onayla ve Sil</>}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
