@@ -119,7 +119,8 @@ public sealed class DocxDonusturucu : IDocxDonusturucu
             sira++;
         }
 
-        body.Append(SayfaSonu());
+        // v14-hotfix3 — Her klasör KENDI sayfa sonunu KlasorBolumuYaz başında ekler,
+        // burada ekstra sayfa sonu eklemiyoruz (yoksa çift sayfa boşluğu olur).
 
         // ─── HER KLASÖR ───
         foreach (var (ad, sistemMi, notlar) in gruplar)
@@ -130,6 +131,9 @@ public sealed class DocxDonusturucu : IDocxDonusturucu
 
     private void KlasorBolumuYaz(Body body, string ad, bool sistemMi, List<Not> notlar)
     {
+        // v14-hotfix3 — Her klasör yeni sayfadan başlar (HTML'deki page-break-before ile aynı disiplin)
+        body.Append(SayfaSonu());
+
         // Açılış
         body.Append(BosSatir(3));
         body.Append(MetinSatiri("♡", "Georgia", 28, Terracotta, ortala: true));
