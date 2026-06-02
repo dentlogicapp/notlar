@@ -65,6 +65,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             // v11 — Pasif/silindi kullanıcı kontrolü
             // Token geçerli olsa bile DB'de kullanıcı durumu kontrol edilir.
             // Admin pasif yaparsa veya silerse, sonraki istekte anlık çıkış sağlanır.
+            // Not: Silme = hard delete (kayıt yok) → durum null gelir.
             OnTokenValidated = async ctx =>
             {
                 var sub = ctx.Principal?.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value
@@ -79,10 +80,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 var db = ctx.HttpContext.RequestServices.GetRequiredService<Notlar.Api.Data.AppDbContext>();
                 var durum = await db.Kullanicilar
                     .Where(u => u.Id == kullaniciId)
-                    .Select(u => new { u.Aktif, u.Silindi })
+                    .Select(u => new { u.Aktif })
                     .FirstOrDefaultAsync(ctx.HttpContext.RequestAborted);
 
-                if (durum is null || durum.Silindi || !durum.Aktif)
+                // durum null = kullanıcı silinmiş (hard delete)
+                // !durum.Aktif = pasifleştirilmiş
+                if (durum is null || !durum.Aktif)
                 {
                     // Cookie'yi de temizle — tarayıcı yeniden istek atmasın
                     ctx.HttpContext.Response.Cookies.Delete("auth_token");
