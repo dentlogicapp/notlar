@@ -8,7 +8,7 @@ export default function Page() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-clay-400" />
+        <Loader2 className="h-6 w-6 animate-spin text-clay-400 dark:text-ink-300" />
       </div>
     }>
       <SifreBelirleForm baslik="Şifreni Belirle" />

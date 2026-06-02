@@ -11,7 +11,7 @@ export const Checkbox = forwardRef<
   <P.Root
     ref={ref}
     className={cn(
-      "h-6 w-6 shrink-0 rounded-md border-2 border-clay-300 bg-white",
+      "h-6 w-6 shrink-0 rounded-md border-2 border-clay-300 bg-white dark:bg-ink-850",
       "data-[state=checked]:bg-terracotta data-[state=checked]:border-terracotta",
       "data-[state=checked]:text-white",
       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta/40",

@@ -34,9 +34,9 @@ function Icerik({ params }: { params: Promise<{ id: string }> }) {
     <main className="min-h-screen pb-24">
       <CountdownWidget />
 
-      <header className="sticky top-0 z-30 bg-cream-100/85 backdrop-blur-md border-b border-cream-300/60">
+      <header className="sticky top-0 z-30 bg-cream-100/85 dark:bg-ink-800/85 backdrop-blur-md border-b border-cream-300 dark:border-ink-700/60">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
-          <Link href="/" className="flex items-center gap-1.5 text-clay-600 hover:text-clay-900 transition-colors min-w-0">
+          <Link href="/" className="flex items-center gap-1.5 text-clay-600 dark:text-ink-100 hover:text-clay-900 dark:hover:text-ink-50 transition-colors min-w-0">
             <ChevronLeft className="h-5 w-5 shrink-0" />
             <Heart className="h-5 w-5 text-terracotta animate-heart-beat hidden sm:inline" fill="currentColor" strokeWidth={1.5} />
             <span className="font-display text-base sm:text-lg truncate">Planlama Defterimiz</span>
@@ -53,11 +53,11 @@ function Icerik({ params }: { params: Promise<{ id: string }> }) {
                 <IkonGoster ad={k.ikon} className="h-6 w-6" />
               </div>
               <div className="flex-1 min-w-0">
-                <h1 className="font-display text-3xl sm:text-4xl text-clay-900 leading-tight">
+                <h1 className="font-display text-3xl sm:text-4xl text-clay-900 dark:text-ink-50 leading-tight">
                   {k.ad}
                 </h1>
-                {k.aciklama && <p className="text-clay-500 mt-1.5">{k.aciklama}</p>}
-                <p className="text-xs text-clay-400 mt-2">
+                {k.aciklama && <p className="text-clay-500 dark:text-ink-200 mt-1.5">{k.aciklama}</p>}
+                <p className="text-xs text-clay-400 dark:text-ink-300 mt-2">
                   {k.olusturanAdSoyad} · {gunFormat(k.olusturmaZamani)}
                 </p>
               </div>
@@ -75,7 +75,7 @@ function Icerik({ params }: { params: Promise<{ id: string }> }) {
           <KlasorListesi aktifId={id} />
 
           <section className="min-w-0">
-            <h2 className="font-display text-xl text-clay-900 mb-4 px-1">Notlar</h2>
+            <h2 className="font-display text-xl text-clay-900 dark:text-ink-50 mb-4 px-1">Notlar</h2>
             {/* Bu klasör içinde klasör badge'i göstermeye gerek yok */}
             <NotListesi klasorId={id} klasorBadgeGoster={false} />
           </section>

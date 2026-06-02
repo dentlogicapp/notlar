@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import { Providers } from "./providers";
+import { TEMA_INLINE_SCRIPT } from "@/lib/tema";
 import "./globals.css";
 
 const inter = Inter({
@@ -17,8 +18,8 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Görev Defteri",
-  description: "Birlikte yapılacaklar, birlikte tamamlanacaklar",
+  title: "Planlama Defterimiz",
+  description: "Birlikte yapılacaklar, birlikte tamamlanacaklar 🤍",
 };
 
 export default function RootLayout({
@@ -28,6 +29,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="tr" className={`${inter.variable} ${fraunces.variable}`}>
+      <head>
+        {/* Tema flash önleme — CSS yüklenmeden önce html.dark class'ı ayarlanır */}
+        <script dangerouslySetInnerHTML={{ __html: TEMA_INLINE_SCRIPT }} />
+      </head>
       <body>
         <Providers>{children}</Providers>
       </body>

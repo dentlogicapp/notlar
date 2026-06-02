@@ -60,6 +60,34 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 if (ctx.Request.Cookies.TryGetValue("auth_token", out var token))
                     ctx.Token = token;
                 return Task.CompletedTask;
+            },
+
+            // v11 — Pasif/silindi kullanıcı kontrolü
+            // Token geçerli olsa bile DB'de kullanıcı durumu kontrol edilir.
+            // Admin pasif yaparsa veya silerse, sonraki istekte anlık çıkış sağlanır.
+            OnTokenValidated = async ctx =>
+            {
+                var sub = ctx.Principal?.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value
+                       ?? ctx.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+                if (!Guid.TryParse(sub, out var kullaniciId))
+                {
+                    ctx.Fail("GECERSIZ_TOKEN");
+                    return;
+                }
+
+                var db = ctx.HttpContext.RequestServices.GetRequiredService<Notlar.Api.Data.AppDbContext>();
+                var durum = await db.Kullanicilar
+                    .Where(u => u.Id == kullaniciId)
+                    .Select(u => new { u.Aktif, u.Silindi })
+                    .FirstOrDefaultAsync(ctx.HttpContext.RequestAborted);
+
+                if (durum is null || durum.Silindi || !durum.Aktif)
+                {
+                    // Cookie'yi de temizle — tarayıcı yeniden istek atmasın
+                    ctx.HttpContext.Response.Cookies.Delete("auth_token");
+                    ctx.Fail("KULLANICI_PASIF_VEYA_SILINDI");
+                }
             }
         };
     });

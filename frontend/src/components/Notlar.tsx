@@ -258,7 +258,7 @@ export function DuzenleDialog({
               id="klasor"
               value={klasorId ?? ""}
               onChange={(e) => setKlasorId(e.target.value || null)}
-              className="h-11 w-full rounded-xl border border-clay-200 bg-white px-4 text-[15px] text-clay-900 focus:outline-none focus:border-clay-400 focus:ring-2 focus:ring-clay-900/5 transition-colors"
+              className="h-11 w-full rounded-xl border border-clay-200 bg-white dark:bg-ink-850 px-4 text-[15px] text-clay-900 dark:text-ink-50 focus:outline-none focus:border-clay-400 focus:ring-2 focus:ring-clay-900/5 transition-colors"
             >
               <option value="">— Kategorize edilmemiş —</option>
               {klasorSecenekleri.map((k) => (
@@ -291,7 +291,7 @@ export function DuzenleDialog({
                 "w-full flex items-center justify-between gap-3 rounded-xl border px-4 py-3 transition-all",
                 hatirlaticiAcik
                   ? "border-terracotta/40 bg-terracotta/5"
-                  : "border-clay-200 bg-cream-100 hover:bg-cream-200"
+                  : "border-clay-200 bg-cream-100 dark:bg-ink-800/60 hover:bg-cream-200 dark:hover:bg-ink-800"
               )}
               aria-pressed={hatirlaticiAcik}
             >
@@ -299,14 +299,14 @@ export function DuzenleDialog({
                 <span
                   className={cn(
                     "inline-flex h-7 w-7 items-center justify-center rounded-lg transition-colors",
-                    hatirlaticiAcik ? "bg-terracotta text-cream-50" : "bg-clay-200 text-clay-500"
+                    hatirlaticiAcik ? "bg-terracotta text-cream-50" : "bg-clay-200 text-clay-500 dark:text-ink-200"
                   )}
                 >
                   ⏰
                 </span>
                 <span className={cn(
                   "text-sm font-medium",
-                  hatirlaticiAcik ? "text-clay-900" : "text-clay-600"
+                  hatirlaticiAcik ? "text-clay-900 dark:text-ink-50" : "text-clay-600 dark:text-ink-100"
                 )}>
                   Hatırlatıcı kur (isteğe bağlı)
                 </span>
@@ -320,7 +320,7 @@ export function DuzenleDialog({
               >
                 <span
                   className={cn(
-                    "absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
+                    "absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white dark:bg-ink-850 shadow transition-transform",
                     hatirlaticiAcik && "translate-x-5"
                   )}
                 />
@@ -346,7 +346,7 @@ export function DuzenleDialog({
                     const pad = (n: number) => String(n).padStart(2, "0");
                     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
                   })()}
-                  className="h-11 w-full rounded-xl border border-clay-200 bg-white px-4 text-[15px] text-clay-900 focus:outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta/15 transition-colors"
+                  className="h-11 w-full rounded-xl border border-clay-200 bg-white dark:bg-ink-850 px-4 text-[15px] text-clay-900 dark:text-ink-50 focus:outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta/15 transition-colors"
                 />
               </div>
               <div>
@@ -355,7 +355,7 @@ export function DuzenleDialog({
                   id="hatirlatma-kime"
                   value={hatirlatmaKime}
                   onChange={(e) => setHatirlatmaKime(e.target.value as "askima" | "bana" | "ikimize" | "")}
-                  className="h-11 w-full rounded-xl border border-clay-200 bg-white px-4 text-[15px] text-clay-900 focus:outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta/15 transition-colors"
+                  className="h-11 w-full rounded-xl border border-clay-200 bg-white dark:bg-ink-850 px-4 text-[15px] text-clay-900 dark:text-ink-50 focus:outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta/15 transition-colors"
                 >
                   <option value="" disabled>Seç…</option>
                   <option value="askima">Aşkıma</option>
@@ -369,7 +369,7 @@ export function DuzenleDialog({
                   id="hatirlatma-sekli"
                   value={hatirlatmaSekli}
                   onChange={(e) => setHatirlatmaSekli(e.target.value as "uygulama" | "email" | "her_ikisi" | "")}
-                  className="h-11 w-full rounded-xl border border-clay-200 bg-white px-4 text-[15px] text-clay-900 focus:outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta/15 transition-colors"
+                  className="h-11 w-full rounded-xl border border-clay-200 bg-white dark:bg-ink-850 px-4 text-[15px] text-clay-900 dark:text-ink-50 focus:outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta/15 transition-colors"
                 >
                   <option value="" disabled>Seç…</option>
                   <option value="uygulama">Uygulama içinde</option>
@@ -423,7 +423,7 @@ export function DetayDialog({
 
         {isLoading ? (
           <div className="flex justify-center py-8">
-            <Loader2 className="h-5 w-5 animate-spin text-clay-400" />
+            <Loader2 className="h-5 w-5 animate-spin text-clay-400 dark:text-ink-300" />
           </div>
         ) : (
           <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
@@ -437,33 +437,33 @@ export function DetayDialog({
 
 function eylemEtiketi(eylem: string) {
   switch (eylem) {
-    case "olusturuldu": return { label: "Oluşturdu", renk: "bg-cream-200 text-clay-700" };
-    case "duzenlendi":  return { label: "Düzenledi", renk: "bg-cream-200 text-clay-700" };
+    case "olusturuldu": return { label: "Oluşturdu", renk: "bg-cream-200 dark:bg-ink-800 text-clay-700 dark:text-ink-100" };
+    case "duzenlendi":  return { label: "Düzenledi", renk: "bg-cream-200 dark:bg-ink-800 text-clay-700 dark:text-ink-100" };
     case "tamamlandi":  return { label: "Tamamladı", renk: "bg-terracotta/15 text-terracotta-dark" };
     case "yeniden_acildi": return { label: "Yeniden açtı", renk: "bg-amber-100 text-amber-800" };
     case "silindi":     return { label: "Sildi", renk: "bg-rose-100 text-red-800" };
     case "geri_alindi": return { label: "Geri yükledi", renk: "bg-emerald-100 text-emerald-800" };
-    default: return { label: eylem, renk: "bg-cream-200 text-clay-700" };
+    default: return { label: eylem, renk: "bg-cream-200 dark:bg-ink-800 text-clay-700 dark:text-ink-100" };
   }
 }
 
 function GecmisSatiri({ g }: { g: NotGecmisi }) {
   const et = eylemEtiketi(g.eylem);
   return (
-    <div className="flex gap-3 p-3 rounded-xl bg-cream-50 border border-cream-200">
+    <div className="flex gap-3 p-3 rounded-xl bg-cream-50 dark:bg-ink-900 border border-cream-200 dark:border-ink-700">
       <div className="h-9 w-9 shrink-0 rounded-full bg-clay-800 text-cream-50 flex items-center justify-center text-xs font-medium">
         {bastari(g.yapanAdSoyad)}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-medium text-clay-900">{g.yapanAdSoyad}</span>
+          <span className="text-sm font-medium text-clay-900 dark:text-ink-50">{g.yapanAdSoyad}</span>
           <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium uppercase tracking-wider", et.renk)}>
             {et.label}
           </span>
         </div>
-        <p className="text-xs text-clay-500 mt-0.5">{tarihFormat(g.yapilisZamani)}</p>
+        <p className="text-xs text-clay-500 dark:text-ink-200 mt-0.5">{tarihFormat(g.yapilisZamani)}</p>
         {g.aciklama && (
-          <p className="text-sm text-clay-700 mt-2 leading-relaxed">{g.aciklama}</p>
+          <p className="text-sm text-clay-700 dark:text-ink-100 mt-2 leading-relaxed">{g.aciklama}</p>
         )}
       </div>
     </div>
@@ -481,7 +481,7 @@ function KlasorBadge({ klasorAdi }: { klasorAdi: string | null }) {
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full bg-cream-200 text-clay-500 font-medium text-[10px] sm:text-[11px] leading-none">
+    <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full bg-cream-200 dark:bg-ink-800 text-clay-500 dark:text-ink-200 font-medium text-[10px] sm:text-[11px] leading-none">
       <Tag className="h-2.5 w-2.5 sm:h-3 sm:w-3" strokeWidth={2} />
       <span className="hidden sm:inline">Kategorize edilmedi</span>
       <span className="sm:hidden">Kategorisiz</span>
@@ -520,7 +520,7 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
       data-not-id={not.id}
       className={cn(
         "kart p-3 sm:p-4 group transition-all hover:shadow-md",
-        not.tamamlandi && "bg-cream-200/40 border-cream-300"
+        not.tamamlandi && "bg-cream-200 dark:bg-ink-800/40 border-cream-300 dark:border-ink-700"
       )}>
       <div className="flex items-start gap-2.5 sm:gap-3">
         <Checkbox
@@ -532,7 +532,7 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
           {/* Üst satır: sadece başlık (klasör badge ve aksiyonlar alt satıra taşındı) */}
           <h4 className={cn(
             "text-sm sm:text-[15px] leading-snug font-medium break-words",
-            not.tamamlandi ? "line-through text-clay-400" : "text-clay-900"
+            not.tamamlandi ? "line-through text-clay-400 dark:text-ink-300" : "text-clay-900 dark:text-ink-50"
           )}>
             {not.baslik}
           </h4>
@@ -541,7 +541,7 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
           {not.icerik && (
             <p className={cn(
               "text-[13px] sm:text-sm mt-1.5 leading-relaxed text-justify hyphens-auto break-words whitespace-pre-wrap",
-              not.tamamlandi ? "text-clay-400" : "text-clay-600"
+              not.tamamlandi ? "text-clay-400 dark:text-ink-300" : "text-clay-600 dark:text-ink-100"
             )}>
               {not.icerik}
             </p>
@@ -550,10 +550,10 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
           {/* Tamamlanma açıklaması varsa terracotta vurgulu blok */}
           {not.tamamlandi && not.tamamlanmaAciklamasi && (
             <div className="mt-2 p-2 sm:p-2.5 bg-terracotta/8 border-l-2 border-terracotta rounded-r-lg">
-              <p className="text-[11px] sm:text-xs text-clay-500 mb-0.5">
+              <p className="text-[11px] sm:text-xs text-clay-500 dark:text-ink-200 mb-0.5">
                 {not.tamamlayanAdSoyad} tamamladı · {tarihFormat(not.tamamlanmaZamani)}
               </p>
-              <p className="text-[13px] sm:text-sm text-clay-700 text-justify hyphens-auto break-words whitespace-pre-wrap">
+              <p className="text-[13px] sm:text-sm text-clay-700 dark:text-ink-100 text-justify hyphens-auto break-words whitespace-pre-wrap">
                 {not.tamamlanmaAciklamasi}
               </p>
             </div>
@@ -570,7 +570,7 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
               <button
                 onClick={() => setDetayAcik(true)}
                 aria-label="Detay"
-                className="p-1.5 rounded-md text-clay-500 hover:text-terracotta hover:bg-cream-200 active:bg-cream-300 transition-colors"
+                className="p-1.5 rounded-md text-clay-500 dark:text-ink-200 hover:text-terracotta hover:bg-cream-200 dark:hover:bg-ink-800 active:bg-cream-300 dark:active:bg-ink-700 dark:bg-ink-700 transition-colors"
               >
                 <Eye className="h-3.5 w-3.5" />
               </button>
@@ -581,7 +581,7 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
                   className={cn(
                     "p-1.5 rounded-md transition-colors inline-flex items-center",
                     not.hatirlatmaGonderildiMi
-                      ? "text-clay-400"
+                      ? "text-clay-400 dark:text-ink-300"
                       : "text-terracotta"
                   )}
                 >
@@ -601,7 +601,7 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
                 <button
                   onClick={() => setDuzenleAcik(true)}
                   aria-label="Düzenle"
-                  className="p-1.5 rounded-md text-clay-500 hover:text-clay-900 hover:bg-cream-200 active:bg-cream-300 transition-colors"
+                  className="p-1.5 rounded-md text-clay-500 dark:text-ink-200 hover:text-clay-900 dark:hover:text-ink-50 hover:bg-cream-200 dark:hover:bg-ink-800 active:bg-cream-300 dark:active:bg-ink-700 dark:bg-ink-700 transition-colors"
                 >
                   <Pencil className="h-3.5 w-3.5" />
                 </button>
@@ -610,23 +610,23 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
                 onClick={() => sil.mutate()}
                 aria-label="Sil"
                 disabled={sil.isPending || !!not.kilitSahibiAdi}
-                className="p-1.5 rounded-md text-clay-500 hover:text-red-600 hover:bg-red-50 active:bg-red-100 transition-colors disabled:opacity-40"
+                className="p-1.5 rounded-md text-clay-500 dark:text-ink-200 hover:text-red-600 hover:bg-red-50 active:bg-red-100 transition-colors disabled:opacity-40"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             </div>
 
-            <span className="text-clay-300 hidden sm:inline">·</span>
+            <span className="text-clay-300 dark:text-ink-400 hidden sm:inline">·</span>
 
-            <span className="inline-flex items-center gap-1 text-clay-400 ml-auto sm:ml-0">
-              <span className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded-full bg-clay-200 text-clay-700 inline-flex items-center justify-center text-[8px] sm:text-[9px] font-medium">
+            <span className="inline-flex items-center gap-1 text-clay-400 dark:text-ink-300 ml-auto sm:ml-0">
+              <span className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded-full bg-clay-200 text-clay-700 dark:text-ink-100 inline-flex items-center justify-center text-[8px] sm:text-[9px] font-medium">
                 {bastari(not.olusturanAdSoyad)}
               </span>
               {not.olusturanAdSoyad.split(" ")[0]}
             </span>
-            <span className="text-clay-300">·</span>
+            <span className="text-clay-300 dark:text-ink-400">·</span>
             <span
-              className="text-clay-400"
+              className="text-clay-400 dark:text-ink-300"
               title={`Oluşturma: ${tarihFormat(not.olusturmaZamani)}`}
             >
               {gorelizamandan(not.guncellemeZamani)}
@@ -657,7 +657,7 @@ export function NotListesi({
   });
 
   if (isLoading) {
-    return <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-clay-400" /></div>;
+    return <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-clay-400 dark:text-ink-300" /></div>;
   }
   if (error) {
     return <div className="text-sm text-red-700 bg-rose-50 border border-rose-200 rounded-xl p-4">{(error as Error).message}</div>;
@@ -665,8 +665,8 @@ export function NotListesi({
   if (!data || data.length === 0) {
     return (
       <div className="text-center py-10 px-4">
-        <p className="font-display text-2xl text-clay-300 italic">boş sayfa</p>
-        <p className="text-sm text-clay-400 mt-2">Yukarıdaki kutudan ekle.</p>
+        <p className="font-display text-2xl text-clay-300 dark:text-ink-400 italic">boş sayfa</p>
+        <p className="text-sm text-clay-400 dark:text-ink-300 mt-2">Yukarıdaki kutudan ekle.</p>
       </div>
     );
   }
@@ -678,7 +678,7 @@ export function NotListesi({
     <div className="space-y-4 sm:space-y-6">
       {aktif.length > 0 && (
         <section>
-          <h3 className="text-[11px] sm:text-xs uppercase tracking-wider text-clay-400 mb-2 sm:mb-2.5 px-1">
+          <h3 className="text-[11px] sm:text-xs uppercase tracking-wider text-clay-400 dark:text-ink-300 mb-2 sm:mb-2.5 px-1">
             Bekleyen · {aktif.length}
           </h3>
           <div className="space-y-2">
@@ -688,7 +688,7 @@ export function NotListesi({
       )}
       {tamamlanan.length > 0 && (
         <section>
-          <h3 className="text-[11px] sm:text-xs uppercase tracking-wider text-clay-400 mb-2 sm:mb-2.5 px-1">
+          <h3 className="text-[11px] sm:text-xs uppercase tracking-wider text-clay-400 dark:text-ink-300 mb-2 sm:mb-2.5 px-1">
             Tamamlanan · {tamamlanan.length}
           </h3>
           <div className="space-y-2">

@@ -79,9 +79,9 @@ function Icerik() {
     <main className="min-h-screen pb-24">
       <CountdownWidget />
 
-      <header className="sticky top-0 z-30 bg-cream-100/85 backdrop-blur-md border-b border-cream-300/60">
+      <header className="sticky top-0 z-30 bg-cream-100/85 dark:bg-ink-800/85 backdrop-blur-md border-b border-cream-300 dark:border-ink-700/60">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
-          <Link href="/" className="flex items-center gap-1 text-clay-600 hover:text-clay-900 transition-colors min-w-0">
+          <Link href="/" className="flex items-center gap-1 text-clay-600 dark:text-ink-100 hover:text-clay-900 dark:hover:text-ink-50 transition-colors min-w-0">
             <ChevronLeft className="h-5 w-5 shrink-0" />
             <Heart className="h-4 w-4 text-terracotta hidden sm:inline" fill="currentColor" />
             <span className="font-display text-base truncate">Yönetim</span>
@@ -92,7 +92,7 @@ function Icerik() {
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="font-display text-3xl text-clay-900">Kullanıcılar</h1>
+          <h1 className="font-display text-3xl text-clay-900 dark:text-ink-50">Kullanıcılar</h1>
           <div className="flex gap-2">
             <Link href="/admin/denetim">
               <Button variant="outline" size="sm">
@@ -104,11 +104,11 @@ function Icerik() {
         </div>
 
         {isLoading ? (
-          <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-clay-400" /></div>
+          <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-clay-400 dark:text-ink-300" /></div>
         ) : (
           <div className="kart overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="text-xs text-clay-500 uppercase tracking-wider bg-cream-100/60">
+              <thead className="text-xs text-clay-500 dark:text-ink-200 uppercase tracking-wider bg-cream-100/60 dark:bg-ink-800/60">
                 <tr>
                   <th className="text-left py-3 px-4 font-medium">Kullanıcı</th>
                   <th className="text-left py-3 px-4 font-medium hidden sm:table-cell">Rol</th>
@@ -141,15 +141,15 @@ function KullaniciSatiri({ u, onSifre, onToggle, onKilit, onSil }: {
   onSifre: () => void; onToggle: () => void; onKilit: () => void; onSil: () => void;
 }) {
   return (
-    <tr className="border-t border-cream-300 hover:bg-cream-100/40">
+    <tr className="border-t border-cream-300 dark:border-ink-700 hover:bg-cream-100/40 dark:hover:bg-ink-800/40">
       <td className="py-3 px-4">
         <div className="flex items-center gap-3 min-w-0">
           <div className="h-9 w-9 rounded-full bg-clay-800 text-cream-50 flex items-center justify-center text-xs font-medium shrink-0">
             {bastari(u.adSoyad)}
           </div>
           <div className="min-w-0">
-            <p className="font-medium text-clay-900 truncate">{u.adSoyad}</p>
-            <p className="text-xs text-clay-400 truncate">{u.email}</p>
+            <p className="font-medium text-clay-900 dark:text-ink-50 truncate">{u.adSoyad}</p>
+            <p className="text-xs text-clay-400 dark:text-ink-300 truncate">{u.email}</p>
           </div>
         </div>
       </td>
@@ -157,12 +157,12 @@ function KullaniciSatiri({ u, onSifre, onToggle, onKilit, onSil }: {
         {u.rol === "admin" ? (
           <span className="inline-block text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-terracotta/15 text-terracotta-dark font-medium">Yönetici</span>
         ) : (
-          <span className="text-xs text-clay-500">Kullanıcı</span>
+          <span className="text-xs text-clay-500 dark:text-ink-200">Kullanıcı</span>
         )}
       </td>
       <td className="py-3 px-4 hidden md:table-cell">
         <div className="flex flex-wrap gap-1.5">
-          {!u.aktif && <span className="text-[10px] px-2 py-0.5 rounded-full bg-clay-100 text-clay-500 uppercase tracking-wider">Pasif</span>}
+          {!u.aktif && <span className="text-[10px] px-2 py-0.5 rounded-full bg-clay-100 text-clay-500 dark:text-ink-200 uppercase tracking-wider">Pasif</span>}
           {u.kilitli && <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-100 text-red-700 uppercase tracking-wider">Kilitli</span>}
           {!u.sifreBelirlendi && <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 uppercase tracking-wider">Şifre bekliyor</span>}
           {u.aktif && !u.kilitli && u.sifreBelirlendi && (
@@ -170,7 +170,7 @@ function KullaniciSatiri({ u, onSifre, onToggle, onKilit, onSil }: {
           )}
         </div>
       </td>
-      <td className="py-3 px-4 hidden lg:table-cell text-xs text-clay-500">
+      <td className="py-3 px-4 hidden lg:table-cell text-xs text-clay-500 dark:text-ink-200">
         {u.sonGirisZamani ? tarihFormat(u.sonGirisZamani) : "—"}
       </td>
       <td className="py-3 px-4 text-right">
@@ -246,20 +246,20 @@ function KullaniciEkleDialog() {
               id="cinsiyet"
               defaultValue=""
               {...register("cinsiyet")}
-              className="h-11 w-full rounded-xl border border-clay-200 bg-white px-4 text-[15px] text-clay-900 focus:outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta/15 transition-colors"
+              className="h-11 w-full rounded-xl border border-clay-200 bg-white dark:bg-ink-850 px-4 text-[15px] text-clay-900 dark:text-ink-50 focus:outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta/15 transition-colors"
             >
               <option value="" disabled>Seç…</option>
               <option value="kadin">Kadın</option>
               <option value="erkek">Erkek</option>
             </select>
             {errors.cinsiyet && <p className="text-xs text-red-600 mt-1">{errors.cinsiyet.message}</p>}
-            <p className="text-[11px] text-clay-400 mt-1.5 italic leading-relaxed">
+            <p className="text-[11px] text-clay-400 dark:text-ink-300 mt-1.5 italic leading-relaxed">
               Bu bilgi yalnızca ileride kişiselleştirilmiş içerikler için saklanır.
             </p>
           </div>
           <div>
             <Label htmlFor="rol">Rol</Label>
-            <select id="rol" {...register("rol")} className="h-11 w-full rounded-xl border border-clay-200 bg-white px-4 text-[15px]">
+            <select id="rol" {...register("rol")} className="h-11 w-full rounded-xl border border-clay-200 bg-white dark:bg-ink-850 px-4 text-[15px]">
               <option value="kullanici">Kullanıcı</option>
               <option value="admin">Yönetici</option>
             </select>

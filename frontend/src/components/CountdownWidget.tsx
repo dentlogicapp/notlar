@@ -36,8 +36,8 @@ export function CountdownWidget() {
       <>
         <Heart className="h-7 w-7 text-terracotta animate-heart-beat shrink-0" fill="currentColor" strokeWidth={1.5} />
         <div className="flex flex-col">
-          <span className="text-[10px] uppercase tracking-[0.18em] text-clay-500 leading-none font-medium">kavuştuk</span>
-          <span className="font-display text-xl text-clay-900 leading-tight mt-1">Mutluluklar 🤍</span>
+          <span className="text-[10px] uppercase tracking-[0.18em] text-clay-500 dark:text-ink-200 leading-none font-medium">kavuştuk</span>
+          <span className="font-display text-xl text-clay-900 dark:text-ink-50 leading-tight mt-1">Mutluluklar 🤍</span>
         </div>
       </>
     );
@@ -66,18 +66,18 @@ export function CountdownWidget() {
       />
       <div className="flex flex-col min-w-0">
         <span className={cn(
-          "uppercase tracking-[0.2em] text-clay-500 leading-none font-medium",
+          "uppercase tracking-[0.2em] text-clay-500 dark:text-ink-200 leading-none font-medium",
           kompakt ? "text-[10px]" : "text-[11px]"
         )}>
           kavuşmamıza son:
         </span>
         <div className={cn("flex items-baseline mt-1.5", kompakt ? "gap-1.5" : "gap-2")}>
           <KutuRakam deger={k.gun} etiket="gün" vurgu kompakt={kompakt} />
-          <span className="text-clay-300 text-base">·</span>
+          <span className="text-clay-300 dark:text-ink-400 text-base">·</span>
           <KutuRakam deger={k.sa} etiket="sa" kompakt={kompakt} />
-          <span className="text-clay-300 text-base">·</span>
+          <span className="text-clay-300 dark:text-ink-400 text-base">·</span>
           <KutuRakam deger={k.dk} etiket="dk" kompakt={kompakt} />
-          <span className="text-clay-300 text-base">·</span>
+          <span className="text-clay-300 dark:text-ink-400 text-base">·</span>
           <KutuRakam deger={k.sn} etiket="sn" kompakt={kompakt} />
         </div>
       </div>
@@ -106,13 +106,13 @@ function KutuRakam({ deger, etiket, vurgu, kompakt, className }: {
       <span className={cn(
         "font-display leading-none",
         vurgu
-          ? (kompakt ? "text-lg text-clay-900 font-semibold" : "text-2xl text-clay-900 font-semibold")
-          : (kompakt ? "text-sm text-clay-700" : "text-lg text-clay-700")
+          ? (kompakt ? "text-lg text-clay-900 dark:text-ink-50 font-semibold" : "text-2xl text-clay-900 dark:text-ink-50 font-semibold")
+          : (kompakt ? "text-sm text-clay-700 dark:text-ink-100" : "text-lg text-clay-700 dark:text-ink-100")
       )}>
         {deger.toString().padStart(2, "0")}
       </span>
       <span className={cn(
-        "text-clay-400 font-medium",
+        "text-clay-400 dark:text-ink-300 font-medium",
         kompakt ? "text-[9px]" : "text-[10px]"
       )}>{etiket}</span>
     </span>

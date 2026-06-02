@@ -1,8 +1,8 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "sonner";
-import { useState } from "react";
+import { Toaster, toast } from "sonner";
+import { useEffect, useState } from "react";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [qc] = useState(() => new QueryClient({
@@ -15,6 +15,16 @@ export function Providers({ children }: { children: React.ReactNode }) {
       },
     },
   }));
+
+  // v11 — Global 401 yakalama: api.ts yetkisiz-erisim eventi fırlatır, burada toast
+  useEffect(() => {
+    const handler = () => {
+      qc.clear();
+      toast.error("Erişiminiz sonlandırıldı. Lütfen tekrar giriş yapın.");
+    };
+    window.addEventListener("yetkisiz-erisim", handler);
+    return () => window.removeEventListener("yetkisiz-erisim", handler);
+  }, [qc]);
 
   return (
     <QueryClientProvider client={qc}>

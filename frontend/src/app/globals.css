@@ -13,8 +13,18 @@
     background-image: radial-gradient(circle at 0% 0%, rgba(212, 166, 97, 0.07), transparent 40%),
                       radial-gradient(circle at 100% 100%, rgba(196, 112, 77, 0.05), transparent 40%);
     background-attachment: fixed;
+    transition: background-color 200ms ease, color 200ms ease;
   }
+
+  /* v11 — KOYU TEMA: warm-charcoal, davetiye stiliyle uyumlu */
+  html.dark body {
+    @apply bg-ink-900 text-ink-50;
+    background-image: radial-gradient(circle at 0% 0%, rgba(232, 145, 114, 0.06), transparent 40%),
+                      radial-gradient(circle at 100% 100%, rgba(232, 145, 114, 0.04), transparent 40%);
+  }
+
   ::selection { @apply bg-terracotta/20 text-clay-900; }
+  html.dark ::selection { @apply bg-terracotta/30 text-ink-50; }
 }
 
 @layer utilities {
@@ -28,12 +38,17 @@
   .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
   .safe-top { padding-top: env(safe-area-inset-top); }
 
-  /* Yumuşak kart */
+  /* Yumuşak kart — açık ve koyu tema */
   .kart {
     @apply bg-white border border-clay-100 rounded-2xl shadow-[0_1px_2px_rgba(61,40,23,0.04),0_4px_12px_rgba(61,40,23,0.04)];
+    transition: background-color 200ms ease, border-color 200ms ease;
+  }
+  html.dark .kart {
+    @apply bg-ink-850 border-ink-700;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.2);
   }
 
-  /* v9 - Bildirim pulse (kırmızı yanıp sönme — okunmamış bildirim varsa avatar) */
+  /* v9 - Bildirim pulse (okunmamış bildirim varsa avatar) */
   @keyframes pulse-red-bildirim {
     0%, 100% {
       box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7);
@@ -64,5 +79,24 @@
   }
   .animate-focus-pulse {
     animation: focus-pulse-terracotta 2s ease-in-out;
+  }
+
+  /* v11 — Bildirim feed scroll (gradient fade üst) */
+  .bildirim-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(196, 112, 77, 0.3) transparent;
+  }
+  .bildirim-scroll::-webkit-scrollbar {
+    width: 5px;
+  }
+  .bildirim-scroll::-webkit-scrollbar-thumb {
+    background-color: rgba(196, 112, 77, 0.3);
+    border-radius: 999px;
+  }
+  .gradient-fade {
+    background: linear-gradient(to bottom, #ffffff, transparent);
+  }
+  html.dark .gradient-fade {
+    background: linear-gradient(to bottom, #1f1813, transparent);
   }
 }

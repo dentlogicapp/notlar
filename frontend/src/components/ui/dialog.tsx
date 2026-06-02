@@ -36,7 +36,7 @@ export const DialogContent = forwardRef<
       ref={ref}
       className={cn(
         "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%]",
-        "gap-4 bg-white p-6 sm:p-8 shadow-xl rounded-2xl border border-clay-100",
+        "gap-4 bg-white dark:bg-ink-850 p-6 sm:p-8 shadow-xl rounded-2xl border border-clay-100 dark:border-ink-700",
         "data-[state=open]:animate-fade-in",
         "max-h-[90vh] overflow-y-auto",
         "mx-4",
@@ -46,7 +46,7 @@ export const DialogContent = forwardRef<
     >
       {children}
       {!hideClose && (
-        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-full opacity-60 hover:opacity-100 hover:bg-cream-200 p-1.5 transition-all">
+        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-full opacity-60 hover:opacity-100 hover:bg-cream-200 dark:hover:bg-ink-800 p-1.5 transition-all">
           <X className="h-4 w-4" />
           <span className="sr-only">Kapat</span>
         </DialogPrimitive.Close>
@@ -66,7 +66,7 @@ export const DialogTitle = forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn("font-display text-2xl tracking-tight text-clay-900", className)}
+    className={cn("font-display text-2xl tracking-tight text-clay-900 dark:text-ink-50", className)}
     {...props}
   />
 ));
@@ -78,7 +78,7 @@ export const DialogDescription = forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
     ref={ref}
-    className={cn("text-sm text-clay-500", className)}
+    className={cn("text-sm text-clay-500 dark:text-ink-200", className)}
     {...props}
   />
 ));

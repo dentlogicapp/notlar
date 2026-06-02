@@ -60,20 +60,20 @@ export function SifreBelirleForm({ baslik }: { baslik: string }) {
           <div className="inline-flex items-center justify-center h-14 w-14 rounded-full bg-terracotta/15 mb-4">
             <Heart className="h-6 w-6 text-terracotta" fill="currentColor" />
           </div>
-          <h1 className="font-display text-3xl text-clay-900">{baslik}</h1>
+          <h1 className="font-display text-3xl text-clay-900 dark:text-ink-50">{baslik}</h1>
         </div>
 
         <div className="kart p-6 sm:p-8 animate-fade-in">
           {dogrula.isLoading && (
             <div className="flex justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-clay-400" />
+              <Loader2 className="h-6 w-6 animate-spin text-clay-400 dark:text-ink-300" />
             </div>
           )}
 
           {dogrula.isError && (
             <div className="text-center py-6">
-              <p className="text-clay-700 font-medium mb-2">Bağlantı geçersiz</p>
-              <p className="text-sm text-clay-500 mb-4">{(dogrula.error as Error).message}</p>
+              <p className="text-clay-700 dark:text-ink-100 font-medium mb-2">Bağlantı geçersiz</p>
+              <p className="text-sm text-clay-500 dark:text-ink-200 mb-4">{(dogrula.error as Error).message}</p>
               <Link href="/giris" className="text-terracotta hover:underline text-sm">
                 Giriş sayfasına dön
               </Link>
@@ -82,11 +82,11 @@ export function SifreBelirleForm({ baslik }: { baslik: string }) {
 
           {dogrula.data && (
             <>
-              <div className="mb-5 p-3 bg-cream-200 rounded-xl flex items-center gap-2.5">
+              <div className="mb-5 p-3 bg-cream-200 dark:bg-ink-800 rounded-xl flex items-center gap-2.5">
                 <ShieldCheck className="h-4 w-4 text-terracotta" />
                 <div className="text-sm">
-                  <span className="text-clay-500">Hesap: </span>
-                  <span className="text-clay-900 font-medium">{dogrula.data.email}</span>
+                  <span className="text-clay-500 dark:text-ink-200">Hesap: </span>
+                  <span className="text-clay-900 dark:text-ink-50 font-medium">{dogrula.data.email}</span>
                 </div>
               </div>
 
@@ -102,7 +102,7 @@ export function SifreBelirleForm({ baslik }: { baslik: string }) {
                   {errors.tekrar && <p className="text-xs text-red-600 mt-1">{errors.tekrar.message}</p>}
                 </div>
 
-                <p className="text-xs text-clay-500 italic">
+                <p className="text-xs text-clay-500 dark:text-ink-200 italic">
                   En az 8 karakter, 1 büyük harf, 1 rakam.
                 </p>
 

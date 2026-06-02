@@ -7,6 +7,28 @@ import type {
 
 const API = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:5000";
 
+// v11 — Pasifleştirme/silindi anında çıkış için global 401 koruma
+let yonlendiriliyorMu = false; // Çoklu yönlendirme önleme
+function yetkisizYakala() {
+  if (typeof window === "undefined") return;
+  if (yonlendiriliyorMu) return;
+
+  // Giriş ve şifre belirle sayfalarında zaten yetkisiziz — sonsuz döngü önle
+  const yol = window.location.pathname;
+  if (yol.startsWith("/giris") || yol.startsWith("/sifre-belirle")) return;
+
+  yonlendiriliyorMu = true;
+  // Toast (sonner) sayfa yönlenmeden gözükebilsin
+  try {
+    // Sonner global import yapmadan, basit window event ile bildir
+    window.dispatchEvent(new CustomEvent("yetkisiz-erisim"));
+  } catch {}
+  // Kısa gecikme: toast'ın render olabilmesi için
+  setTimeout(() => {
+    window.location.href = "/giris";
+  }, 80);
+}
+
 async function ist<T>(yol: string, init?: RequestInit): Promise<T> {
   const r = await fetch(`${API}${yol}`, {
     ...init,
@@ -14,6 +36,10 @@ async function ist<T>(yol: string, init?: RequestInit): Promise<T> {
     headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
   });
   if (!r.ok) {
+    // v11 — 401: kullanıcı pasif/silindi veya token geçersiz
+    if (r.status === 401) {
+      yetkisizYakala();
+    }
     let m = `İstek başarısız (${r.status})`;
     try { const b = await r.json(); if (b?.hata) m = b.hata; } catch {}
     const e = new Error(m) as Error & { status: number };

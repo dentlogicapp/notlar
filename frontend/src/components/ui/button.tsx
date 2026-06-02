@@ -13,9 +13,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const v = {
       primary: "bg-clay-800 text-cream-50 hover:bg-clay-700 active:translate-y-px shadow-sm",
       secondary: "bg-terracotta text-white hover:bg-terracotta-dark active:translate-y-px shadow-sm",
-      ghost: "text-clay-600 hover:text-clay-900 hover:bg-cream-200",
-      danger: "text-clay-400 hover:text-red-700 hover:bg-rose-50",
-      outline: "border border-clay-200 text-clay-800 hover:bg-cream-200",
+      ghost: "text-clay-600 dark:text-ink-100 hover:text-clay-900 dark:hover:text-ink-50 hover:bg-cream-200 dark:hover:bg-ink-800",
+      danger: "text-clay-400 dark:text-ink-300 hover:text-red-700 hover:bg-rose-50",
+      outline: "border border-clay-200 text-clay-800 dark:text-ink-50 hover:bg-cream-200 dark:hover:bg-ink-800",
     };
     const s = { sm: "h-9 px-3 text-sm", md: "h-11 px-5 text-sm", lg: "h-12 px-6 text-base" };
     return <button ref={ref} className={cn(base, v[variant], s[size], className)} {...props} />;

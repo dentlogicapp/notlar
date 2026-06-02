@@ -2,6 +2,7 @@ import type { Config } from "tailwindcss";
 
 export default {
   content: ["./src/**/*.{ts,tsx,js,jsx,mdx}"],
+  darkMode: "class",  // v11 — manuel toggle (UserMenu)
   theme: {
     extend: {
       fontFamily: {
@@ -9,6 +10,7 @@ export default {
         display: ["var(--font-fraunces)", "Georgia", "serif"],
       },
       colors: {
+        // Açık tema — DEĞIŞMEDİ
         cream: {
           50:  "#fdfaf4",
           100: "#faf6ef",
@@ -41,6 +43,20 @@ export default {
           100: "#fae0d8",
           200: "#f5c2b1",
         },
+        // v11 — KOYU TEMA "ink" (warm-charcoal, davetiye stiliyle uyumlu)
+        ink: {
+          50:  "#ede2cf",  // primary text
+          100: "#d6cab2",  // secondary
+          200: "#bcae97",  // muted
+          300: "#9a8e78",  // faint
+          400: "#7d6f5a",  // tertiary
+          500: "#5a4f3f",  // disabled
+          600: "#3a302a",  // border-strong
+          700: "#2d2520",  // border-base
+          800: "#28201a",  // elevated (hover, popover üstü)
+          850: "#1f1813",  // surface (kart, dialog)
+          900: "#15110d",  // base (sayfa zemini)
+        },
       },
       keyframes: {
         "heart-beat": {
@@ -55,10 +71,15 @@ export default {
           "0%":   { opacity: "0", transform: "translateY(8px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
+        "pulse-red-bildirim": {
+          "0%, 100%": { boxShadow: "0 0 0 0 rgba(239, 68, 68, 0.45)" },
+          "50%":      { boxShadow: "0 0 0 6px rgba(239, 68, 68, 0)" },
+        },
       },
       animation: {
         "heart-beat": "heart-beat 1.6s ease-in-out infinite",
         "fade-in": "fade-in 0.4s ease-out",
+        "pulse-red-bildirim": "pulse-red-bildirim 2s ease-in-out infinite",
       },
     },
   },

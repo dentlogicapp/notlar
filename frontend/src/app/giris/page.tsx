@@ -45,8 +45,8 @@ export default function GirisSayfasi() {
           <div className="inline-flex items-center justify-center h-14 w-14 rounded-full bg-terracotta/15 mb-4">
             <Heart className="h-6 w-6 text-terracotta animate-heart-beat" fill="currentColor" />
           </div>
-          <h1 className="font-display text-3xl text-clay-900">Planlama Defterimiz</h1>
-          <p className="text-clay-500 mt-1.5 italic text-sm inline-flex items-center justify-center gap-1.5 flex-wrap">
+          <h1 className="font-display text-3xl text-clay-900 dark:text-ink-50">Planlama Defterimiz</h1>
+          <p className="text-clay-500 dark:text-ink-200 mt-1.5 italic text-sm inline-flex items-center justify-center gap-1.5 flex-wrap">
             <span>AŞK&apos;la planlanıp, AŞK&apos;la tamamlanacaklar</span>
             <Heart className="h-3.5 w-3.5 text-terracotta inline-block" fill="currentColor" strokeWidth={0} />
           </p>
@@ -71,9 +71,9 @@ export default function GirisSayfasi() {
                 type="checkbox"
                 id="beniHatirla"
                 {...register("beniHatirla")}
-                className="h-4 w-4 rounded border-cream-300 text-terracotta focus:ring-2 focus:ring-terracotta/30 focus:ring-offset-0 accent-terracotta cursor-pointer"
+                className="h-4 w-4 rounded border-cream-300 dark:border-ink-700 text-terracotta focus:ring-2 focus:ring-terracotta/30 focus:ring-offset-0 accent-terracotta cursor-pointer"
               />
-              <label htmlFor="beniHatirla" className="text-sm text-clay-600 cursor-pointer select-none">
+              <label htmlFor="beniHatirla" className="text-sm text-clay-600 dark:text-ink-100 cursor-pointer select-none">
                 Beni hatırla
               </label>
             </div>
@@ -84,13 +84,13 @@ export default function GirisSayfasi() {
           </form>
 
           <div className="mt-5 text-center">
-            <Link href="/sifre-sifirla-iste" className="text-xs text-clay-500 hover:text-terracotta hover:underline">
+            <Link href="/sifre-sifirla-iste" className="text-xs text-clay-500 dark:text-ink-200 hover:text-terracotta hover:underline">
               Şifremi unuttum
             </Link>
           </div>
         </div>
 
-        <p className="text-center text-xs text-clay-400 mt-6">
+        <p className="text-center text-xs text-clay-400 dark:text-ink-300 mt-6">
           Hesabın yoksa yöneticinden davet iste.
         </p>
       </div>

@@ -4,13 +4,15 @@ import * as DM from "@radix-ui/react-dropdown-menu";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   LogOut, Shield, Trash2, ListTodo, Bell, Download,
-  FileText, FileSpreadsheet, FileType, FileCode, Loader2, X
+  FileText, FileSpreadsheet, FileType, FileCode, Loader2, X,
+  Moon, Sun
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { authApi, bildirimApi, defteriIndir, type DefteriIndirFormat } from "@/lib/api";
 import { useBen } from "@/lib/useBen";
+import { useTema } from "@/lib/tema";
 import { cn, bastari } from "@/lib/utils";
 import type { Bildirim } from "@/lib/types";
 import { toast } from "sonner";
@@ -41,6 +43,7 @@ export function UserMenu() {
   const [acik, setAcik] = useState(false);
   const [indirAcik, setIndirAcik] = useState(false);
   const [gosterilen, setGosterilen] = useState(ILK_BILDIRIM);
+  const [tema, , temaTersle] = useTema();
 
   const bildirimSorgu = useQuery({
     queryKey: ["bildirimler"],
@@ -124,34 +127,34 @@ export function UserMenu() {
             className="min-w-[320px] max-w-[360px] kart p-1 z-50 animate-fade-in"
           >
             {/* User identity */}
-            <div className="px-3 py-2.5 border-b border-cream-300">
-              <p className="text-sm font-medium text-clay-900">{ben.adSoyad}</p>
-              <p className="text-xs text-clay-400 truncate">{ben.email}</p>
+            <div className="px-3 py-2.5 border-b border-cream-300 dark:border-ink-700">
+              <p className="text-sm font-medium text-clay-900 dark:text-ink-50">{ben.adSoyad}</p>
+              <p className="text-xs text-clay-400 dark:text-ink-300 truncate">{ben.email}</p>
               {ben.rol === "admin" && (
                 <p className="text-xs text-terracotta mt-1 font-medium">⚜ Yönetici</p>
               )}
             </div>
 
-            {/* MENÜ — Yeni sıra: Notlar → Yönetim → Çöp Kutusu → Defteri İndir → Bildirimler → Çıkış */}
+            {/* MENÜ — Yeni sıra: Notlar → Yönetim → Çöp Kutusu → Defteri İndir → Tema → Bildirimler → Çıkış */}
             <DM.Item asChild>
-              <Link href="/" className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-cream-200 cursor-pointer outline-none">
-                <ListTodo className="h-4 w-4 text-clay-500" />
+              <Link href="/" className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-cream-200 dark:hover:bg-ink-800 cursor-pointer outline-none text-clay-700 dark:text-ink-100">
+                <ListTodo className="h-4 w-4 text-clay-500 dark:text-ink-300" />
                 Notlar
               </Link>
             </DM.Item>
 
             {ben.rol === "admin" && (
               <DM.Item asChild>
-                <Link href="/admin" className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-cream-200 cursor-pointer outline-none">
-                  <Shield className="h-4 w-4 text-clay-500" />
+                <Link href="/admin" className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-cream-200 dark:hover:bg-ink-800 cursor-pointer outline-none text-clay-700 dark:text-ink-100">
+                  <Shield className="h-4 w-4 text-clay-500 dark:text-ink-300" />
                   Yönetim
                 </Link>
               </DM.Item>
             )}
 
             <DM.Item asChild>
-              <Link href="/cop-kutusu" className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-cream-200 cursor-pointer outline-none">
-                <Trash2 className="h-4 w-4 text-clay-500" />
+              <Link href="/cop-kutusu" className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-cream-200 dark:hover:bg-ink-800 cursor-pointer outline-none text-clay-700 dark:text-ink-100">
+                <Trash2 className="h-4 w-4 text-clay-500 dark:text-ink-300" />
                 Çöp Kutusu
               </Link>
             </DM.Item>
@@ -163,38 +166,69 @@ export function UserMenu() {
                 // Küçük gecikme — menü kapanması bitsin sonra dialog açılsın
                 setTimeout(() => setIndirAcik(true), 50);
               }}
-              className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-cream-200 cursor-pointer outline-none text-clay-700"
+              className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-cream-200 dark:hover:bg-ink-800 cursor-pointer outline-none text-clay-700 dark:text-ink-100"
             >
               <Download className="h-4 w-4 text-terracotta" />
               Defteri İndir
             </DM.Item>
 
+            {/* v11 — Tema Toggle (Defteri İndir ile Bildirimler arası) */}
+            <DM.Item
+              onSelect={(e) => {
+                e.preventDefault();
+                temaTersle();
+              }}
+              className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-cream-200 dark:hover:bg-ink-800 cursor-pointer outline-none text-clay-700 dark:text-ink-100"
+            >
+              {tema === "acik"
+                ? <Moon className="h-4 w-4 text-clay-500 dark:text-ink-300" />
+                : <Sun className="h-4 w-4 text-gold dark:text-gold" />}
+              <span className="flex-1">
+                {tema === "acik" ? "Koyu Temaya Geç" : "Açık Temaya Geç"}
+              </span>
+              {/* Görsel toggle switch (Hatırlatıcı kur stilinde) */}
+              <span
+                role="switch"
+                aria-checked={tema === "koyu"}
+                className={cn(
+                  "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors",
+                  tema === "koyu" ? "bg-terracotta" : "bg-clay-200 dark:bg-ink-700"
+                )}
+              >
+                <span
+                  className={cn(
+                    "inline-block h-4 w-4 transform rounded-full bg-white dark:bg-ink-50 transition-transform shadow-sm",
+                    tema === "koyu" ? "translate-x-[18px]" : "translate-x-0.5"
+                  )}
+                />
+              </span>
+            </DM.Item>
+
             {/* BİLDİRİMLER — Çöp Kutusu altı, Çıkış üstü, paginate edilmiş */}
-            <DM.Separator className="h-px bg-cream-300 my-1" />
+            <DM.Separator className="h-px bg-cream-300 dark:bg-ink-700 my-1" />
 
             <div className="px-3 pt-2 pb-1 flex items-center gap-2">
               <Bell className="h-3.5 w-3.5 text-terracotta" />
-              <span className="text-[11px] uppercase tracking-wider text-clay-500 font-semibold">
+              <span className="text-[11px] uppercase tracking-wider text-clay-500 dark:text-ink-200 font-semibold">
                 Bildirimler
               </span>
               {tumBildirimler.length > 0 && (
-                <span className="text-[10px] text-clay-400 ml-auto">
+                <span className="text-[10px] text-clay-400 dark:text-ink-300 ml-auto">
                   {tumBildirimler.length}{tumBildirimler.length >= MAX_BILDIRIM ? "+" : ""} adet
                 </span>
               )}
             </div>
 
             {tumBildirimler.length === 0 ? (
-              <p className="px-3 pb-2.5 text-xs text-clay-400 italic">
+              <p className="px-3 pb-2.5 text-xs text-clay-400 dark:text-ink-300 italic">
                 Henüz bildirim yok.
               </p>
             ) : (
               <div className="relative px-1 pb-1.5 max-h-[300px] overflow-y-auto bildirim-scroll">
-                {/* Üst gradient fade — paginate olduğunda "üstte daha var" hissi */}
+                {/* Üst gradient fade */}
                 {gosterilen > ILK_BILDIRIM && (
                   <div
-                    className="sticky top-0 z-10 h-3 -mx-1 mb-[-12px] pointer-events-none"
-                    style={{ background: "linear-gradient(to bottom, #ffffff, transparent)" }}
+                    className="sticky top-0 z-10 h-3 -mx-1 mb-[-12px] pointer-events-none gradient-fade"
                   />
                 )}
 
@@ -203,26 +237,27 @@ export function UserMenu() {
                     key={b.id}
                     onClick={() => bildirimeTikla(b)}
                     className={cn(
-                      "w-full text-left rounded-lg px-2.5 py-2 hover:bg-cream-200 transition-colors flex items-start gap-2 group",
-                      !b.okunduMu && "bg-cream-100"
+                      "w-full text-left rounded-lg px-2.5 py-2 hover:bg-cream-200 dark:hover:bg-ink-800 transition-colors flex items-start gap-2 group",
+                      !b.okunduMu && "bg-cream-100 dark:bg-ink-800/60"
                     )}
                   >
                     <Bell className="h-3.5 w-3.5 text-terracotta shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
                       <p className={cn(
                         "text-xs leading-snug truncate",
-                        b.okunduMu ? "text-clay-500" : "text-clay-800 font-medium"
+                        b.okunduMu
+                          ? "text-clay-500 dark:text-ink-200"
+                          : "text-clay-800 dark:text-ink-50 font-medium"
                       )}>
                         {b.mesaj}
                       </p>
-                      <p className="text-[10px] text-clay-400 mt-0.5">
+                      <p className="text-[10px] text-clay-400 dark:text-ink-300 mt-0.5">
                         {gecenSureMetni(b.olusturmaZamani)}
                       </p>
                     </div>
                   </button>
                 ))}
 
-                {/* "Daha eski bildirimleri gör" — sticky bottom */}
                 {dahaVar && (
                   <button
                     onClick={(e) => {
@@ -230,13 +265,13 @@ export function UserMenu() {
                       e.stopPropagation();
                       setGosterilen(g => Math.min(g + 5, MAX_BILDIRIM));
                     }}
-                    className="w-full text-center text-[11px] text-terracotta hover:text-terracotta/80 py-2 mt-1 font-medium hover:bg-cream-50 rounded-lg transition-colors"
+                    className="w-full text-center text-[11px] text-terracotta hover:text-terracotta/80 py-2 mt-1 font-medium hover:bg-cream-50 dark:hover:bg-ink-800 rounded-lg transition-colors"
                   >
                     ⌄ Daha eski bildirimleri gör ({tumBildirimler.length - gosterilen})
                   </button>
                 )}
                 {!dahaVar && tumBildirimler.length > ILK_BILDIRIM && (
-                  <p className="text-center text-[10px] text-clay-400 italic py-1.5">
+                  <p className="text-center text-[10px] text-clay-400 dark:text-ink-300 italic py-1.5">
                     {tumBildirimler.length >= MAX_BILDIRIM
                       ? "Yalnızca son 30 bildirim görüntülenir"
                       : "Daha eski bildirim yok"}
@@ -245,11 +280,11 @@ export function UserMenu() {
               </div>
             )}
 
-            <DM.Separator className="h-px bg-cream-300 my-1" />
+            <DM.Separator className="h-px bg-cream-300 dark:bg-ink-700 my-1" />
 
             <DM.Item
               onSelect={() => cikis.mutate()}
-              className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-rose-50 hover:text-red-700 cursor-pointer outline-none text-clay-700"
+              className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-rose-50 dark:hover:bg-red-900/20 hover:text-red-700 dark:hover:text-red-400 cursor-pointer outline-none text-clay-700 dark:text-ink-100"
             >
               <LogOut className="h-4 w-4" />
               Çıkış
@@ -300,7 +335,7 @@ function DefteriIndirDialog({
             etiket="Kağıda Baskı"
             aciklama="Kalemle üzerinde çalış"
             icon={<FileType className="h-7 w-7" />}
-            renk="bg-red-50 text-red-700 border-red-200 hover:border-red-400"
+            renk="bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-900 hover:border-red-400 dark:hover:border-red-700"
             yukleniyor={yuklenenFormat === "pdf"}
             disabled={!!yuklenenFormat}
             onClick={() => indir("pdf")}
@@ -310,7 +345,7 @@ function DefteriIndirDialog({
             etiket="Düzenlenebilir"
             aciklama="Üzerinde yazıp değiştir"
             icon={<FileText className="h-7 w-7" />}
-            renk="bg-blue-50 text-blue-700 border-blue-200 hover:border-blue-400"
+            renk="bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900 hover:border-blue-400 dark:hover:border-blue-700"
             yukleniyor={yuklenenFormat === "docx"}
             disabled={!!yuklenenFormat}
             onClick={() => indir("docx")}
@@ -320,7 +355,7 @@ function DefteriIndirDialog({
             etiket="Liste / Tablo"
             aciklama="Filtre + sırala"
             icon={<FileSpreadsheet className="h-7 w-7" />}
-            renk="bg-green-50 text-green-700 border-green-200 hover:border-green-400"
+            renk="bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 border-green-200 dark:border-green-900 hover:border-green-400 dark:hover:border-green-700"
             yukleniyor={yuklenenFormat === "xlsx"}
             disabled={!!yuklenenFormat}
             onClick={() => indir("xlsx")}
@@ -330,14 +365,14 @@ function DefteriIndirDialog({
             etiket="Tarayıcıda"
             aciklama="Görsel önizleme"
             icon={<FileCode className="h-7 w-7" />}
-            renk="bg-purple-50 text-purple-700 border-purple-200 hover:border-purple-400"
+            renk="bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-900 hover:border-purple-400 dark:hover:border-purple-700"
             yukleniyor={yuklenenFormat === "html"}
             disabled={!!yuklenenFormat}
             onClick={() => indir("html")}
           />
         </div>
 
-        <p className="text-[11px] text-clay-400 italic text-center mt-3">
+        <p className="text-[11px] text-clay-400 dark:text-ink-300 italic text-center mt-3">
           Defterimizdeki klasör, not, açıklama ve hatırlatıcılar dahil her şey indirilecek.
         </p>
       </DialogContent>

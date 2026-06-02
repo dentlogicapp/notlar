@@ -71,7 +71,7 @@ export function YeniKlasorButonu({ compact }: { compact?: boolean } = {}) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {compact ? (
-          <button className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg border border-dashed border-clay-200 hover:border-terracotta hover:bg-rose-50/40 transition-colors text-clay-400 hover:text-terracotta group">
+          <button className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg border border-dashed border-clay-200 hover:border-terracotta hover:bg-rose-50/40 transition-colors text-clay-400 dark:text-ink-300 hover:text-terracotta group">
             <div className="h-8 w-8 rounded-lg border border-dashed border-clay-200 group-hover:border-terracotta flex items-center justify-center transition-colors shrink-0">
               <Plus className="h-4 w-4" />
             </div>
@@ -79,8 +79,8 @@ export function YeniKlasorButonu({ compact }: { compact?: boolean } = {}) {
           </button>
         ) : (
           <button className="group h-full min-h-[140px] flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-clay-200 hover:border-terracotta hover:bg-rose-50/30 transition-all cursor-pointer">
-            <Plus className="h-7 w-7 text-clay-400 group-hover:text-terracotta transition-colors" />
-            <span className="text-sm text-clay-500 group-hover:text-terracotta transition-colors">Yeni klasör</span>
+            <Plus className="h-7 w-7 text-clay-400 dark:text-ink-300 group-hover:text-terracotta transition-colors" />
+            <span className="text-sm text-clay-500 dark:text-ink-200 group-hover:text-terracotta transition-colors">Yeni klasör</span>
           </button>
         )}
       </DialogTrigger>
@@ -111,7 +111,7 @@ export function YeniKlasorButonu({ compact }: { compact?: boolean } = {}) {
                     "h-10 rounded-lg border flex items-center justify-center transition-colors",
                     secilenIkon === k
                       ? "border-terracotta bg-rose-50 text-terracotta"
-                      : "border-clay-200 text-clay-500 hover:border-clay-400"
+                      : "border-clay-200 text-clay-500 dark:text-ink-200 hover:border-clay-400"
                   )}
                 >
                   <IkonGoster ad={k} className="h-4 w-4" />
@@ -202,7 +202,7 @@ export function KlasorDuzenleDialog({
                     "h-10 rounded-lg border flex items-center justify-center transition-colors",
                     secilenIkon === k
                       ? "border-terracotta bg-rose-50 text-terracotta"
-                      : "border-clay-200 text-clay-500 hover:border-clay-400"
+                      : "border-clay-200 text-clay-500 dark:text-ink-200 hover:border-clay-400"
                   )}
                 >
                   <IkonGoster ad={k} className="h-4 w-4" />
@@ -268,12 +268,12 @@ export function KlasorSilDialog({
             Klasörü Sil
           </DialogTitle>
           <DialogDescription>
-            <span className="font-medium text-clay-900">{klasor.ad}</span> klasörünü silmek üzeresin.
+            <span className="font-medium text-clay-900 dark:text-ink-50">{klasor.ad}</span> klasörünü silmek üzeresin.
           </DialogDescription>
         </DialogHeader>
 
         {ozetYukleniyor && (
-          <div className="flex items-center justify-center py-6 text-clay-400">
+          <div className="flex items-center justify-center py-6 text-clay-400 dark:text-ink-300">
             <Loader2 className="h-5 w-5 animate-spin mr-2" />
             <span className="text-sm">İçerik kontrol ediliyor...</span>
           </div>
@@ -294,35 +294,35 @@ export function KlasorSilDialog({
                 </div>
 
                 {/* Detay listesi */}
-                <div className="rounded-lg border border-cream-300 divide-y divide-cream-200">
+                <div className="rounded-lg border border-cream-300 dark:border-ink-700 divide-y divide-cream-200">
                   {ozet.bekleyenNot > 0 && (
                     <div className="flex items-center justify-between px-3 py-2 text-sm">
-                      <span className="text-clay-600">Bekleyen not</span>
-                      <span className="font-medium text-clay-900 tabular-nums">{ozet.bekleyenNot}</span>
+                      <span className="text-clay-600 dark:text-ink-100">Bekleyen not</span>
+                      <span className="font-medium text-clay-900 dark:text-ink-50 tabular-nums">{ozet.bekleyenNot}</span>
                     </div>
                   )}
                   {ozet.tamamlananNot > 0 && (
                     <div className="flex items-center justify-between px-3 py-2 text-sm">
-                      <span className="text-clay-600">Tamamlanan not</span>
-                      <span className="font-medium text-clay-900 tabular-nums">{ozet.tamamlananNot}</span>
+                      <span className="text-clay-600 dark:text-ink-100">Tamamlanan not</span>
+                      <span className="font-medium text-clay-900 dark:text-ink-50 tabular-nums">{ozet.tamamlananNot}</span>
                     </div>
                   )}
                   {ozet.silinmisNot > 0 && (
                     <div className="flex items-center justify-between px-3 py-2 text-sm">
-                      <span className="text-clay-600">Çöp kutusundaki not</span>
-                      <span className="font-medium text-clay-900 tabular-nums">{ozet.silinmisNot}</span>
+                      <span className="text-clay-600 dark:text-ink-100">Çöp kutusundaki not</span>
+                      <span className="font-medium text-clay-900 dark:text-ink-50 tabular-nums">{ozet.silinmisNot}</span>
                     </div>
                   )}
                 </div>
 
-                <p className="text-xs text-clay-500 italic leading-relaxed">
+                <p className="text-xs text-clay-500 dark:text-ink-200 italic leading-relaxed">
                   Not: Klasör silindiğinde notlar silinmez, sadece klasör bağı kaldırılır.
                   Aynı içerikler “Tüm Notlar” altında görünmeye devam eder.
                 </p>
               </div>
             ) : (
-              <div className="p-3 bg-cream-100 border border-cream-300 rounded-lg">
-                <p className="text-sm text-clay-700">
+              <div className="p-3 bg-cream-100 dark:bg-ink-800/60 border border-cream-300 dark:border-ink-700 rounded-lg">
+                <p className="text-sm text-clay-700 dark:text-ink-100">
                   Bu klasör boş. Silme işlemi geri alınamaz, ancak içerikte hiçbir not etkilenmeyecek.
                 </p>
               </div>
@@ -367,16 +367,16 @@ export function KlasorListesi({ aktifId }: { aktifId?: string | null } = {}) {
 
   return (
     <aside className="kart p-3 sm:p-4 self-start md:sticky md:top-24">
-      <h3 className="font-display text-sm text-clay-500 px-2 mb-3 uppercase tracking-[0.15em] flex items-center gap-2">
+      <h3 className="font-display text-sm text-clay-500 dark:text-ink-200 px-2 mb-3 uppercase tracking-[0.15em] flex items-center gap-2">
         <FolderHeart className="h-4 w-4 text-terracotta" />
         Klasörler
       </h3>
       <nav className="space-y-1">
         {isLoading && (
-          <div className="px-2.5 py-2 text-xs text-clay-400">Yükleniyor...</div>
+          <div className="px-2.5 py-2 text-xs text-clay-400 dark:text-ink-300">Yükleniyor...</div>
         )}
         {!isLoading && klasorler.length === 0 && (
-          <p className="px-2.5 py-2 text-xs text-clay-400 italic">Henüz klasör yok</p>
+          <p className="px-2.5 py-2 text-xs text-clay-400 dark:text-ink-300 italic">Henüz klasör yok</p>
         )}
         {normal.map((k) => (
           <KlasorSatiri key={k.id} klasor={k} aktif={aktifId === k.id} />
@@ -388,7 +388,7 @@ export function KlasorListesi({ aktifId }: { aktifId?: string | null } = {}) {
         {/* Sistem klasörleri (Tamamlananlar) — ayraç çizgisi ile en altta */}
         {sistem.length > 0 && (
           <>
-            <div className="my-3 mx-2 border-t border-cream-300/70" />
+            <div className="my-3 mx-2 border-t border-cream-300 dark:border-ink-700/70" />
             {sistem.map((k) => (
               <KlasorSatiri key={k.id} klasor={k} aktif={aktifId === k.id} />
             ))}
@@ -415,8 +415,8 @@ function KlasorSatiri({ klasor, aktif }: { klasor: Klasor; aktif: boolean }) {
       <div
         className={cn(
           "group flex items-center gap-1 rounded-lg transition-colors",
-          aktif ? "bg-terracotta/12" : "hover:bg-cream-200",
-          sistemMi && !aktif && "bg-cream-50/50"
+          aktif ? "bg-terracotta/12" : "hover:bg-cream-200 dark:hover:bg-ink-800",
+          sistemMi && !aktif && "bg-cream-50 dark:bg-ink-900/50"
         )}
       >
         {/* Klasör linki — alan büyük çoğunlukla bu */}
@@ -430,21 +430,21 @@ function KlasorSatiri({ klasor, aktif }: { klasor: Klasor; aktif: boolean }) {
               ? "bg-terracotta text-cream-50"
               : sistemMi
                 ? "bg-terracotta/15 text-terracotta"
-                : "bg-cream-100 text-terracotta group-hover:bg-rose-100"
+                : "bg-cream-100 dark:bg-ink-800/60 text-terracotta group-hover:bg-rose-100"
           )}>
             <IkonGoster ad={klasor.ikon} className="h-4 w-4" />
           </div>
           <div className="min-w-0 flex-1">
             <p className={cn(
               "text-sm truncate leading-tight flex items-center gap-1.5",
-              aktif ? "text-clay-900 font-medium" : "text-clay-900"
+              aktif ? "text-clay-900 dark:text-ink-50 font-medium" : "text-clay-900 dark:text-ink-50"
             )}>
               {klasor.ad}
               {sistemMi && (
                 <span className="text-[9px] uppercase tracking-wider text-terracotta/70 font-medium">sistem</span>
               )}
             </p>
-            <p className="text-[11px] text-clay-400 mt-0.5">
+            <p className="text-[11px] text-clay-400 dark:text-ink-300 mt-0.5">
               {kilitli
                 ? <span className="text-terracotta inline-flex items-center gap-1"><Lock className="h-2.5 w-2.5" /> Aşkın düzenliyor</span>
                 : (klasor.notSayisi > 0 ? `${klasor.notSayisi} not` : "boş")}
@@ -464,7 +464,7 @@ function KlasorSatiri({ klasor, aktif }: { klasor: Klasor; aktif: boolean }) {
                 type="button"
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); setDuzenleAcik(true); }}
                 aria-label="Klasörü düzenle"
-                className="p-1.5 rounded-md text-clay-400 hover:text-clay-900 hover:bg-cream-300 active:bg-cream-400 transition-colors"
+                className="p-1.5 rounded-md text-clay-400 dark:text-ink-300 hover:text-clay-900 dark:hover:text-ink-50 hover:bg-cream-300 dark:hover:bg-ink-700 active:bg-cream-400 dark:active:bg-ink-700 transition-colors"
               >
                 <Pencil className="h-3.5 w-3.5" />
               </button>
@@ -474,7 +474,7 @@ function KlasorSatiri({ klasor, aktif }: { klasor: Klasor; aktif: boolean }) {
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSilAcik(true); }}
               aria-label="Klasörü sil"
               disabled={kilitli}
-              className="p-1.5 rounded-md text-clay-400 hover:text-red-600 hover:bg-red-50 active:bg-red-100 transition-colors disabled:opacity-30"
+              className="p-1.5 rounded-md text-clay-400 dark:text-ink-300 hover:text-red-600 hover:bg-red-50 active:bg-red-100 transition-colors disabled:opacity-30"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
