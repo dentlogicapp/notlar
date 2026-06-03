@@ -9,11 +9,15 @@ public sealed class Kullanici
     public required string Email { get; set; }
     public required string AdSoyad { get; set; }
     public string? SifreHash { get; set; }  // İlk oluşturulduğunda null, kullanıcı belirledikten sonra dolar
-    public required string Rol { get; set; } = "kullanici";
+    public required string Rol { get; set; } = "kullanici";  // v15: DEPRECATED — yerine IsletmeUyelik.Rol, geriye uyumluluk için tutulur
     public bool Aktif { get; set; } = true;
 
     // Cinsiyet: "kadin" | "erkek"  (zorunlu, mail tonu + ileride raporlama için)
     public string? Cinsiyet { get; set; }
+
+    // v15 — Multi-tenant kararları
+    public bool SuperAdmin { get; set; }                  // Sistem geneli yetki (tenant-bağımsız)
+    public Guid? AktifIsletmeId { get; set; }             // Şu an hangi tenant'ta çalışıyor (multi-tenant geçişler için)
 
     // Lockout
     public int BasarisizDeneme { get; set; }
@@ -27,6 +31,7 @@ public sealed class Kullanici
     public ICollection<Klasor> OlusturduguKlasorler { get; set; } = new List<Klasor>();
     public ICollection<Not> OlusturduguNotlar { get; set; } = new List<Not>();
     public ICollection<Bildirim> Bildirimler { get; set; } = new List<Bildirim>();
+    public ICollection<IsletmeUyelik> Uyelikler { get; set; } = new List<IsletmeUyelik>();
 }
 
 /// <summary>
@@ -53,6 +58,7 @@ public sealed class Klasor
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public required string Ad { get; set; }
+    public Guid IsletmeId { get; set; }  // v15 — Tenant scope
     public string? Aciklama { get; set; }
     public string Ikon { get; set; } = "klasor";  // lucide icon ismi
 
@@ -80,6 +86,7 @@ public sealed class Klasor
 public sealed class Not
 {
     public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid IsletmeId { get; set; }  // v15 — Tenant scope
     public required string Baslik { get; set; }
     public string? Icerik { get; set; }
     public bool Tamamlandi { get; set; }
@@ -122,6 +129,7 @@ public sealed class Not
 public sealed class NotGecmisi
 {
     public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid IsletmeId { get; set; }  // v15 — Tenant scope
     public Guid NotId { get; set; }
     public Not Not { get; set; } = null!;
 
@@ -143,6 +151,7 @@ public sealed class NotGecmisi
 public sealed class DenetimGunlugu
 {
     public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid? IsletmeId { get; set; }  // v15 — Tenant scope (null = sistem geneli/super admin olayı)
     public required string Olay { get; set; }    // "giris_basarili", "giris_basarisiz", "sifre_reset_istegi", "kullanici_olusturuldu" vs.
     public string? HedefTip { get; set; }         // "kullanici", "klasor", "not" vb.
     public Guid? HedefId { get; set; }
@@ -162,6 +171,7 @@ public sealed class DenetimGunlugu
 public sealed class Bildirim
 {
     public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid IsletmeId { get; set; }  // v15 — Tenant scope
     public Guid KullaniciId { get; set; }
     public Kullanici Kullanici { get; set; } = null!;
 
@@ -173,4 +183,60 @@ public sealed class Bildirim
     public bool OkunduMu { get; set; }
     public DateTimeOffset? OkumaZamani { get; set; }
     public DateTimeOffset OlusturmaZamani { get; set; } = DateTimeOffset.UtcNow;
+}
+
+/// <summary>
+/// v15 — İşletme/Tenant: her marka ayrı bir kayıt.
+/// Marka & Görünüm ayarları doğrudan bu tabloda (v16'da detaylı UI gelecek).
+/// </summary>
+public sealed class Isletme
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+
+    // Marka
+    public string MarkaAdi { get; set; } = "Planlama Defterimiz";
+    public string MarkaEmoji { get; set; } = "🤍";
+    public string IkonSeti { get; set; } = "kalp";          // 'kalp'|'klasik'|'ekip'|'aile'|'tatil'
+
+    // Karşılama
+    public string KarsilamaBasligi { get; set; } = "Merhaba Aşkım";
+    public string KarsilamaAltMetni { get; set; } = "Bugün aklına gelen bir şeyi birlikte planlayıp tamamlamak için not etmek ister misin?";
+
+    // Sayaç
+    public bool SayacAktif { get; set; } = true;
+    public string SayacBasligi { get; set; } = "kavuşmamıza son";
+    public DateTime? SayacHedefTarihi { get; set; }
+
+    // Mail
+    public string MailImza { get; set; } = "Sevgilerle";
+    public string MailTonu { get; set; } = "samimi";        // 'samimi'|'profesyonel'
+
+    // Mod
+    public string KullanimModu { get; set; } = "es";        // 'es'|'aile'|'ekip'|'tatil'|'ozel'
+
+    // Tenant meta
+    public DateTimeOffset OlusturmaZamani { get; set; } = DateTimeOffset.UtcNow;
+    public Guid? OlusturanSuperAdminId { get; set; }        // null = ilk seed tenant'ı (Planlama Defterimiz)
+    public bool Aktif { get; set; } = true;
+    public bool Silindi { get; set; }
+
+    // Navigasyon
+    public ICollection<IsletmeUyelik> Uyelikler { get; set; } = new List<IsletmeUyelik>();
+}
+
+/// <summary>
+/// v15 — Kullanıcı ↔ İşletme join. Aynı kullanıcı birden fazla tenant'a farklı rollerle üye olabilir.
+/// </summary>
+public sealed class IsletmeUyelik
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid IsletmeId { get; set; }
+    public Isletme Isletme { get; set; } = null!;
+
+    public Guid KullaniciId { get; set; }
+    public Kullanici Kullanici { get; set; } = null!;
+
+    public string Rol { get; set; } = "kullanici";          // 'admin' | 'kullanici'
+    public DateTimeOffset KatilmaZamani { get; set; } = DateTimeOffset.UtcNow;
+    public bool Aktif { get; set; } = true;                 // Pasifleştirme bu seviyede (tenant scope)
 }

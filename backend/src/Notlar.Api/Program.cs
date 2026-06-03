@@ -263,8 +263,164 @@ using (var scope = app.Services.CreateScope())
                 FOREIGN KEY (""YapanKullaniciId"")
                 REFERENCES kullanicilar (""Id"")
                 ON DELETE SET NULL;
+
+            -- ════════════════════════════════════════════════════════════════
+            -- v15 — Multi-tenant Backbone
+            -- Her komut idempotent: tekrar çalıştırılabilir, veri kaybetmez.
+            -- ════════════════════════════════════════════════════════════════
+
+            -- 1. İşletmeler (tenant) tablosu
+            CREATE TABLE IF NOT EXISTS isletmeler (
+                ""Id"" uuid NOT NULL PRIMARY KEY,
+                ""MarkaAdi"" character varying(80) NOT NULL DEFAULT 'Planlama Defterimiz',
+                ""MarkaEmoji"" character varying(10) NOT NULL DEFAULT '🤍',
+                ""IkonSeti"" character varying(20) NOT NULL DEFAULT 'kalp',
+                ""KarsilamaBasligi"" character varying(120) NOT NULL DEFAULT 'Merhaba Aşkım',
+                ""KarsilamaAltMetni"" character varying(280) NOT NULL DEFAULT 'Bugün aklına gelen bir şeyi birlikte planlayıp tamamlamak için not etmek ister misin?',
+                ""SayacAktif"" boolean NOT NULL DEFAULT true,
+                ""SayacBasligi"" character varying(60) NOT NULL DEFAULT 'kavuşmamıza son',
+                ""SayacHedefTarihi"" date,
+                ""MailImza"" character varying(80) NOT NULL DEFAULT 'Sevgilerle',
+                ""MailTonu"" character varying(20) NOT NULL DEFAULT 'samimi',
+                ""KullanimModu"" character varying(20) NOT NULL DEFAULT 'es',
+                ""OlusturmaZamani"" timestamp with time zone NOT NULL DEFAULT now(),
+                ""OlusturanSuperAdminId"" uuid,
+                ""Aktif"" boolean NOT NULL DEFAULT true,
+                ""Silindi"" boolean NOT NULL DEFAULT false
+            );
+            CREATE INDEX IF NOT EXISTS ""IX_isletmeler_Aktif"" ON isletmeler (""Aktif"");
+            CREATE INDEX IF NOT EXISTS ""IX_isletmeler_Silindi"" ON isletmeler (""Silindi"");
+
+            -- 2. İşletme üyelikleri (kullanıcı ↔ tenant)
+            CREATE TABLE IF NOT EXISTS isletme_uyelikleri (
+                ""Id"" uuid NOT NULL PRIMARY KEY,
+                ""IsletmeId"" uuid NOT NULL REFERENCES isletmeler(""Id"") ON DELETE CASCADE,
+                ""KullaniciId"" uuid NOT NULL REFERENCES kullanicilar(""Id"") ON DELETE CASCADE,
+                ""Rol"" character varying(20) NOT NULL DEFAULT 'kullanici',
+                ""KatilmaZamani"" timestamp with time zone NOT NULL DEFAULT now(),
+                ""Aktif"" boolean NOT NULL DEFAULT true
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS ""IX_isletme_uyelikleri_IsletmeId_KullaniciId"" 
+                ON isletme_uyelikleri (""IsletmeId"", ""KullaniciId"");
+            CREATE INDEX IF NOT EXISTS ""IX_isletme_uyelikleri_KullaniciId"" 
+                ON isletme_uyelikleri (""KullaniciId"");
+
+            -- 3. Kullanıcılar tablosuna yeni kolonlar
+            ALTER TABLE kullanicilar ADD COLUMN IF NOT EXISTS ""SuperAdmin"" boolean NOT NULL DEFAULT false;
+            ALTER TABLE kullanicilar ADD COLUMN IF NOT EXISTS ""AktifIsletmeId"" uuid;
+            CREATE INDEX IF NOT EXISTS ""IX_kullanicilar_SuperAdmin"" 
+                ON kullanicilar (""SuperAdmin"") WHERE ""SuperAdmin"" = true;
+
+            -- 4. Core tablolara IsletmeId
+            ALTER TABLE klasorler ADD COLUMN IF NOT EXISTS ""IsletmeId"" uuid;
+            ALTER TABLE notlar ADD COLUMN IF NOT EXISTS ""IsletmeId"" uuid;
+            ALTER TABLE bildirimler ADD COLUMN IF NOT EXISTS ""IsletmeId"" uuid;
+            ALTER TABLE denetim_gunlukleri ADD COLUMN IF NOT EXISTS ""IsletmeId"" uuid;
+            ALTER TABLE not_gecmisi ADD COLUMN IF NOT EXISTS ""IsletmeId"" uuid;
+
+            -- 5. Planlama Defterimiz tenant'ını seed et (sabit UUID ile idempotent)
+            INSERT INTO isletmeler (
+                ""Id"", ""MarkaAdi"", ""MarkaEmoji"", ""IkonSeti"",
+                ""KarsilamaBasligi"", ""KarsilamaAltMetni"",
+                ""SayacAktif"", ""SayacBasligi"", ""SayacHedefTarihi"",
+                ""MailImza"", ""MailTonu"", ""KullanimModu"",
+                ""OlusturmaZamani"", ""Aktif"", ""Silindi""
+            )
+            VALUES (
+                'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+                'Planlama Defterimiz', '🤍', 'kalp',
+                'Merhaba Aşkım',
+                'Bugün aklına gelen bir şeyi birlikte planlayıp tamamlamak için not etmek ister misin?',
+                true, 'kavuşmamıza son', DATE '2026-09-01',
+                'Sevgilerle', 'samimi', 'es',
+                now(), true, false
+            )
+            ON CONFLICT (""Id"") DO NOTHING;
+
+            -- 6. Mevcut tüm veriyi Planlama Defterimiz tenant'ına bağla
+            UPDATE klasorler SET ""IsletmeId"" = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' WHERE ""IsletmeId"" IS NULL;
+            UPDATE notlar SET ""IsletmeId"" = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' WHERE ""IsletmeId"" IS NULL;
+            UPDATE bildirimler SET ""IsletmeId"" = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' WHERE ""IsletmeId"" IS NULL;
+            UPDATE denetim_gunlukleri SET ""IsletmeId"" = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' WHERE ""IsletmeId"" IS NULL;
+            UPDATE not_gecmisi SET ""IsletmeId"" = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' WHERE ""IsletmeId"" IS NULL;
+
+            -- 7. Mevcut kullanıcıları Planlama Defterimiz'e üye yap (Kullanicilar.Rol'den rol al)
+            INSERT INTO isletme_uyelikleri (""Id"", ""IsletmeId"", ""KullaniciId"", ""Rol"", ""KatilmaZamani"", ""Aktif"")
+            SELECT 
+                gen_random_uuid(),
+                'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+                k.""Id"",
+                k.""Rol"",
+                k.""OlusturmaZamani"",
+                k.""Aktif""
+            FROM kullanicilar k
+            WHERE NOT EXISTS (
+                SELECT 1 FROM isletme_uyelikleri u 
+                WHERE u.""IsletmeId"" = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' 
+                  AND u.""KullaniciId"" = k.""Id""
+            );
+
+            -- 8. En eski admin'i SuperAdmin yap (yoksa hiçbir kullanıcı admin değil, atla)
+            UPDATE kullanicilar SET ""SuperAdmin"" = true
+            WHERE ""Id"" = (
+                SELECT ""Id"" FROM kullanicilar 
+                WHERE ""Rol"" = 'admin' AND ""Aktif"" = true
+                ORDER BY ""OlusturmaZamani"" ASC 
+                LIMIT 1
+            )
+            AND NOT EXISTS (SELECT 1 FROM kullanicilar WHERE ""SuperAdmin"" = true);
+
+            -- 9. AktifIsletmeId default ata
+            UPDATE kullanicilar SET ""AktifIsletmeId"" = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' 
+            WHERE ""AktifIsletmeId"" IS NULL;
+
+            -- 10. FK constraints (idempotent — varsa atla)
+            DO $$ BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint WHERE conname = 'FK_klasorler_isletmeler_IsletmeId'
+                ) THEN
+                    ALTER TABLE klasorler ADD CONSTRAINT ""FK_klasorler_isletmeler_IsletmeId""
+                        FOREIGN KEY (""IsletmeId"") REFERENCES isletmeler(""Id"") ON DELETE CASCADE;
+                END IF;
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint WHERE conname = 'FK_notlar_isletmeler_IsletmeId'
+                ) THEN
+                    ALTER TABLE notlar ADD CONSTRAINT ""FK_notlar_isletmeler_IsletmeId""
+                        FOREIGN KEY (""IsletmeId"") REFERENCES isletmeler(""Id"") ON DELETE CASCADE;
+                END IF;
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint WHERE conname = 'FK_bildirimler_isletmeler_IsletmeId'
+                ) THEN
+                    ALTER TABLE bildirimler ADD CONSTRAINT ""FK_bildirimler_isletmeler_IsletmeId""
+                        FOREIGN KEY (""IsletmeId"") REFERENCES isletmeler(""Id"") ON DELETE CASCADE;
+                END IF;
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint WHERE conname = 'FK_denetim_gunlukleri_isletmeler_IsletmeId'
+                ) THEN
+                    ALTER TABLE denetim_gunlukleri ADD CONSTRAINT ""FK_denetim_gunlukleri_isletmeler_IsletmeId""
+                        FOREIGN KEY (""IsletmeId"") REFERENCES isletmeler(""Id"") ON DELETE SET NULL;
+                END IF;
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint WHERE conname = 'FK_not_gecmisi_isletmeler_IsletmeId'
+                ) THEN
+                    ALTER TABLE not_gecmisi ADD CONSTRAINT ""FK_not_gecmisi_isletmeler_IsletmeId""
+                        FOREIGN KEY (""IsletmeId"") REFERENCES isletmeler(""Id"") ON DELETE CASCADE;
+                END IF;
+            END $$;
+
+            -- 11. Composite index'ler (tenant-filtered query'leri hızlandır)
+            CREATE INDEX IF NOT EXISTS ""IX_klasorler_IsletmeId_Silindi"" 
+                ON klasorler (""IsletmeId"", ""Silindi"");
+            CREATE INDEX IF NOT EXISTS ""IX_notlar_IsletmeId_Silindi"" 
+                ON notlar (""IsletmeId"", ""Silindi"");
+            CREATE INDEX IF NOT EXISTS ""IX_bildirimler_IsletmeId_KullaniciId"" 
+                ON bildirimler (""IsletmeId"", ""KullaniciId"");
+            CREATE INDEX IF NOT EXISTS ""IX_denetim_gunlukleri_IsletmeId_Zaman"" 
+                ON denetim_gunlukleri (""IsletmeId"", ""Zaman"");
+            CREATE INDEX IF NOT EXISTS ""IX_not_gecmisi_IsletmeId"" 
+                ON not_gecmisi (""IsletmeId"");
         ");
-        Log.Information("Şema güncellemeleri kontrol edildi (idempotent)");
+        Log.Information("Şema güncellemeleri kontrol edildi (v15 multi-tenant dahil — idempotent)");
     }
     catch (Exception ex)
     {
@@ -367,5 +523,6 @@ app.MapNoteEndpoints();
 app.MapNotificationEndpoints();
 app.MapLockEndpoints();
 app.MapExportEndpoints();
+app.MapIsletmeEndpoints();  // v15
 
 app.Run();

@@ -2,7 +2,8 @@ import type {
   Ben, Kullanici, Klasor, KlasorIcerikOzeti, Not, NotGecmisi,
   DenetimListesi, TokenDogrulama,
   BildirimOzeti,
-  Cinsiyet, HatirlatmaKime, HatirlatmaSekli
+  Cinsiyet, HatirlatmaKime, HatirlatmaSekli,
+  Uyelik, Isletme
 } from "./types";
 
 const API = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:5000";
@@ -190,4 +191,12 @@ export const adminApi = {
     ist<void>(`/api/admin/kullanicilar/${id}${devret ? "?devret=true" : ""}`, { method: "DELETE" }),
   denetim: (skip = 0, take = 50) =>
     ist<DenetimListesi>(`/api/admin/denetim?skip=${skip}&take=${take}`),
+};
+
+// v15 — Multi-tenant API
+export const isletmeApi = {
+  uyelik: () => ist<Uyelik[]>("/api/isletmeler/uyelik"),
+  aktifDegistir: (id: string) =>
+    ist<Ben>(`/api/isletmeler/aktif/${id}`, { method: "POST" }),
+  aktif: () => ist<Isletme>("/api/isletmeler/aktif"),
 };

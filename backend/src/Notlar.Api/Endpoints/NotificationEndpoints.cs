@@ -11,14 +11,16 @@ public static class NotificationEndpoints
     {
         var g = app.MapGroup("/api/bildirimler").WithTags("Bildirimler").RequireAuthorization();
 
-        // LIST — son 30 bildirim + okunmamış sayısı (UserMenu poll'u için)
+        // LIST — tenant-scoped, son 30 bildirim + okunmamış sayısı
         g.MapGet("/", async (AppDbContext db, IUserContext uc, CancellationToken ct) =>
         {
             if (uc.KullaniciId is null) return Results.Unauthorized();
+            if (uc.AktifIsletmeId is null) return Results.Unauthorized();
             var uid = uc.KullaniciId.Value;
+            var tenantId = uc.AktifIsletmeId.Value;
 
             var bildirimler = await db.Bildirimler
-                .Where(b => b.KullaniciId == uid)
+                .Where(b => b.KullaniciId == uid && b.IsletmeId == tenantId)
                 .OrderByDescending(b => b.OlusturmaZamani)
                 .Take(30)
                 .Select(b => new BildirimYaniti(
@@ -27,18 +29,20 @@ public static class NotificationEndpoints
                 .ToListAsync(ct);
 
             var okunmamis = await db.Bildirimler
-                .CountAsync(b => b.KullaniciId == uid && !b.OkunduMu, ct);
+                .CountAsync(b => b.KullaniciId == uid && b.IsletmeId == tenantId && !b.OkunduMu, ct);
 
             return Results.Ok(new BildirimOzetiYaniti(okunmamis, bildirimler));
         });
 
-        // Tek bildirimi okundu olarak işaretle
+        // Tek bildirimi okundu — tenant-scoped
         g.MapPost("/{id:guid}/okundu", async (
             Guid id, AppDbContext db, IUserContext uc, CancellationToken ct) =>
         {
             if (uc.KullaniciId is null) return Results.Unauthorized();
+            if (uc.AktifIsletmeId is null) return Results.Unauthorized();
+            var tenantId = uc.AktifIsletmeId.Value;
             var b = await db.Bildirimler.FirstOrDefaultAsync(
-                x => x.Id == id && x.KullaniciId == uc.KullaniciId.Value, ct);
+                x => x.Id == id && x.KullaniciId == uc.KullaniciId.Value && x.IsletmeId == tenantId, ct);
             if (b is null) return Results.NotFound();
             if (!b.OkunduMu)
             {
@@ -49,15 +53,17 @@ public static class NotificationEndpoints
             return Results.NoContent();
         });
 
-        // Hepsini okundu işaretle (UserMenu açıldığında çağrılır)
+        // Hepsini okundu — tenant-scoped
         g.MapPost("/hepsi-okundu", async (
             AppDbContext db, IUserContext uc, CancellationToken ct) =>
         {
             if (uc.KullaniciId is null) return Results.Unauthorized();
+            if (uc.AktifIsletmeId is null) return Results.Unauthorized();
             var uid = uc.KullaniciId.Value;
+            var tenantId = uc.AktifIsletmeId.Value;
             var simdi = DateTimeOffset.UtcNow;
             await db.Bildirimler
-                .Where(b => b.KullaniciId == uid && !b.OkunduMu)
+                .Where(b => b.KullaniciId == uid && b.IsletmeId == tenantId && !b.OkunduMu)
                 .ExecuteUpdateAsync(s => s
                     .SetProperty(b => b.OkunduMu, true)
                     .SetProperty(b => b.OkumaZamani, simdi), ct);

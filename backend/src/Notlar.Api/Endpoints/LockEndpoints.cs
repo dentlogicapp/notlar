@@ -7,7 +7,7 @@ namespace Notlar.Api.Endpoints;
 
 /// <summary>
 /// Yumuşak kilit (edit lock) — DuzenleDialog/TamamlaDialog/KlasorDuzenleDialog açılırken.
-/// Heartbeat 15 sn, kilit 45 sn (3x güvenlik marjı).
+/// Heartbeat 15 sn, kilit 45 sn (3x güvenlik marjı). v15: tenant-scoped.
 /// </summary>
 public static class LockEndpoints
 {
@@ -20,14 +20,16 @@ public static class LockEndpoints
 
         // ─── NOT KİLİDİ ───────────────────────────────────────────────────
 
-        // Kilit al (ilk istek dialog açılırken)
         notG.MapPost("/{id:guid}/kilit", async (
             Guid id, AppDbContext db, IUserContext uc, CancellationToken ct) =>
         {
             if (uc.KullaniciId is null) return Results.Unauthorized();
+            if (uc.AktifIsletmeId is null) return Results.Unauthorized();
+            if (uc.GoruntumeModu) return Results.StatusCode(403);
+
+            var tenantId = uc.AktifIsletmeId.Value;
             var n = await db.Notlar
-                .Include(x => x.OlusturanKullanici)
-                .FirstOrDefaultAsync(x => x.Id == id && !x.Silindi, ct);
+                .FirstOrDefaultAsync(x => x.Id == id && !x.Silindi && x.IsletmeId == tenantId, ct);
             if (n is null) return Results.NotFound();
 
             var simdi = DateTimeOffset.UtcNow;
@@ -43,7 +45,6 @@ public static class LockEndpoints
                 return Results.Ok(new KilitYaniti(true, null));
             }
 
-            // Başkası tutuyor
             var sahibi = await db.Kullanicilar
                 .Where(u => u.Id == n.KilitKullaniciId)
                 .Select(u => u.AdSoyad)
@@ -51,29 +52,35 @@ public static class LockEndpoints
             return Results.Json(new KilitYaniti(false, sahibi), statusCode: 409);
         });
 
-        // Heartbeat (her 15 sn dialog açıkken)
         notG.MapPost("/{id:guid}/kilit/heartbeat", async (
             Guid id, AppDbContext db, IUserContext uc, CancellationToken ct) =>
         {
             if (uc.KullaniciId is null) return Results.Unauthorized();
-            var n = await db.Notlar.FirstOrDefaultAsync(x => x.Id == id && !x.Silindi, ct);
+            if (uc.AktifIsletmeId is null) return Results.Unauthorized();
+
+            var tenantId = uc.AktifIsletmeId.Value;
+            var n = await db.Notlar.FirstOrDefaultAsync(
+                x => x.Id == id && !x.Silindi && x.IsletmeId == tenantId, ct);
             if (n is null) return Results.NotFound();
 
             if (n.KilitKullaniciId != uc.KullaniciId.Value)
-                return Results.StatusCode(410); // Kilit kaybedildi
+                return Results.StatusCode(410);
 
             n.KilitZamani = DateTimeOffset.UtcNow;
             await db.SaveChangesAsync(ct);
             return Results.NoContent();
         });
 
-        // Kilit serbest bırak (dialog kapanırken)
         notG.MapDelete("/{id:guid}/kilit", async (
             Guid id, AppDbContext db, IUserContext uc, CancellationToken ct) =>
         {
             if (uc.KullaniciId is null) return Results.Unauthorized();
-            var n = await db.Notlar.FirstOrDefaultAsync(x => x.Id == id && !x.Silindi, ct);
-            if (n is null) return Results.NoContent(); // Sessizce geç
+            if (uc.AktifIsletmeId is null) return Results.Unauthorized();
+
+            var tenantId = uc.AktifIsletmeId.Value;
+            var n = await db.Notlar.FirstOrDefaultAsync(
+                x => x.Id == id && !x.Silindi && x.IsletmeId == tenantId, ct);
+            if (n is null) return Results.NoContent();
 
             if (n.KilitKullaniciId == uc.KullaniciId.Value)
             {
@@ -90,7 +97,12 @@ public static class LockEndpoints
             Guid id, AppDbContext db, IUserContext uc, CancellationToken ct) =>
         {
             if (uc.KullaniciId is null) return Results.Unauthorized();
-            var k = await db.Klasorler.FirstOrDefaultAsync(x => x.Id == id && !x.Silindi, ct);
+            if (uc.AktifIsletmeId is null) return Results.Unauthorized();
+            if (uc.GoruntumeModu) return Results.StatusCode(403);
+
+            var tenantId = uc.AktifIsletmeId.Value;
+            var k = await db.Klasorler.FirstOrDefaultAsync(
+                x => x.Id == id && !x.Silindi && x.IsletmeId == tenantId, ct);
             if (k is null) return Results.NotFound();
             if (k.SistemMi)
                 return Results.BadRequest(new { hata = "Sistem klasörü düzenlenemez." });
@@ -119,7 +131,11 @@ public static class LockEndpoints
             Guid id, AppDbContext db, IUserContext uc, CancellationToken ct) =>
         {
             if (uc.KullaniciId is null) return Results.Unauthorized();
-            var k = await db.Klasorler.FirstOrDefaultAsync(x => x.Id == id && !x.Silindi, ct);
+            if (uc.AktifIsletmeId is null) return Results.Unauthorized();
+
+            var tenantId = uc.AktifIsletmeId.Value;
+            var k = await db.Klasorler.FirstOrDefaultAsync(
+                x => x.Id == id && !x.Silindi && x.IsletmeId == tenantId, ct);
             if (k is null) return Results.NotFound();
 
             if (k.KilitKullaniciId != uc.KullaniciId.Value)
@@ -134,7 +150,11 @@ public static class LockEndpoints
             Guid id, AppDbContext db, IUserContext uc, CancellationToken ct) =>
         {
             if (uc.KullaniciId is null) return Results.Unauthorized();
-            var k = await db.Klasorler.FirstOrDefaultAsync(x => x.Id == id && !x.Silindi, ct);
+            if (uc.AktifIsletmeId is null) return Results.Unauthorized();
+
+            var tenantId = uc.AktifIsletmeId.Value;
+            var k = await db.Klasorler.FirstOrDefaultAsync(
+                x => x.Id == id && !x.Silindi && x.IsletmeId == tenantId, ct);
             if (k is null) return Results.NoContent();
 
             if (k.KilitKullaniciId == uc.KullaniciId.Value)
@@ -147,10 +167,6 @@ public static class LockEndpoints
         });
     }
 
-    /// <summary>
-    /// Helper: kilit başkasındaysa dolu döner, null = boş veya benim veya süresi dolmuş.
-    /// Mutation endpoint'leri write öncesi bu helper'ı kullanır.
-    /// </summary>
     public static async Task<string?> KilitBaskasiMi(
         AppDbContext db, Guid? kilitKullaniciId, DateTimeOffset? kilitZamani,
         Guid benId, CancellationToken ct)

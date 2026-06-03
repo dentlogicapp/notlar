@@ -31,6 +31,7 @@ public sealed class AuditService : IAuditService
     {
         _db.DenetimGunlukleri.Add(new DenetimGunlugu
         {
+            IsletmeId = _user.AktifIsletmeId,  // v15 — nullable: super admin işlemleri tenant-bağımsız (null)
             Olay = olay,
             HedefTip = hedefTip,
             HedefId = hedefId,

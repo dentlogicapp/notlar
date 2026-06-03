@@ -18,7 +18,34 @@ public sealed record KullaniciYaniti(
     // v12 — Silme onayında kullanıcıya gösterilen veriler
     int NotSayisi, int KlasorSayisi);
 
-public sealed record BenYaniti(Guid Id, string Email, string AdSoyad, string Rol, string? Cinsiyet);
+// v15 — Multi-tenant DTO'ları
+public sealed record BenYaniti(
+    Guid Id, string Email, string AdSoyad, string Rol, string? Cinsiyet,
+    bool SuperAdmin,
+    Guid? AktifIsletmeId,
+    IReadOnlyList<UyelikYaniti> Uyelikler);
+
+public sealed record UyelikYaniti(
+    Guid IsletmeId,
+    string MarkaAdi,
+    string MarkaEmoji,
+    string KullanimModu,
+    string Rol,            // tenant scope'taki rol ('admin' | 'kullanici')
+    bool Aktif);
+
+public sealed record IsletmeYaniti(
+    Guid Id,
+    string MarkaAdi,
+    string MarkaEmoji,
+    string IkonSeti,
+    string KarsilamaBasligi,
+    string KarsilamaAltMetni,
+    bool SayacAktif,
+    string SayacBasligi,
+    DateTime? SayacHedefTarihi,
+    string MailImza,
+    string MailTonu,
+    string KullanimModu);
 
 // Klasor
 public sealed record KlasorOlusturIstegi(string Ad, string? Aciklama, string? Ikon, Guid? UstKlasorId);

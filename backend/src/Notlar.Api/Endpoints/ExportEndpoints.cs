@@ -24,32 +24,40 @@ public static class ExportEndpoints
             AppDbContext db,
             IPdfRender pdfRender,
             IDocxDonusturucu docxDonusturucu,
+            IUserContext uc,
             CancellationToken ct) =>
         {
-            // v14 — Dinamik: aktif kullanıcıların ad-soyadlarından çift ismi
-            // Sıra: OlusturmaZamani asc (önce kayıt olan ilk admin) — geleneksel "founder & eş" sırası
-            var adlar = await db.Kullanicilar
-                .Where(u => u.Aktif)
-                .OrderBy(u => u.OlusturmaZamani)
-                .Select(u => u.AdSoyad)
+            // v15 — Tenant kontrolü
+            if (uc.AktifIsletmeId is null) return Results.Unauthorized();
+            var tenantId = uc.AktifIsletmeId.Value;
+
+            // v15 — Tenant ayarlarından düğün tarihi (sayac_hedef_tarihi); fallback default
+            var isletme = await db.Isletmeler
+                .Where(i => i.Id == tenantId)
+                .Select(i => new { i.SayacHedefTarihi, i.MarkaAdi })
+                .FirstOrDefaultAsync(ct);
+            var dugunTarihi = isletme?.SayacHedefTarihi ?? new DateTime(2026, 9, 1);
+
+            // v14/v15 — Dinamik: bu tenant'taki aktif üyelerin adlarından çift ismi
+            var adlar = await db.IsletmeUyelikleri
+                .Include(u => u.Kullanici)
+                .Where(u => u.IsletmeId == tenantId && u.Aktif && u.Kullanici.Aktif)
+                .OrderBy(u => u.KatilmaZamani)
+                .Select(u => u.Kullanici.AdSoyad)
                 .ToListAsync(ct);
             var ciftIsmi = adlar.Count > 0
                 ? string.Join(" & ", adlar)
-                : "Planlama Defteri";
+                : (isletme?.MarkaAdi ?? "Planlama Defteri");
 
-            // v14 — Tek kaynaktan düğün tarihi (frontend CountdownWidget ile aynı değer)
-            // İleride sistem_ayarlari tablosuna taşınacak (v15+)
-            var dugunTarihi = new DateTime(2026, 9, 1);
-
-            // Veriyi topla — klasörler (sistem dahil, sırayla) + notları
+            // Veriyi topla — tenant-scoped
             var klasorler = await db.Klasorler
-                .Where(k => !k.Silindi)
+                .Where(k => !k.Silindi && k.IsletmeId == tenantId)
                 .Include(k => k.OlusturanKullanici)
                 .OrderBy(k => k.SistemMi).ThenBy(k => k.Ad)
                 .ToListAsync(ct);
 
             var notlar = await db.Notlar
-                .Where(n => !n.Silindi)
+                .Where(n => !n.Silindi && n.IsletmeId == tenantId)
                 .Include(n => n.OlusturanKullanici)
                 .Include(n => n.TamamlayanKullanici)
                 .OrderBy(n => n.KlasorId).ThenBy(n => n.OlusturmaZamani)

@@ -73,16 +73,57 @@ public static class AuthEndpoints
             user.BasarisizDeneme = 0;
             user.KilitlenmeZamani = null;
             user.SonGirisZamani = DateTimeOffset.UtcNow;
+
+            // v15 — Multi-tenant: aktif tenant kontrolü
+            var uyelikler = await db.IsletmeUyelikleri
+                .Include(u => u.Isletme)
+                .Where(u => u.KullaniciId == user.Id && u.Aktif
+                         && u.Isletme.Aktif && !u.Isletme.Silindi)
+                .OrderBy(u => u.Isletme.MarkaAdi)
+                .ToListAsync(ct);
+
+            // 0 tenant + super_admin değil → erişim yok
+            if (uyelikler.Count == 0 && !user.SuperAdmin)
+            {
+                await audit.YazAsync("giris_basarisiz", "kullanici", user.Id, user.Id, email,
+                    detay: "Hiçbir tenant'a üye değil", ct: ct);
+                return Results.BadRequest(new {
+                    hata = "Hesabın hiçbir markaya bağlı değil. Yöneticiyle iletişime geç."
+                });
+            }
+
+            // AktifIsletmeId — eğer null ise veya artık üye değilse, ilk tenant'a default ata
+            // Super admin + 0 tenant → null kalır, frontend süper yönetim paneline yönlendirir
+            if (uyelikler.Count > 0)
+            {
+                var aktifGecerli = user.AktifIsletmeId.HasValue &&
+                    uyelikler.Any(u => u.IsletmeId == user.AktifIsletmeId.Value);
+                if (!aktifGecerli)
+                {
+                    user.AktifIsletmeId = uyelikler[0].IsletmeId;
+                }
+            }
+            else
+            {
+                // Super admin + 0 tenant: aktif yok
+                user.AktifIsletmeId = null;
+            }
+
             await db.SaveChangesAsync(ct);
 
             var token = jwt.TokenUret(user);
             var gun = int.Parse(cfg["Jwt:GunOmru"] ?? "30");
-            // BeniHatirla null/true → persistent (30 gün); false → session cookie
             var persistent = req.BeniHatirla ?? true;
             CookieEkle(http, token, gun, cfg, persistent);
             await audit.YazAsync("giris_basarili", "kullanici", user.Id, user.Id, email, ct: ct);
 
-            return Results.Ok(new BenYaniti(user.Id, user.Email, user.AdSoyad, user.Rol, user.Cinsiyet));
+            var uyelikYanitlari = uyelikler.Select(u => new UyelikYaniti(
+                u.IsletmeId, u.Isletme.MarkaAdi, u.Isletme.MarkaEmoji,
+                u.Isletme.KullanimModu, u.Rol, u.Aktif)).ToList();
+
+            return Results.Ok(new BenYaniti(
+                user.Id, user.Email, user.AdSoyad, user.Rol, user.Cinsiyet,
+                user.SuperAdmin, user.AktifIsletmeId, uyelikYanitlari));
         });
 
         // 2. Token doğrula (frontend setup/reset sayfasında preflight)
@@ -162,21 +203,44 @@ public static class AuthEndpoints
             return Results.Ok(new { mesaj = "Eğer hesap varsa, sıfırlama bağlantısı gönderildi." });
         });
 
-        // 5. Şu anki kullanıcı (cinsiyet DB'den okunur — JWT claim'de yok)
+        // 5. Şu anki kullanıcı — v15: tenant alanları + üyelikler dahil
         g.MapGet("/ben", async (IUserContext u, AppDbContext db, CancellationToken ct) =>
         {
             if (u.KullaniciId is null) return Results.Unauthorized();
-            var cinsiyet = await db.Kullanicilar
-                .Where(x => x.Id == u.KullaniciId.Value)
-                .Select(x => x.Cinsiyet)
-                .FirstOrDefaultAsync(ct);
-            return Results.Ok(new BenYaniti(u.KullaniciId.Value, u.Email!, u.AdSoyad!, u.Rol!, cinsiyet));
+            var user = await db.Kullanicilar
+                .FirstOrDefaultAsync(x => x.Id == u.KullaniciId.Value, ct);
+            if (user is null) return Results.Unauthorized();
+
+            var uyelikler = await db.IsletmeUyelikleri
+                .Include(x => x.Isletme)
+                .Where(x => x.KullaniciId == user.Id && x.Aktif
+                         && x.Isletme.Aktif && !x.Isletme.Silindi)
+                .OrderBy(x => x.Isletme.MarkaAdi)
+                .Select(x => new UyelikYaniti(
+                    x.IsletmeId, x.Isletme.MarkaAdi, x.Isletme.MarkaEmoji,
+                    x.Isletme.KullanimModu, x.Rol, x.Aktif))
+                .ToListAsync(ct);
+
+            return Results.Ok(new BenYaniti(
+                user.Id, user.Email, user.AdSoyad, user.Rol, user.Cinsiyet,
+                user.SuperAdmin, user.AktifIsletmeId, uyelikler));
         }).RequireAuthorization();
 
         // 6. Çıkış
-        g.MapPost("/cikis", async (HttpContext http, IAuditService audit, IUserContext u, CancellationToken ct) =>
+        g.MapPost("/cikis", async (HttpContext http, IAuditService audit,
+            IUserContext u, IConfiguration cfg, CancellationToken ct) =>
         {
-            http.Response.Cookies.Delete("auth_token");
+            var secure = bool.Parse(cfg["Cookie:Secure"] ?? "false");
+            var domain = cfg["Cookie:Domain"];
+            var opts = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = secure,
+                SameSite = secure ? SameSiteMode.None : SameSiteMode.Lax,
+                Path = "/"
+            };
+            if (!string.IsNullOrEmpty(domain)) opts.Domain = domain;
+            http.Response.Cookies.Delete("auth_token", opts);
             if (u.KullaniciId.HasValue)
                 await audit.YazAsync("cikis", "kullanici", u.KullaniciId, ct: ct);
             return Results.Ok(new { mesaj = "Çıkış yapıldı." });

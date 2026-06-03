@@ -8,11 +8,26 @@ export function AuthGuard({ children, requireAdmin = false }: { children: React.
   const { data: ben, isLoading, isError } = useBen();
   const router = useRouter();
 
+  // v15 — Aktif tenant'taki rol
+  const aktifRol = ben?.uyelikler?.find(u => u.isletmeId === ben?.aktifIsletmeId)?.rol ?? "kullanici";
+
   useEffect(() => {
     if (isLoading) return;
     if (isError || !ben) { router.replace("/giris"); return; }
-    if (requireAdmin && ben.rol !== "admin") router.replace("/");
-  }, [ben, isLoading, isError, requireAdmin, router]);
+    // v15 — admin kontrolü tenant scope (mevcut ben.rol artık global, geriye uyumluluk için duruyor)
+    if (requireAdmin && aktifRol !== "admin") router.replace("/");
+  }, [ben, isLoading, isError, requireAdmin, router, aktifRol]);
+
+  // v15 — Süper admin browser title (sadece istemci tarafında)
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (ben?.superAdmin) {
+      const orijinal = document.title;
+      if (!orijinal.startsWith("⚜")) {
+        document.title = `⚜ ${orijinal}`;
+      }
+    }
+  }, [ben?.superAdmin]);
 
   if (isLoading || !ben) {
     return (
@@ -21,6 +36,21 @@ export function AuthGuard({ children, requireAdmin = false }: { children: React.
       </div>
     );
   }
-  if (requireAdmin && ben.rol !== "admin") return null;
-  return <>{children}</>;
+  if (requireAdmin && aktifRol !== "admin") return null;
+
+  return (
+    <>
+      {/* v15 — Süper admin ince altın çizgi (görsel hatırlatıcı) */}
+      {ben.superAdmin && (
+        <div
+          aria-hidden
+          className="fixed top-0 left-0 right-0 h-[3px] z-[60] pointer-events-none"
+          style={{
+            background: "linear-gradient(90deg, transparent 0%, #d4a661 20%, #d4a661 80%, transparent 100%)"
+          }}
+        />
+      )}
+      {children}
+    </>
+  );
 }

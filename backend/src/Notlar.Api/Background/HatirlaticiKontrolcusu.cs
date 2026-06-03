@@ -89,6 +89,7 @@ public sealed class HatirlaticiKontrolcusu : BackgroundService
                         db.Bildirimler.Add(new Bildirim
                         {
                             KullaniciId = hedef.Id,
+                            IsletmeId = not.IsletmeId,  // v15 — bildirim notun tenant'ında düşer
                             Tip = "hatirlatma",
                             NotId = not.Id,
                             Baslik = "Hatırlatıcı",

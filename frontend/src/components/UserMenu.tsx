@@ -45,6 +45,10 @@ export function UserMenu() {
   const [gosterilen, setGosterilen] = useState(ILK_BILDIRIM);
   const [tema, , temaTersle] = useTema();
 
+  // v15 — Aktif tenant'taki rol (Yönetim linki için)
+  const aktifRol = ben?.uyelikler?.find(u => u.isletmeId === ben?.aktifIsletmeId)?.rol ?? "kullanici";
+  const cokluUyelik = (ben?.uyelikler?.length ?? 0) >= 2;
+
   const bildirimSorgu = useQuery({
     queryKey: ["bildirimler"],
     queryFn: () => bildirimApi.list(),
@@ -130,12 +134,22 @@ export function UserMenu() {
             <div className="px-3 py-2.5 border-b border-cream-300 dark:border-ink-700">
               <p className="text-sm font-medium text-clay-900 dark:text-ink-50">{ben.adSoyad}</p>
               <p className="text-xs text-clay-400 dark:text-ink-300 truncate">{ben.email}</p>
-              {ben.rol === "admin" && (
+              {aktifRol === "admin" && !ben.superAdmin && (
                 <p className="text-xs text-terracotta mt-1 font-medium">⚜ Yönetici</p>
+              )}
+              {ben.superAdmin && (
+                <p className="text-xs text-gold mt-1 font-medium">⚜ Süper Yönetici</p>
+              )}
+              {cokluUyelik && (
+                <p className="text-[11px] text-clay-500 dark:text-ink-200 mt-1.5 truncate">
+                  <span className="opacity-60">Aktif marka:</span>{" "}
+                  {ben.uyelikler.find(u => u.isletmeId === ben.aktifIsletmeId)?.markaEmoji}{" "}
+                  {ben.uyelikler.find(u => u.isletmeId === ben.aktifIsletmeId)?.markaAdi}
+                </p>
               )}
             </div>
 
-            {/* MENÜ — Yeni sıra: Notlar → Yönetim → Çöp Kutusu → Defteri İndir → Tema → Bildirimler → Çıkış */}
+            {/* MENÜ */}
             <DM.Item asChild>
               <Link href="/" className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-cream-200 dark:hover:bg-ink-800 cursor-pointer outline-none text-clay-700 dark:text-ink-100">
                 <ListTodo className="h-4 w-4 text-clay-500 dark:text-ink-300" />
@@ -143,11 +157,21 @@ export function UserMenu() {
               </Link>
             </DM.Item>
 
-            {ben.rol === "admin" && (
+            {aktifRol === "admin" && (
               <DM.Item asChild>
                 <Link href="/admin" className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-cream-200 dark:hover:bg-ink-800 cursor-pointer outline-none text-clay-700 dark:text-ink-100">
                   <Shield className="h-4 w-4 text-clay-500 dark:text-ink-300" />
                   Yönetim
+                </Link>
+              </DM.Item>
+            )}
+
+            {/* v15 — Workspace switcher (sadece 2+ marka üyeliği varsa) */}
+            {cokluUyelik && (
+              <DM.Item asChild>
+                <Link href="/tenant-sec" className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-cream-200 dark:hover:bg-ink-800 cursor-pointer outline-none text-clay-700 dark:text-ink-100">
+                  <span className="text-base leading-none w-4 text-center">⇄</span>
+                  Marka değiştir
                 </Link>
               </DM.Item>
             )}

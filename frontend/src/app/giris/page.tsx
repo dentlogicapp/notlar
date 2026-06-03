@@ -33,7 +33,17 @@ export default function GirisSayfasi() {
     onSuccess: (ben) => {
       qc.setQueryData(["ben"], ben);
       toast.success(`Hoş geldin, ${ben.adSoyad.split(" ")[0]} 🤍`);
-      router.push("/");
+
+      // v15 — Multi-tenant yönlendirme
+      const uyelikSayisi = ben.uyelikler?.length ?? 0;
+      if (uyelikSayisi >= 2) {
+        // Çoklu marka → seçici sayfası
+        router.push("/tenant-sec");
+      } else {
+        // 1 üyelik (yaygın durum) veya super_admin + 0 üyelik → ana sayfa
+        // (Süper admin paneli v17'de eklenecek; şimdilik aktif tenant varsa direkt ana sayfa)
+        router.push("/");
+      }
     },
     onError: (err: Error) => toast.error(err.message),
   });

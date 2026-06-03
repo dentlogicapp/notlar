@@ -11,6 +11,10 @@ public interface IJwtService
     string TokenUret(Kullanici k);
 }
 
+/// <summary>
+/// v15 — JWT token üreticisi.
+/// Yeni claim'ler: aktif_isletme_id (kullanıcının aktif tenant'ı), super_admin (sistem geneli yetki).
+/// </summary>
 public sealed class JwtService : IJwtService
 {
     private readonly IConfiguration _cfg;
@@ -25,13 +29,19 @@ public sealed class JwtService : IJwtService
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        var claims = new[]
+
+        var claims = new List<Claim>
         {
-            new Claim(JwtRegisteredClaimNames.Sub, k.Id.ToString()),
-            new Claim(JwtRegisteredClaimNames.Email, k.Email),
-            new Claim("ad_soyad", k.AdSoyad),
-            new Claim(ClaimTypes.Role, k.Rol),
+            new(JwtRegisteredClaimNames.Sub, k.Id.ToString()),
+            new(JwtRegisteredClaimNames.Email, k.Email),
+            new("ad_soyad", k.AdSoyad),
+            new(ClaimTypes.Role, k.Rol),
+            // v15 — Multi-tenant claim'ler
+            new("super_admin", k.SuperAdmin ? "true" : "false"),
         };
+        if (k.AktifIsletmeId.HasValue)
+            claims.Add(new Claim("aktif_isletme_id", k.AktifIsletmeId.Value.ToString()));
+
         var token = new JwtSecurityToken(issuer, audience, claims,
             expires: DateTime.UtcNow.AddDays(gun), signingCredentials: creds);
         return new JwtSecurityTokenHandler().WriteToken(token);

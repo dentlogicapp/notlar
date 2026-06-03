@@ -3,12 +3,41 @@ export type Cinsiyet = "kadin" | "erkek";
 export type HatirlatmaKime = "askima" | "bana" | "ikimize";
 export type HatirlatmaSekli = "uygulama" | "email" | "her_ikisi";
 
+// v15 — Multi-tenant
+export interface Uyelik {
+  isletmeId: string;
+  markaAdi: string;
+  markaEmoji: string;
+  kullanimModu: string;     // 'es'|'aile'|'ekip'|'tatil'|'ozel'
+  rol: Rol;                  // tenant scope rol
+  aktif: boolean;
+}
+
+export interface Isletme {
+  id: string;
+  markaAdi: string;
+  markaEmoji: string;
+  ikonSeti: string;
+  karsilamaBasligi: string;
+  karsilamaAltMetni: string;
+  sayacAktif: boolean;
+  sayacBasligi: string;
+  sayacHedefTarihi: string | null;
+  mailImza: string;
+  mailTonu: string;
+  kullanimModu: string;
+}
+
 export interface Ben {
   id: string;
   email: string;
   adSoyad: string;
-  rol: Rol;
+  rol: Rol;                       // DEPRECATED v15 (geriye uyumluluk için; tenant rolü uyelikler[].rol)
   cinsiyet: Cinsiyet | null;
+  // v15 — Multi-tenant
+  superAdmin: boolean;
+  aktifIsletmeId: string | null;  // null = super_admin + 0 tenant
+  uyelikler: Uyelik[];
 }
 
 export interface Kullanici {

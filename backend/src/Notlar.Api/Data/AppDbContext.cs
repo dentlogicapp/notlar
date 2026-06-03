@@ -14,6 +14,9 @@ public sealed class AppDbContext : DbContext
     public DbSet<NotGecmisi> NotGecmisleri => Set<NotGecmisi>();
     public DbSet<DenetimGunlugu> DenetimGunlukleri => Set<DenetimGunlugu>();
     public DbSet<Bildirim> Bildirimler => Set<Bildirim>();
+    // v15 — Multi-tenant
+    public DbSet<Isletme> Isletmeler => Set<Isletme>();
+    public DbSet<IsletmeUyelik> IsletmeUyelikleri => Set<IsletmeUyelik>();
 
     protected override void OnModelCreating(ModelBuilder m)
     {
@@ -27,6 +30,41 @@ public sealed class AppDbContext : DbContext
             e.Property(x => x.Rol).HasMaxLength(20).IsRequired();
             e.Property(x => x.SifreHash).HasMaxLength(255);
             e.Property(x => x.Cinsiyet).HasMaxLength(10);  // "kadin" | "erkek"
+            // v15
+            e.HasIndex(x => x.SuperAdmin).HasFilter("\"SuperAdmin\" = true");
+        });
+
+        // v15 — İşletme (Tenant)
+        m.Entity<Isletme>(e =>
+        {
+            e.ToTable("isletmeler");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.MarkaAdi).HasMaxLength(80).IsRequired();
+            e.Property(x => x.MarkaEmoji).HasMaxLength(10);
+            e.Property(x => x.IkonSeti).HasMaxLength(20);
+            e.Property(x => x.KarsilamaBasligi).HasMaxLength(120);
+            e.Property(x => x.KarsilamaAltMetni).HasMaxLength(280);
+            e.Property(x => x.SayacBasligi).HasMaxLength(60);
+            e.Property(x => x.MailImza).HasMaxLength(80);
+            e.Property(x => x.MailTonu).HasMaxLength(20);
+            e.Property(x => x.KullanimModu).HasMaxLength(20);
+            e.HasIndex(x => x.Aktif);
+            e.HasIndex(x => x.Silindi);
+        });
+
+        // v15 — İşletme Üyelikleri
+        m.Entity<IsletmeUyelik>(e =>
+        {
+            e.ToTable("isletme_uyelikleri");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Rol).HasMaxLength(20).IsRequired();
+            e.HasOne(x => x.Isletme).WithMany(i => i.Uyelikler)
+             .HasForeignKey(x => x.IsletmeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Kullanici).WithMany(u => u.Uyelikler)
+             .HasForeignKey(x => x.KullaniciId).OnDelete(DeleteBehavior.Cascade);
+            // Bir kullanıcı bir tenant'a tek üyelik
+            e.HasIndex(x => new { x.IsletmeId, x.KullaniciId }).IsUnique();
+            e.HasIndex(x => x.KullaniciId);
         });
 
         m.Entity<AuthToken>(e =>
@@ -54,6 +92,10 @@ public sealed class AppDbContext : DbContext
             e.HasIndex(x => x.UstKlasorId);
             e.HasIndex(x => x.Silindi);
             e.HasIndex(x => x.SistemMi);  // Tamamlananlar lookup için
+            // v15 — Tenant
+            e.HasOne<Isletme>().WithMany()
+             .HasForeignKey(x => x.IsletmeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.IsletmeId, x.Silindi });
         });
 
         m.Entity<Not>(e =>
@@ -77,6 +119,10 @@ public sealed class AppDbContext : DbContext
             e.HasIndex(x => x.Silindi);
             // Background service her dakika bunu sorgular: NOW() >= zamani AND !gonderildi
             e.HasIndex(x => new { x.HatirlatmaZamani, x.HatirlatmaGonderildiMi });
+            // v15 — Tenant
+            e.HasOne<Isletme>().WithMany()
+             .HasForeignKey(x => x.IsletmeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.IsletmeId, x.Silindi });
         });
 
         m.Entity<NotGecmisi>(e =>
@@ -90,6 +136,10 @@ public sealed class AppDbContext : DbContext
             e.HasOne(x => x.YapanKullanici).WithMany()
              .HasForeignKey(x => x.YapanKullaniciId).OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(x => new { x.NotId, x.YapilisZamani });
+            // v15 — Tenant
+            e.HasOne<Isletme>().WithMany()
+             .HasForeignKey(x => x.IsletmeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => x.IsletmeId);
         });
 
         m.Entity<DenetimGunlugu>(e =>
@@ -105,6 +155,10 @@ public sealed class AppDbContext : DbContext
             e.HasIndex(x => x.Zaman);
             e.HasIndex(x => x.Olay);
             e.HasIndex(x => x.AktorKullaniciId);
+            // v15 — Tenant (nullable: super admin işlemleri tenant-bağımsız)
+            e.HasOne<Isletme>().WithMany()
+             .HasForeignKey(x => x.IsletmeId).OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(x => new { x.IsletmeId, x.Zaman });
         });
 
         m.Entity<Bildirim>(e =>
@@ -118,6 +172,10 @@ public sealed class AppDbContext : DbContext
              .HasForeignKey(x => x.KullaniciId).OnDelete(DeleteBehavior.Cascade);
             // UserMenu unread count + listeleme sıralaması için
             e.HasIndex(x => new { x.KullaniciId, x.OkunduMu, x.OlusturmaZamani });
+            // v15 — Tenant
+            e.HasOne<Isletme>().WithMany()
+             .HasForeignKey(x => x.IsletmeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.IsletmeId, x.KullaniciId });
         });
     }
 }
