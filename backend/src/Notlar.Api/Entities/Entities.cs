@@ -260,3 +260,21 @@ public sealed class MetinAnahtari
     public DateTimeOffset OlusturmaZamani { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset GuncellemeZamani { get; set; } = DateTimeOffset.UtcNow;
 }
+/// <summary>
+/// v17 — AI sağlayıcı ayarı (singleton: tek satır). Strategy Pattern (spec Bölüm 6).
+/// API key DataProtection (AES-256-GCM) ile şifreli saklanır; düz metin asla tutulmaz.
+/// </summary>
+public sealed class AiAyari
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Saglayici { get; set; } = "openai";       // 'openai' | 'anthropic' | 'lokal'
+    public string ModelId { get; set; } = "gpt-4o-mini";    // sağlayıcıya özgü model adı
+    public string? ApiKeyEncrypted { get; set; }            // DataProtection şifreli; lokal'de null olabilir
+    public string? BaseUrl { get; set; }                    // yalnız lokal LLM için
+    public int TimeoutMs { get; set; } = 30000;             // LLM çağrı zaman aşımı (ms)
+    public bool Aktif { get; set; }                         // false: AI kapalı (default — super admin elle açar)
+    public DateTimeOffset? SonSaglikKontrol { get; set; }   // son sağlık testi zamanı
+    public bool? SonSaglikDurum { get; set; }               // son test sonucu (null = hiç test edilmedi)
+    public DateTimeOffset GuncellemeZamani { get; set; } = DateTimeOffset.UtcNow;
+    public Guid? GuncelleyenKullaniciId { get; set; }       // son güncelleyen super admin
+}

@@ -19,6 +19,8 @@ public sealed class AppDbContext : DbContext
     public DbSet<IsletmeUyelik> IsletmeUyelikleri => Set<IsletmeUyelik>();
     // v17 — Sistem metin anahtar kataloğu
     public DbSet<MetinAnahtari> MetinAnahtarlari => Set<MetinAnahtari>();
+    // v17 - AI saglayici ayari (singleton)
+    public DbSet<AiAyari> AiAyarlari => Set<AiAyari>();
 
     protected override void OnModelCreating(ModelBuilder m)
     {
@@ -196,6 +198,19 @@ public sealed class AppDbContext : DbContext
             e.HasIndex(x => x.Anahtar).IsUnique();
             e.HasIndex(x => x.Kategori);
             e.HasIndex(x => x.Deprecated);
+        });
+        // v17 — AI sağlayıcı ayarı (singleton: tek satır, index gereksiz)
+        m.Entity<AiAyari>(e =>
+        {
+            e.ToTable("ai_ayarlari");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Saglayici).HasMaxLength(40).IsRequired();
+            e.Property(x => x.ModelId).HasMaxLength(120).IsRequired();
+            e.Property(x => x.BaseUrl).HasMaxLength(500);
+            e.Property(x => x.TimeoutMs).HasDefaultValue(30000);
+            // ApiKeyEncrypted: text (uzunluk siniri yok) — DataProtection cipher
+            e.HasOne<Kullanici>().WithMany()
+             .HasForeignKey(x => x.GuncelleyenKullaniciId).OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

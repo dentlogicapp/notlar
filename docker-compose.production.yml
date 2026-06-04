@@ -52,6 +52,8 @@ services:
       IlkAdmin__Email: ${ILK_ADMIN_EMAIL}
       IlkAdmin__AdSoyad: ${ILK_ADMIN_AD}
       IlkAdmin__Sifre: ${ILK_ADMIN_SIFRE}
+    volumes:
+      - dataprotection_keys:/keys
 
   frontend:
     build:
@@ -83,3 +85,4 @@ volumes:
   postgres_data:
   caddy_data:
   caddy_config:
+  dataprotection_keys:

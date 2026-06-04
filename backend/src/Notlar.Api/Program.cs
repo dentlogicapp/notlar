@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -31,6 +32,11 @@ builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+// v17 - AI API key sifreleme + DataProtection key persistence (docker volume /keys)
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo("/keys"))
+    .SetApplicationName("Notlar");
+builder.Services.AddSingleton<IApiKeyKripto, DataProtectionApiKeyKripto>();
 
 // v14 — Defteri İndir servisleri
 // PdfRender: Playwright Chromium browser tek instance (singleton, lazy-init), her PDF için yeni context
@@ -439,6 +445,29 @@ using (var scope = app.Services.CreateScope())
                 ON metin_anahtarlari (""Kategori"");
             CREATE INDEX IF NOT EXISTS ""IX_metin_anahtarlari_Deprecated"" 
                 ON metin_anahtarlari (""Deprecated"");
+            -- 13. AI sağlayıcı ayarı (v17 — singleton, Strategy Pattern)
+            CREATE TABLE IF NOT EXISTS ai_ayarlari (
+                ""Id"" uuid NOT NULL PRIMARY KEY,
+                ""Saglayici"" character varying(40) NOT NULL DEFAULT 'openai',
+                ""ModelId"" character varying(120) NOT NULL DEFAULT 'gpt-4o-mini',
+                ""ApiKeyEncrypted"" text,
+                ""BaseUrl"" character varying(500),
+                ""TimeoutMs"" integer NOT NULL DEFAULT 30000,
+                ""Aktif"" boolean NOT NULL DEFAULT false,
+                ""SonSaglikKontrol"" timestamp with time zone,
+                ""SonSaglikDurum"" boolean,
+                ""GuncellemeZamani"" timestamp with time zone NOT NULL DEFAULT now(),
+                ""GuncelleyenKullaniciId"" uuid REFERENCES kullanicilar(""Id"") ON DELETE SET NULL
+            );
+            -- 13.1 Singleton default kayit (sabit UUID, idempotent — super admin elle aktive eder)
+            INSERT INTO ai_ayarlari (
+                ""Id"", ""Saglayici"", ""ModelId"", ""TimeoutMs"", ""Aktif"", ""GuncellemeZamani""
+            )
+            VALUES (
+                'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+                'openai', 'gpt-4o-mini', 30000, false, now()
+            )
+            ON CONFLICT (""Id"") DO NOTHING;
         ");
         Log.Information("Şema güncellemeleri kontrol edildi (v15 multi-tenant dahil — idempotent)");
     }
