@@ -17,6 +17,8 @@ public sealed class AppDbContext : DbContext
     // v15 — Multi-tenant
     public DbSet<Isletme> Isletmeler => Set<Isletme>();
     public DbSet<IsletmeUyelik> IsletmeUyelikleri => Set<IsletmeUyelik>();
+    // v17 — Sistem metin anahtar kataloğu
+    public DbSet<MetinAnahtari> MetinAnahtarlari => Set<MetinAnahtari>();
 
     protected override void OnModelCreating(ModelBuilder m)
     {
@@ -176,6 +178,24 @@ public sealed class AppDbContext : DbContext
             e.HasOne<Isletme>().WithMany()
              .HasForeignKey(x => x.IsletmeId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => new { x.IsletmeId, x.KullaniciId });
+        });
+        // v17 — Sistem metin anahtar kataloğu
+        m.Entity<MetinAnahtari>(e =>
+        {
+            e.ToTable("metin_anahtarlari");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Anahtar).HasMaxLength(80).IsRequired();
+            e.Property(x => x.Etiket).HasMaxLength(120).IsRequired();
+            e.Property(x => x.Yonlendirme).IsRequired();
+            e.Property(x => x.Aciklama).IsRequired();
+            e.Property(x => x.Tip).HasMaxLength(20).IsRequired();
+            e.Property(x => x.Kategori).HasMaxLength(40).IsRequired();
+            e.Property(x => x.DesteklenenPlaceholderlar)
+             .HasColumnType("jsonb").HasDefaultValueSql("'[]'::jsonb");
+            e.Property(x => x.Sira).HasDefaultValue(100);
+            e.HasIndex(x => x.Anahtar).IsUnique();
+            e.HasIndex(x => x.Kategori);
+            e.HasIndex(x => x.Deprecated);
         });
     }
 }

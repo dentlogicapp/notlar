@@ -240,3 +240,23 @@ public sealed class IsletmeUyelik
     public DateTimeOffset KatilmaZamani { get; set; } = DateTimeOffset.UtcNow;
     public bool Aktif { get; set; } = true;                 // Pasifleştirme bu seviyede (tenant scope)
 }
+/// <summary>
+/// v17 — Sistem metin anahtar kataloğu (sıfır şablon mimarisi).
+/// Süper admin tanımlar; tenant içeriği isletme_metinleri tablosunda doldurur (v18).
+/// </summary>
+public sealed class MetinAnahtari
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public required string Anahtar { get; set; }            // Sistem kodu içinde sabit (örn. mail_davetiye_konu)
+    public required string Etiket { get; set; }             // UI form başlığı
+    public required string Yonlendirme { get; set; }        // HTML5 input placeholder (soluk metin)
+    public required string Aciklama { get; set; }           // Form altı kalıcı help text
+    public required string Tip { get; set; }                // 'subject'|'body'|'baslik'|'metin'|'placeholder_kisa'
+    public bool Zorunlu { get; set; }                       // Onboarding wizard'da zorunlu mu
+    public string DesteklenenPlaceholderlar { get; set; } = "[]";  // JSONB — izin verilen runtime placeholder'lar
+    public int Sira { get; set; } = 100;                    // UI sıralama (yükselen)
+    public required string Kategori { get; set; }           // 'mail'|'dashboard'|'sayac'|'bildirim'|'form'|'marka'
+    public bool Deprecated { get; set; }                    // Eski anahtar; yeni tenant'lara önerilmez
+    public DateTimeOffset OlusturmaZamani { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset GuncellemeZamani { get; set; } = DateTimeOffset.UtcNow;
+}

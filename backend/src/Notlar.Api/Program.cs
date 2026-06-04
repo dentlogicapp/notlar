@@ -419,6 +419,26 @@ using (var scope = app.Services.CreateScope())
                 ON denetim_gunlukleri (""IsletmeId"", ""Zaman"");
             CREATE INDEX IF NOT EXISTS ""IX_not_gecmisi_IsletmeId"" 
                 ON not_gecmisi (""IsletmeId"");
+            -- 12. Sistem metin anahtar kataloğu (v17 — sıfır şablon mimarisi)
+            CREATE TABLE IF NOT EXISTS metin_anahtarlari (
+                ""Id"" uuid NOT NULL PRIMARY KEY,
+                ""Anahtar"" character varying(80) NOT NULL UNIQUE,
+                ""Etiket"" character varying(120) NOT NULL,
+                ""Yonlendirme"" text NOT NULL,
+                ""Aciklama"" text NOT NULL,
+                ""Tip"" character varying(20) NOT NULL,
+                ""Zorunlu"" boolean NOT NULL DEFAULT false,
+                ""DesteklenenPlaceholderlar"" jsonb NOT NULL DEFAULT '[]'::jsonb,
+                ""Sira"" integer NOT NULL DEFAULT 100,
+                ""Kategori"" character varying(40) NOT NULL,
+                ""Deprecated"" boolean NOT NULL DEFAULT false,
+                ""OlusturmaZamani"" timestamp with time zone NOT NULL DEFAULT now(),
+                ""GuncellemeZamani"" timestamp with time zone NOT NULL DEFAULT now()
+            );
+            CREATE INDEX IF NOT EXISTS ""IX_metin_anahtarlari_Kategori"" 
+                ON metin_anahtarlari (""Kategori"");
+            CREATE INDEX IF NOT EXISTS ""IX_metin_anahtarlari_Deprecated"" 
+                ON metin_anahtarlari (""Deprecated"");
         ");
         Log.Information("Şema güncellemeleri kontrol edildi (v15 multi-tenant dahil — idempotent)");
     }
