@@ -136,3 +136,21 @@ public sealed record DenetimYaniti(
 
 // Kilit (edit lock) yanıtı
 public sealed record KilitYaniti(bool BasariliMi, string? KilitSahibiAdi);
+
+// v17 — Sistem metin anahtarlari (super admin)
+public sealed record MetinAnahtariIstegi(
+    string Anahtar,                       // lowercase snake_case, maks 80
+    string Etiket,                        // 1-120
+    string Yonlendirme,                   // 1-500 (input placeholder)
+    string? Aciklama,                     // 0-1000 (form alti help)
+    string Tip,                           // subject|body|baslik|metin|placeholder_kisa
+    bool? Zorunlu,                        // default false
+    List<string>? DesteklenenPlaceholderlar,  // JSONB <-> List (endpoint serialize)
+    int? Sira,                            // default 100
+    string Kategori);                     // mail|dashboard|sayac|bildirim|form|marka
+
+public sealed record MetinAnahtariYaniti(
+    Guid Id, string Anahtar, string Etiket, string Yonlendirme, string Aciklama,
+    string Tip, bool Zorunlu, List<string> DesteklenenPlaceholderlar,
+    int Sira, string Kategori, bool Deprecated,
+    DateTimeOffset OlusturmaZamani, DateTimeOffset GuncellemeZamani);
