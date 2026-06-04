@@ -172,3 +172,28 @@ export interface MetinAnahtari {
   olusturmaZamani: string;
   guncellemeZamani: string;
 }
+
+// v17 - AI saglayici ayarlari
+export interface AiAyari {
+  saglayici: string;
+  modelId: string;
+  apiKeyMaskeli: string | null;
+  baseUrl: string | null;
+  timeoutMs: number;
+  aktif: boolean;
+  sonSaglikKontrol: string | null;
+  sonSaglikDurum: boolean | null;
+}
+
+export interface AiModel {
+  id: string;
+  etiket: string;
+}
+
+export interface AiTestSonucu {
+  saglikli: boolean;
+  yanitSuresi: number;
+  modelAdi: string;
+  saglayici: string;
+  mesaj: string;
+}

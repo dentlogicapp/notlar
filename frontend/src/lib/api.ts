@@ -3,7 +3,7 @@ import type {
   DenetimListesi, TokenDogrulama,
   BildirimOzeti,
   Cinsiyet, HatirlatmaKime, HatirlatmaSekli,
-  Uyelik, Isletme, MetinAnahtari
+  Uyelik, Isletme, MetinAnahtari, AiAyari, AiModel, AiTestSonucu
 } from "./types";
 
 const API = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:5000";
@@ -252,4 +252,23 @@ export const sistemApi = {
     ist<MetinAnahtari>(`/api/super-admin/metin-anahtarlari/${id}/deprecate`, { method: "POST" }),
   kopyalaAnahtar: (id: string) =>
     ist<MetinAnahtari>(`/api/super-admin/metin-anahtarlari/${id}/kopyala`, { method: "POST" }),
+};
+
+// v17 - AI saglayici ayar istegi
+export interface AiAyariOnerisi {
+  saglayici: string;
+  modelId: string;
+  apiKey?: string;
+  baseUrl?: string | null;
+  timeoutMs?: number;
+  aktif?: boolean;
+}
+
+export const aiAyarApi = {
+  getAyar: () => ist<AiAyari>("/api/super-admin/ai-ayarlari"),
+  updateAyar: (data: AiAyariOnerisi) =>
+    ist<AiAyari>("/api/super-admin/ai-ayarlari", { method: "PUT", body: JSON.stringify(data) }),
+  testAyar: () => ist<AiTestSonucu>("/api/super-admin/ai-ayarlari/test", { method: "POST" }),
+  modeller: (saglayici: string) =>
+    ist<{ saglayici: string; modeller: AiModel[] }>(`/api/super-admin/ai-ayarlari/modeller?saglayici=${encodeURIComponent(saglayici)}`),
 };
