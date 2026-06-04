@@ -38,6 +38,11 @@ builder.Services.AddDataProtection()
     .SetApplicationName("Notlar");
 builder.Services.AddSingleton<IApiKeyKripto, DataProtectionApiKeyKripto>();
 
+// v17 - AI Strategy Pattern (HttpClient typed + IMemoryCache 60sn + saglayici factory)
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient<OpenAiAssistService>();
+builder.Services.AddScoped<IAiAssistServiceFactory, AiAssistServiceFactory>();
+
 // v14 — Defteri İndir servisleri
 // PdfRender: Playwright Chromium browser tek instance (singleton, lazy-init), her PDF için yeni context
 builder.Services.AddSingleton<IPdfRender, PdfRender>();
