@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { useBen } from "@/lib/useBen";
 
-export function AuthGuard({ children, requireAdmin = false }: { children: React.ReactNode; requireAdmin?: boolean }) {
+export function AuthGuard({ children, requireAdmin = false, requireSuperAdmin = false }: { children: React.ReactNode; requireAdmin?: boolean; requireSuperAdmin?: boolean }) {
   const { data: ben, isLoading, isError } = useBen();
   const router = useRouter();
 
@@ -15,8 +15,9 @@ export function AuthGuard({ children, requireAdmin = false }: { children: React.
     if (isLoading) return;
     if (isError || !ben) { router.replace("/giris"); return; }
     // v15 — admin kontrolü tenant scope (mevcut ben.rol artık global, geriye uyumluluk için duruyor)
+    if (requireSuperAdmin && !ben.superAdmin) { router.replace("/"); return; }
     if (requireAdmin && aktifRol !== "admin") router.replace("/");
-  }, [ben, isLoading, isError, requireAdmin, router, aktifRol]);
+  }, [ben, isLoading, isError, requireAdmin, requireSuperAdmin, router, aktifRol]);
 
   // v16 — document.title artik MarkaBaslik'te tek otorite; eski super admin ⚜ title effect'i oraya tasindi.
 
@@ -27,6 +28,7 @@ export function AuthGuard({ children, requireAdmin = false }: { children: React.
       </div>
     );
   }
+  if (requireSuperAdmin && !ben.superAdmin) return null;
   if (requireAdmin && aktifRol !== "admin") return null;
 
   return (

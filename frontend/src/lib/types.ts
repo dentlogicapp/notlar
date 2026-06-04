@@ -155,3 +155,20 @@ export interface BildirimOzeti {
   okunmamisSayisi: number;
   bildirimler: Bildirim[];
 }
+
+// v17 - Sistem metin anahtari
+export interface MetinAnahtari {
+  id: string;
+  anahtar: string;
+  etiket: string;
+  yonlendirme: string;
+  aciklama: string;
+  tip: string;
+  zorunlu: boolean;
+  desteklenenPlaceholderlar: string[];
+  sira: number;
+  kategori: string;
+  deprecated: boolean;
+  olusturmaZamani: string;
+  guncellemeZamani: string;
+}

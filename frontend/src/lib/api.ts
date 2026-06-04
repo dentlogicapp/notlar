@@ -3,7 +3,7 @@ import type {
   DenetimListesi, TokenDogrulama,
   BildirimOzeti,
   Cinsiyet, HatirlatmaKime, HatirlatmaSekli,
-  Uyelik, Isletme
+  Uyelik, Isletme, MetinAnahtari
 } from "./types";
 
 const API = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:5000";
@@ -224,4 +224,32 @@ export const isletmeApi = {
   // v16 — marka & görünüm ayarlarını güncelle (PATCH)
   aktifGuncelle: (data: IsletmeAyarGuncelleOnerisi) =>
     ist<Isletme>("/api/isletmeler/aktif", { method: "PATCH", body: JSON.stringify(data) }),
+};
+
+// v17 - Metin anahtari istegi (frontend "...Onerisi" konvansiyonu)
+export interface MetinAnahtariOnerisi {
+  anahtar: string;
+  etiket: string;
+  yonlendirme: string;
+  aciklama?: string | null;
+  tip: string;
+  zorunlu?: boolean;
+  desteklenenPlaceholderlar?: string[];
+  sira?: number;
+  kategori: string;
+}
+
+export const sistemApi = {
+  listAnahtar: () => ist<MetinAnahtari[]>("/api/super-admin/metin-anahtarlari"),
+  getAnahtar: (id: string) => ist<MetinAnahtari>(`/api/super-admin/metin-anahtarlari/${id}`),
+  createAnahtar: (data: MetinAnahtariOnerisi) =>
+    ist<MetinAnahtari>("/api/super-admin/metin-anahtarlari", { method: "POST", body: JSON.stringify(data) }),
+  updateAnahtar: (id: string, data: MetinAnahtariOnerisi) =>
+    ist<MetinAnahtari>(`/api/super-admin/metin-anahtarlari/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  deleteAnahtar: (id: string) =>
+    ist<void>(`/api/super-admin/metin-anahtarlari/${id}`, { method: "DELETE" }),
+  deprecateAnahtar: (id: string) =>
+    ist<MetinAnahtari>(`/api/super-admin/metin-anahtarlari/${id}/deprecate`, { method: "POST" }),
+  kopyalaAnahtar: (id: string) =>
+    ist<MetinAnahtari>(`/api/super-admin/metin-anahtarlari/${id}/kopyala`, { method: "POST" }),
 };
