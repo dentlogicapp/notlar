@@ -18,16 +18,7 @@ export function AuthGuard({ children, requireAdmin = false }: { children: React.
     if (requireAdmin && aktifRol !== "admin") router.replace("/");
   }, [ben, isLoading, isError, requireAdmin, router, aktifRol]);
 
-  // v15 — Süper admin browser title (sadece istemci tarafında)
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    if (ben?.superAdmin) {
-      const orijinal = document.title;
-      if (!orijinal.startsWith("⚜")) {
-        document.title = `⚜ ${orijinal}`;
-      }
-    }
-  }, [ben?.superAdmin]);
+  // v16 — document.title artik MarkaBaslik'te tek otorite; eski super admin ⚜ title effect'i oraya tasindi.
 
   if (isLoading || !ben) {
     return (

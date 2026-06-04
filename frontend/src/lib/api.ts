@@ -42,9 +42,17 @@ async function ist<T>(yol: string, init?: RequestInit): Promise<T> {
       yetkisizYakala();
     }
     let m = `İstek başarısız (${r.status})`;
-    try { const b = await r.json(); if (b?.hata) m = b.hata; } catch {}
-    const e = new Error(m) as Error & { status: number };
+    let kod: string | undefined;
+    try {
+      const b = await r.json();
+      // v16 yeni şekil: { hata: KOD, mesaj: "..." } -> mesaj insan-okur, hata makine-kodu
+      // Eski şekil: { hata: "İnsan mesajı" } -> mesaj yok, hata zaten mesaj (geriye uyumlu)
+      if (b?.mesaj) { m = b.mesaj; if (b?.hata) kod = b.hata; }
+      else if (b?.hata) { m = b.hata; }
+    } catch {}
+    const e = new Error(m) as Error & { status: number; kod?: string };
     e.status = r.status;
+    e.kod = kod;
     throw e;
   }
   if (r.status === 204) return undefined as T;
@@ -193,10 +201,27 @@ export const adminApi = {
     ist<DenetimListesi>(`/api/admin/denetim?skip=${skip}&take=${take}`),
 };
 
+// v16 — Isletme ayar guncelle istegi (frontend "...Onerisi" konvansiyonu; backend "...Istegi")
+export interface IsletmeAyarGuncelleOnerisi {
+  markaAdi?: string;
+  markaEmoji?: string;
+  ikonSeti?: string;
+  karsilamaBasligi?: string;
+  karsilamaAltMetni?: string;
+  sayacAktif?: boolean;
+  sayacBasligi?: string;
+  sayacHedefTarihi?: string | null;   // ISO string; backend DateTime?
+  mailImza?: string;
+  mailTonu?: string;
+}
+
 // v15 — Multi-tenant API
 export const isletmeApi = {
   uyelik: () => ist<Uyelik[]>("/api/isletmeler/uyelik"),
   aktifDegistir: (id: string) =>
     ist<Ben>(`/api/isletmeler/aktif/${id}`, { method: "POST" }),
   aktif: () => ist<Isletme>("/api/isletmeler/aktif"),
+  // v16 — marka & görünüm ayarlarını güncelle (PATCH)
+  aktifGuncelle: (data: IsletmeAyarGuncelleOnerisi) =>
+    ist<Isletme>("/api/isletmeler/aktif", { method: "PATCH", body: JSON.stringify(data) }),
 };

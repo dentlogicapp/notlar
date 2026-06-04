@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import { Providers } from "./providers";
+import { MarkaBaslik } from "@/components/MarkaBaslik";
 import { TEMA_INLINE_SCRIPT } from "@/lib/tema";
 import "./globals.css";
 
@@ -34,7 +35,11 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: TEMA_INLINE_SCRIPT }} />
       </head>
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          {/* v16 — document.title tek otoritesi (tenant marka adi + super admin prefix) */}
+          <MarkaBaslik />
+          {children}
+        </Providers>
       </body>
     </html>
   );

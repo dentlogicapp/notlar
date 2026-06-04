@@ -137,9 +137,17 @@ public static class AdminEndpoints
                     .FirstOrDefaultAsync(ct) ?? "Aşkın";
                 var gonderenIlkAd = gonderen.Split(' ')[0];
 
+                // v16 — davetiye markasi aktif tenant'tan (footer marka + kollektif imza)
+                var ayar = await db.Isletmeler
+                    .Where(x => x.Id == tenantId)
+                    .Select(x => new { x.MailImza, x.MarkaAdi })
+                    .FirstOrDefaultAsync(ct);
+                var mailImza = ayar?.MailImza ?? "Sevgilerle";
+                var markaAdi = ayar?.MarkaAdi ?? "Planlama Defterimiz";
+
                 var frontend = cfg["FrontendBaseUrl"] ?? "http://localhost:3000";
                 var link = $"{frontend}/sifre-belirle?token={setupToken}";
-                await email.SifreBelirleMailGonderAsync(user.Email, user.AdSoyad, link, gonderenIlkAd, ct);
+                await email.SifreBelirleMailGonderAsync(user.Email, user.AdSoyad, link, gonderenIlkAd, mailImza, markaAdi, ct);
             }
 
             await audit.YazAsync("kullanici_olusturuldu", "kullanici", user.Id,

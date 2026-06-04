@@ -3,13 +3,10 @@
 import { useEffect, useState } from "react";
 import { Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useIsletme } from "@/lib/useIsletme";
 
-// Türkiye saati (UTC+3) — 1 Eylül 2026 00:00 TR = 31 Ağustos 21:00 UTC
-const HEDEF_UTC = new Date("2026-08-31T21:00:00.000Z").getTime();
-
-function kalanHesapla() {
-  const su = Date.now();
-  const fark = HEDEF_UTC - su;
+function kalanHesapla(hedefMs: number) {
+  const fark = hedefMs - Date.now();
   if (fark <= 0) return { bitti: true, gun: 0, sa: 0, dk: 0, sn: 0 };
   const gun = Math.floor(fark / 86400000);
   const sa = Math.floor((fark % 86400000) / 3600000);
@@ -19,16 +16,28 @@ function kalanHesapla() {
 }
 
 export function CountdownWidget() {
-  const [k, setK] = useState(() => kalanHesapla());
+  const { data: isletme } = useIsletme();
   const [mount, setMount] = useState(false);
+  const [k, setK] = useState(() => ({ bitti: false, gun: 0, sa: 0, dk: 0, sn: 0 }));
+
+  // v16 — hedef tarih tenant'tan (DB date; local TR T00:00:00, saat hassasiyeti v-sonrasi)
+  const hedefMs = isletme?.sayacHedefTarihi
+    ? new Date(`${isletme.sayacHedefTarihi.slice(0, 10)}T00:00:00`).getTime()
+    : null;
 
   useEffect(() => {
     setMount(true);
-    const i = setInterval(() => setK(kalanHesapla()), 1000);
+    if (hedefMs === null) return;
+    setK(kalanHesapla(hedefMs));
+    const i = setInterval(() => setK(kalanHesapla(hedefMs)), 1000);
     return () => clearInterval(i);
-  }, []);
+  }, [hedefMs]);
 
   if (!mount) return null;
+  if (isletme?.sayacAktif === false) return null;   // v16 — sayac kapali → dashboard'da gizli
+  if (hedefMs === null) return null;                 // tarih yok / isletme yuklenmedi → gizli
+
+  const baslik = isletme?.sayacBasligi || "kavuşmamıza son";
 
   // KAVUSTUK durumu
   if (k.bitti) {
@@ -53,7 +62,6 @@ export function CountdownWidget() {
     );
   }
 
-  // Kalanı gösteren içerik — mobil ve desktop'ta paylaşılan iç yapı
   const SayacIcerik = ({ kompakt }: { kompakt?: boolean }) => (
     <>
       <Heart
@@ -69,7 +77,7 @@ export function CountdownWidget() {
           "uppercase tracking-[0.2em] text-clay-500 dark:text-ink-200 leading-none font-medium",
           kompakt ? "text-[10px]" : "text-[11px]"
         )}>
-          kavuşmamıza son:
+          {baslik}
         </span>
         <div className={cn("flex items-baseline mt-1.5", kompakt ? "gap-1.5" : "gap-2")}>
           <KutuRakam deger={k.gun} etiket="gün" vurgu kompakt={kompakt} />
@@ -86,11 +94,11 @@ export function CountdownWidget() {
 
   return (
     <>
-      {/* MOBIL: header altında akan inline kart */}
+      {/* MOBIL: header altinda akan inline kart */}
       <div className="md:hidden mx-4 mt-3 mb-1 kart px-4 py-3 flex items-center justify-center gap-3 animate-fade-in">
         <SayacIcerik kompakt />
       </div>
-      {/* TABLET+: sağ üst köşede sabit floating kart */}
+      {/* TABLET+: sag ust kosede sabit floating kart */}
       <div className="hidden md:flex fixed top-4 right-4 z-40 kart px-5 py-3.5 items-center gap-3.5 animate-fade-in shadow-md hover:shadow-lg transition-shadow">
         <SayacIcerik />
       </div>

@@ -5,12 +5,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   LogOut, Shield, Trash2, ListTodo, Bell, Download,
   FileText, FileSpreadsheet, FileType, FileCode, Loader2, X,
-  Moon, Sun
+  Moon, Sun, Plus
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { authApi, bildirimApi, defteriIndir, type DefteriIndirFormat } from "@/lib/api";
+import { authApi, bildirimApi, defteriIndir, isletmeApi, type DefteriIndirFormat } from "@/lib/api";
 import { useBen } from "@/lib/useBen";
 import { useTema } from "@/lib/tema";
 import { cn, bastari } from "@/lib/utils";
@@ -48,6 +48,7 @@ export function UserMenu() {
   // v15 — Aktif tenant'taki rol (Yönetim linki için)
   const aktifRol = ben?.uyelikler?.find(u => u.isletmeId === ben?.aktifIsletmeId)?.rol ?? "kullanici";
   const cokluUyelik = (ben?.uyelikler?.length ?? 0) >= 2;
+  const aktifUyelik = ben?.uyelikler?.find(u => u.isletmeId === ben?.aktifIsletmeId);
 
   const bildirimSorgu = useQuery({
     queryKey: ["bildirimler"],
@@ -65,6 +66,13 @@ export function UserMenu() {
   const cikis = useMutation({
     mutationFn: () => authApi.cikis(),
     onSuccess: () => { qc.clear(); router.push("/giris"); },
+  });
+
+  // v16 — menu-ici workspace switcher: aktif tenant degistir -> JWT yenile -> hard refresh
+  const markaDegistir = useMutation({
+    mutationFn: (id: string) => isletmeApi.aktifDegistir(id),
+    onSuccess: () => { window.location.reload(); },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const okunmamis = bildirimSorgu.data?.okunmamisSayisi ?? 0;
@@ -140,11 +148,10 @@ export function UserMenu() {
               {ben.superAdmin && (
                 <p className="text-xs text-gold mt-1 font-medium">⚜ Süper Yönetici</p>
               )}
-              {cokluUyelik && (
+              {aktifUyelik && (
                 <p className="text-[11px] text-clay-500 dark:text-ink-200 mt-1.5 truncate">
-                  <span className="opacity-60">Aktif marka:</span>{" "}
-                  {ben.uyelikler.find(u => u.isletmeId === ben.aktifIsletmeId)?.markaEmoji}{" "}
-                  {ben.uyelikler.find(u => u.isletmeId === ben.aktifIsletmeId)?.markaAdi}
+                  {cokluUyelik && <span className="opacity-60">Aktif marka:{" "}</span>}
+                  {aktifUyelik.markaEmoji} {aktifUyelik.markaAdi}
                 </p>
               )}
             </div>
@@ -166,14 +173,43 @@ export function UserMenu() {
               </DM.Item>
             )}
 
-            {/* v15 — Workspace switcher (sadece 2+ marka üyeliği varsa) */}
+            {/* v16 — Menu-ici workspace switcher (sadece 2+ marka üyeliği varsa) */}
             {cokluUyelik && (
-              <DM.Item asChild>
-                <Link href="/tenant-sec" className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-cream-200 dark:hover:bg-ink-800 cursor-pointer outline-none text-clay-700 dark:text-ink-100">
-                  <span className="text-base leading-none w-4 text-center">⇄</span>
-                  Marka değiştir
-                </Link>
-              </DM.Item>
+              <>
+                <DM.Separator className="my-1 h-px bg-cream-300 dark:bg-ink-700" />
+                <DM.Label className="px-3 pt-1 pb-1 text-[11px] font-medium text-clay-400 dark:text-ink-300">
+                  Diğer çalışma alanların
+                </DM.Label>
+                {ben.uyelikler
+                  .filter(u => u.isletmeId !== ben.aktifIsletmeId)
+                  .map(u => (
+                    <DM.Item
+                      key={u.isletmeId}
+                      disabled={markaDegistir.isPending}
+                      onSelect={(e) => { e.preventDefault(); markaDegistir.mutate(u.isletmeId); }}
+                      className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-cream-200 dark:hover:bg-ink-800 cursor-pointer outline-none text-clay-700 dark:text-ink-100"
+                    >
+                      <span className="text-base leading-none w-5 text-center shrink-0">{u.markaEmoji}</span>
+                      <span className="truncate flex-1">{u.markaAdi}</span>
+                      {u.rol === "admin" ? (
+                        <span className="inline-block text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-terracotta/15 text-terracotta-dark font-medium shrink-0">Yönetici</span>
+                      ) : (
+                        <span className="text-xs text-clay-500 dark:text-ink-200 shrink-0">Kullanıcı</span>
+                      )}
+                    </DM.Item>
+                  ))}
+                {ben.superAdmin && (
+                  <DM.Item
+                    disabled
+                    onSelect={(e) => e.preventDefault()}
+                    title="v17'de gelir"
+                    className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg outline-none text-clay-400 dark:text-ink-400 opacity-50 cursor-not-allowed"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Yeni İşletme
+                  </DM.Item>
+                )}
+              </>
             )}
 
             <DM.Item asChild>

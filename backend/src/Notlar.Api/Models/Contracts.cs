@@ -47,6 +47,20 @@ public sealed record IsletmeYaniti(
     string MailTonu,
     string KullanimModu);
 
+// v16 — Marka & Görünüm ayar güncelleme
+// PATCH semantiği: null gönderilen alan değişmez, dolu gönderilen güncellenir
+public sealed record IsletmeAyarGuncelleIstegi(
+    string? MarkaAdi,            // maks 80  (DB: isletmeler.MarkaAdi)
+    string? MarkaEmoji,          // maks 10
+    string? IkonSeti,            // beyaz liste Asama 2'de kilitlenir (bkz. G.3)
+    string? KarsilamaBasligi,    // maks 120
+    string? KarsilamaAltMetni,   // maks 280
+    bool? SayacAktif,
+    string? SayacBasligi,        // maks 60
+    DateTime? SayacHedefTarihi,  // entity + IsletmeYaniti ile ayni tip
+    string? MailImza,            // maks 80
+    string? MailTonu);
+
 // Klasor
 public sealed record KlasorOlusturIstegi(string Ad, string? Aciklama, string? Ikon, Guid? UstKlasorId);
 public sealed record KlasorGuncelleIstegi(string Ad, string? Aciklama, string? Ikon);

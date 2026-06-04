@@ -9,7 +9,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import {
   ChevronLeft, Heart, Loader2, Plus, KeyRound,
-  ShieldOff, Trash2, Lock, FileText, AlertTriangle, FolderHeart, FileEdit
+  ShieldOff, Trash2, Lock, FileText, AlertTriangle, FolderHeart, FileEdit, Palette
 } from "lucide-react";
 import { AuthGuard } from "@/components/AuthGuard";
 import { CountdownWidget } from "@/components/CountdownWidget";
@@ -100,6 +100,11 @@ function Icerik() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="font-display text-3xl text-clay-900 dark:text-ink-50">Kullanıcılar</h1>
           <div className="flex gap-2">
+            <Link href="/admin/marka">
+              <Button variant="outline" size="sm">
+                <Palette className="h-4 w-4 mr-1.5" /> Marka & Görünüm
+              </Button>
+            </Link>
             <Link href="/admin/denetim">
               <Button variant="outline" size="sm">
                 <FileText className="h-4 w-4 mr-1.5" /> Denetim Günlüğü

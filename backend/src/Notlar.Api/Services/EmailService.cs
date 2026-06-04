@@ -1,3 +1,4 @@
+using System.Net;
 using MailKit.Net.Smtp;
 using MimeKit;
 
@@ -5,7 +6,7 @@ namespace Notlar.Api.Services;
 
 public interface IEmailService
 {
-    Task SifreBelirleMailGonderAsync(string toEmail, string adSoyad, string link, string gonderenIlkAd, CancellationToken ct = default);
+    Task SifreBelirleMailGonderAsync(string toEmail, string adSoyad, string link, string gonderenIlkAd, string mailImza, string markaAdi, CancellationToken ct = default);
     Task SifreSifirlamaMailGonderAsync(string toEmail, string adSoyad, string link, CancellationToken ct = default);
     Task HatirlaticiMailGonderAsync(string toEmail, string aliciAdSoyad, string notBaslik, string? notIcerik,
         string? klasorAdi, string kimeMetin, DateTimeOffset hatirlatmaZamani, Guid notId, CancellationToken ct = default);
@@ -30,13 +31,13 @@ public sealed class EmailService : IEmailService
     /// Davetiye maili — Alt-3: tek mail, gender-neutral, imza gönderenin gerçek ilk adı.
     /// 7 maddeli kullanım rehberi (05 - Hatırlatıcı kurmak dahil).
     /// </summary>
-    public Task SifreBelirleMailGonderAsync(string toEmail, string adSoyad, string link, string gonderenIlkAd, CancellationToken ct = default)
+    public Task SifreBelirleMailGonderAsync(string toEmail, string adSoyad, string link, string gonderenIlkAd, string mailImza, string markaAdi, CancellationToken ct = default)
     {
         var aliciIlkAd = adSoyad.Split(' ')[0];
         var kalanGun = Math.Max(0, (int)Math.Ceiling((DUGUN_UTC - DateTimeOffset.UtcNow).TotalDays));
 
         var konu = $"{aliciIlkAd}, planlama defterimiz seni bekliyor";
-        var html = DavetiyeHtmlSablonu(aliciIlkAd, link, kalanGun, gonderenIlkAd);
+        var html = DavetiyeHtmlSablonu(aliciIlkAd, link, kalanGun, gonderenIlkAd, mailImza, markaAdi);
         return GonderAsync(toEmail, adSoyad, konu, html, ct);
     }
 
@@ -97,7 +98,7 @@ public sealed class EmailService : IEmailService
         }
     }
 
-    private static string DavetiyeHtmlSablonu(string aliciIlkAd, string link, int kalanGun, string gonderenIlkAd)
+    private static string DavetiyeHtmlSablonu(string aliciIlkAd, string link, int kalanGun, string gonderenIlkAd, string mailImza, string markaAdi)
     {
         var sayacCumle = kalanGun > 1
             ? $"Düğünümüze kaldı: <strong>{kalanGun} gün</strong>"
@@ -229,16 +230,19 @@ public sealed class EmailService : IEmailService
           Hadi başlayalım. Mutlu olacağımız günlerde yazacağımız
           her satır için sabırsızım.
         </p>
-        <p style='color:#3d2817;font-size:15px;margin:18px 0 0;text-align:center;'>
-          Sevgilerle,<br>
-          <strong style='font-family:Georgia,""Times New Roman"",serif;color:#c4704d;'>{gonderenIlkAd}</strong> 🤍
+      </td></tr>
+
+      <!-- Imza (v16 — tenant MailImza) -->
+      <tr><td style='padding:20px 40px 0;text-align:center;'>
+        <p style='color:#3d2817;font-size:14px;margin:0;'>
+          <strong style='font-family:Georgia,""Times New Roman"",serif;color:#c4704d;font-size:16px;'>{WebUtility.HtmlEncode(mailImza)}</strong>
         </p>
       </td></tr>
 
-      <tr><td style='padding:40px 40px 32px;text-align:center;'>
+      <!-- Footer (v16 — tenant MarkaAdi) -->
+      <tr><td style='padding:32px 40px 32px;text-align:center;'>
         <p style='color:#9c8a73;font-size:11px;margin:0;line-height:1.6;'>
-          Bu defter sadece ikimiz görüyoruz, üçüncü bir göz yok.<br>
-          Planlama Defterimiz · <a href='https://notlar.dentlogicapp.com' style='color:#9c8a73;text-decoration:none;'>notlar.dentlogicapp.com</a>
+          {WebUtility.HtmlEncode(markaAdi)} · <a href='https://notlar.dentlogicapp.com' style='color:#9c8a73;text-decoration:none;'>notlar.dentlogicapp.com</a>
         </p>
       </td></tr>
 
