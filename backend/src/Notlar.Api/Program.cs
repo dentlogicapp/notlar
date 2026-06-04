@@ -579,5 +579,6 @@ app.MapLockEndpoints();
 app.MapExportEndpoints();
 app.MapIsletmeEndpoints();  // v15
 app.MapSistemEndpoints();   // v17 — super admin metin anahtar katalogu
+app.MapAiAyarlariEndpoints();   // v17 - AI saglayici ayar yonetimi + saglik
 
 app.Run();

@@ -154,3 +154,16 @@ public sealed record MetinAnahtariYaniti(
     string Tip, bool Zorunlu, List<string> DesteklenenPlaceholderlar,
     int Sira, string Kategori, bool Deprecated,
     DateTimeOffset OlusturmaZamani, DateTimeOffset GuncellemeZamani);
+
+// v17 - AI saglayici ayar (super admin)
+public sealed record AiAyariGuncelleIstegi(
+    string Saglayici,        // openai | anthropic | lokal
+    string ModelId,          // saglayiciya ozgu model adi
+    string? ApiKey,          // raw; bos ise mevcut korunur (key rotation)
+    string? BaseUrl,         // lokal saglayici icin zorunlu
+    int? TimeoutMs,          // default 30000
+    bool? Aktif);            // AI acik/kapali
+
+public sealed record AiAyariYaniti(
+    string Saglayici, string ModelId, string? ApiKeyMaskeli, string? BaseUrl,
+    int TimeoutMs, bool Aktif, DateTimeOffset? SonSaglikKontrol, bool? SonSaglikDurum);
