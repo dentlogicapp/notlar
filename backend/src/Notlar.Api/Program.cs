@@ -42,6 +42,8 @@ builder.Services.AddSingleton<IApiKeyKripto, DataProtectionApiKeyKripto>();
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient<OpenAiAssistService>();
 builder.Services.AddScoped<IAiAssistServiceFactory, AiAssistServiceFactory>();
+// v17 - Runtime placeholder cozucu (G.4 minimal iskelet, stateless singleton)
+builder.Services.AddSingleton<ISablonResolver, SablonResolver>();
 
 // v14 — Defteri İndir servisleri
 // PdfRender: Playwright Chromium browser tek instance (singleton, lazy-init), her PDF için yeni context
