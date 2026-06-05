@@ -44,6 +44,8 @@ builder.Services.AddHttpClient<OpenAiAssistService>();
 builder.Services.AddScoped<IAiAssistServiceFactory, AiAssistServiceFactory>();
 // v17 - Runtime placeholder cozucu (G.4 minimal iskelet, stateless singleton)
 builder.Services.AddSingleton<ISablonResolver, SablonResolver>();
+// v18 - tenant icerigi + version history (Senaryo A, dogrudan AppDbContext)
+builder.Services.AddScoped<IIsletmeMetinService, IsletmeMetinService>();
 
 // v14 — Defteri İndir servisleri
 // PdfRender: Playwright Chromium browser tek instance (singleton, lazy-init), her PDF için yeni context
