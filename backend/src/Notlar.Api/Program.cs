@@ -44,8 +44,6 @@ builder.Services.AddHttpClient<OpenAiAssistService>();
 builder.Services.AddScoped<IAiAssistServiceFactory, AiAssistServiceFactory>();
 // v17 - Runtime placeholder cozucu (G.4 minimal iskelet, stateless singleton)
 builder.Services.AddSingleton<ISablonResolver, SablonResolver>();
-// v18 - tenant icerigi + version history (Senaryo A, dogrudan AppDbContext)
-builder.Services.AddScoped<IIsletmeMetinService, IsletmeMetinService>();
 
 // v14 — Defteri İndir servisleri
 // PdfRender: Playwright Chromium browser tek instance (singleton, lazy-init), her PDF için yeni context
@@ -556,6 +554,17 @@ using (var scope = app.Services.CreateScope())
             ) AS v(anahtar, icerik)
             WHERE v.icerik IS NOT NULL AND v.icerik <> ''
             ON CONFLICT (""IsletmeId"", ""Anahtar"") DO NOTHING;
+
+            -- 18a. v18 (geri bildirim A+B) marka_ikon_seti kaldirildi: deprecate -> GET / filtreler, sayfada gorunmez
+            UPDATE metin_anahtarlari SET ""Deprecated"" = true, ""GuncellemeZamani"" = now()
+            WHERE ""Anahtar"" = 'marka_ikon_seti' AND ""Deprecated"" = false;
+
+            -- 18b. v18 sayac_hedef_tarihi: tarih+saat yonlendirmesi (gereksiz '5 yil' ifadesi kaldirildi)
+            UPDATE metin_anahtarlari SET
+                ""Yonlendirme"" = 'Geri sayımın yöneleceği tarih ve saat.',
+                ""Aciklama"" = 'Tarih ve saati seçin; sayaç bu ana kadar geri sayar.',
+                ""GuncellemeZamani"" = now()
+            WHERE ""Anahtar"" = 'sayac_hedef_tarihi';
         ");
         Log.Information("Şema güncellemeleri kontrol edildi (v15 multi-tenant dahil — idempotent)");
     }
@@ -662,7 +671,6 @@ app.MapLockEndpoints();
 app.MapExportEndpoints();
 app.MapIsletmeEndpoints();  // v15
 app.MapSistemEndpoints();   // v17 — super admin metin anahtar katalogu
-app.MapAiAyarlariEndpoints();
-app.MapMetinlerEndpoints();   // v18 - tenant icerigi   // v17 - AI saglayici ayar yonetimi + saglik
+app.MapAiAyarlariEndpoints();   // v17 - AI saglayici ayar yonetimi + saglik
 
 app.Run();
