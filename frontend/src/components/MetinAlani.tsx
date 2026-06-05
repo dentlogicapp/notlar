@@ -1,10 +1,11 @@
 "use client";
 
+import { useRef, useEffect } from "react";
 import type { MetinBirlesik } from "@/lib/types";
 
 // v18 - Katalog-driven tek metin alani. tip -> uygun input; etiket/yonlendirme/aciklama katalogtan.
-// sayac_hedef_tarihi -> datetime-local (tarih+saat). hata -> enterprise inline uyari (kirmizi).
-// Aciklama: AI (Asama 11), karakter sayaci (Asama 14), history (Asama 15) bu komponente eklenecek.
+// sayac_hedef_tarihi -> datetime-local. textarea auto-resize (madde 5): icerik kadar yukseklik,
+// scroll yok, sag alt koseden uzatilabilir (resize-y). hata -> enterprise inline uyari (kirmizi).
 export function MetinAlani({
   metin,
   deger,
@@ -16,9 +17,19 @@ export function MetinAlani({
   onDegis: (anahtar: string, yeni: string) => void;
   hata?: string;
 }) {
+  const taRef = useRef<HTMLTextAreaElement>(null);
   const tarihMi = metin.anahtar === "sayac_hedef_tarihi";
   const cokSatir = metin.tip === "body" || metin.tip === "metin";
-  const rows = metin.tip === "body" ? 6 : 2;
+  const minRows = metin.tip === "body" ? 4 : 2;
+
+  // madde 5 - auto-resize: icerik kadar yukseklik (scroll yerine uzar)
+  useEffect(() => {
+    const ta = taRef.current;
+    if (ta) {
+      ta.style.height = "auto";
+      ta.style.height = `${ta.scrollHeight}px`;
+    }
+  }, [deger, cokSatir]);
 
   const ortakClass = [
     "w-full rounded-lg border bg-cream-50 dark:bg-ink-900/40",
@@ -46,11 +57,12 @@ export function MetinAlani({
         />
       ) : cokSatir ? (
         <textarea
-          rows={rows}
+          ref={taRef}
+          rows={minRows}
           value={deger}
           placeholder={metin.yonlendirme}
           onChange={(e) => onDegis(metin.anahtar, e.target.value)}
-          className={ortakClass + " resize-y leading-relaxed"}
+          className={ortakClass + " resize-y leading-relaxed overflow-hidden"}
         />
       ) : (
         <input
