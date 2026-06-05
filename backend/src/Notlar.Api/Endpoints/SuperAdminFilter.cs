@@ -37,5 +37,5 @@ public static class SuperAdminFilterExtensions
 {
     public static TBuilder RequireSuperAdmin<TBuilder>(this TBuilder builder)
         where TBuilder : IEndpointConventionBuilder
-        => builder.AddEndpointFilter<SuperAdminFilter>();
+        => builder.AddEndpointFilter<TBuilder, SuperAdminFilter>();
 }
