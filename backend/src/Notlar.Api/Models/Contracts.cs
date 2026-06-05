@@ -167,3 +167,15 @@ public sealed record AiAyariGuncelleIstegi(
 public sealed record AiAyariYaniti(
     string Saglayici, string ModelId, string? ApiKeyMaskeli, string? BaseUrl,
     int TimeoutMs, bool Aktif, DateTimeOffset? SonSaglikKontrol, bool? SonSaglikDurum);
+
+// v18 - tenant metin endpoint DTO'lari
+public sealed record MetinKaydetIstegi(string Icerik);
+
+public sealed record MetinBirlesik(
+    string Anahtar, string Etiket, string Yonlendirme, string Aciklama,
+    string Tip, string Kategori, bool Zorunlu, int Sira,
+    IReadOnlyList<string> Placeholderlar, string? Icerik);
+
+public sealed record MetinVersiyonYaniti(Guid Id, int Versiyon, string Icerik, DateTimeOffset OlusturmaZamani);
+
+public sealed record OnboardingDurum(int Toplam, int Dolu, IReadOnlyList<string> EksikAnahtarlar);
