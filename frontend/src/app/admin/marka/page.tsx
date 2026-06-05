@@ -9,6 +9,7 @@ import { AuthGuard } from "@/components/AuthGuard";
 import { CountdownWidget } from "@/components/CountdownWidget";
 import { UserMenu } from "@/components/UserMenu";
 import { MetinAlani } from "@/components/MetinAlani";
+import { LivePreview } from "@/components/LivePreview";
 import { Button } from "@/components/ui/button";
 import { metinApi } from "@/lib/api";
 import { useIsletmeMetinleri } from "@/lib/useIsletmeMetinleri";
@@ -194,7 +195,8 @@ function Icerik() {
           </div>
         )}
 
-        <div className="kart p-6 space-y-6 min-h-[200px]">
+        <div className="grid lg:grid-cols-[1fr_minmax(0,360px)] gap-6">
+          <div className="kart p-6 space-y-6 min-h-[200px]">
           {sekmeMetinleri.length === 0 ? (
             <p className="text-sm text-clay-400 dark:text-ink-300 italic">Bu sekmede metin bulunmuyor.</p>
           ) : sekme === "diger" ? (
@@ -218,6 +220,14 @@ function Icerik() {
               <MetinAlani key={m.anahtar} metin={m} deger={degerler[m.anahtar] ?? ""} onDegis={onDegis} hata={hatalar[m.anahtar]} />
             ))
           )}
+          </div>
+
+          <aside className="lg:sticky lg:top-24 self-start">
+            <p className="text-xs italic text-clay-400 dark:text-ink-300 mb-2">Canlı Önizleme</p>
+            <div className="kart p-5">
+              <LivePreview sekme={sekme} degerler={degerler} />
+            </div>
+          </aside>
         </div>
       </div>
 
