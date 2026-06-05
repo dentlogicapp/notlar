@@ -20,11 +20,10 @@ export function CountdownWidget() {
   const [mount, setMount] = useState(false);
   const [k, setK] = useState(() => ({ bitti: false, gun: 0, sa: 0, dk: 0, sn: 0 }));
 
-  // v18 - hedef tarih SADECE isletme_metinleri'nden (field tek kaynak; hardcode/isletme fallback yok)
+  // v18 - hedef tarih SADECE isletme_metinleri'nden (field tek kaynak). Tarih+saat (datetime-local) parse.
   const hedefTarih = metinDeger(metinler, "sayac_hedef_tarihi", "");
-  const hedefMs = hedefTarih
-    ? new Date(`${hedefTarih.slice(0, 10)}T00:00:00`).getTime()
-    : null;
+  const hedefMsRaw = hedefTarih ? new Date(hedefTarih).getTime() : NaN;
+  const hedefMs = isNaN(hedefMsRaw) ? null : hedefMsRaw;
 
   useEffect(() => {
     setMount(true);

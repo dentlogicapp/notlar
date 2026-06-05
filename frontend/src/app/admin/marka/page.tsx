@@ -44,6 +44,7 @@ function Icerik() {
   const [sekme, setSekme] = useState<SekmeKod>("marka");
   const [degerler, setDegerler] = useState<Record<string, string>>({});
   const [ara, setAra] = useState("");
+  const [hatalar, setHatalar] = useState<Record<string, string>>({});
 
   // URL hash ile sekme (paylasilabilir: /admin/marka#mail)
   useEffect(() => {
@@ -60,7 +61,12 @@ function Icerik() {
   useEffect(() => {
     if (metinler) {
       const init: Record<string, string> = {};
-      for (const m of metinler) init[m.anahtar] = m.icerik ?? "";
+      for (const m of metinler) {
+        let v = m.icerik ?? "";
+        // sayac_hedef_tarihi: date (YYYY-MM-DD) -> datetime-local (YYYY-MM-DDTHH:mm)
+        if (m.anahtar === "sayac_hedef_tarihi" && v.length === 10) v += "T00:00";
+        init[m.anahtar] = v;
+      }
       setDegerler(init);
     }
   }, [metinler]);
@@ -91,6 +97,18 @@ function Icerik() {
 
   const kaydet = useMutation({
     mutationFn: async () => {
+      // Kosullu zorunluluk: sayac acik ise sayac cumleleri + hedef tarih bos olamaz (enterprise inline uyari)
+      const h: Record<string, string> = {};
+      if ((degerler["sayac_aktif"] ?? "") === "true") {
+        for (const a of ["sayac_aktif_cumle", "sayac_bitti_cumle", "sayac_hedef_tarihi"])
+          if (!(degerler[a] ?? "").trim()) h[a] = "Sayaç açıkken bu alan boş bırakılamaz.";
+      }
+      setHatalar(h);
+      if (Object.keys(h).length > 0) {
+        setSekme("sayac");
+        throw new Error("Sayaç açık — Sayaç sekmesindeki zorunlu alanları doldurun.");
+      }
+
       // Bos -> sifirla (tenant override kaldir, fallback'e doner); dolu -> guncelle
       await Promise.all(
         degisenler.map((m) => {
@@ -190,14 +208,14 @@ function Icerik() {
                     {KATEGORI_BASLIK[kat] ?? kat}
                   </h2>
                   {grup.map((m) => (
-                    <MetinAlani key={m.anahtar} metin={m} deger={degerler[m.anahtar] ?? ""} onDegis={onDegis} />
+                    <MetinAlani key={m.anahtar} metin={m} deger={degerler[m.anahtar] ?? ""} onDegis={onDegis} hata={hatalar[m.anahtar]} />
                   ))}
                 </div>
               );
             })
           ) : (
             sekmeMetinleri.map((m) => (
-              <MetinAlani key={m.anahtar} metin={m} deger={degerler[m.anahtar] ?? ""} onDegis={onDegis} />
+              <MetinAlani key={m.anahtar} metin={m} deger={degerler[m.anahtar] ?? ""} onDegis={onDegis} hata={hatalar[m.anahtar]} />
             ))
           )}
         </div>
