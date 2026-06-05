@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { metinApi } from "./api";
+import type { MetinBirlesik } from "./types";
 
 // v18 - Sifir Sablon: tenant metinleri (katalog + deger birlesik) React Query cache.
 // Marka sayfasi, onboarding wizard ve live preview tek kaynaktan beslenir.
@@ -19,4 +20,14 @@ export function useOnboardingDurum() {
     queryFn: () => metinApi.onboardingDurum(),
     staleTime: 30_000,
   });
+}
+
+// Tenant metin degeri: anahtar dolu ise icerik, degilse fallback (v16 isletme degeri / sabit).
+// Onboarding tamamlaninca tum anahtarlar dolar -> fallback devre disi (Sifir Sablon).
+export function metinDeger(
+  metinler: MetinBirlesik[] | undefined,
+  anahtar: string,
+  fallback = ""
+): string {
+  return metinler?.find((m) => m.anahtar === anahtar)?.icerik ?? fallback;
 }

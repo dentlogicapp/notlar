@@ -10,6 +10,7 @@ import { KlasorListesi } from "@/components/KlasorGrid";
 import { YeniNotFormu, NotListesi } from "@/components/Notlar";
 import { useBen } from "@/lib/useBen";
 import { useIsletme } from "@/lib/useIsletme";
+import { useIsletmeMetinleri, metinDeger } from "@/lib/useIsletmeMetinleri";
 import { notApi } from "@/lib/api";
 
 export default function AnaSayfa() {
@@ -23,14 +24,15 @@ export default function AnaSayfa() {
 function Icerik() {
   const { data: ben } = useBen();
   const { data: isletme } = useIsletme();
+  const { data: metinler } = useIsletmeMetinleri();
   const searchParams = useSearchParams();
   const router = useRouter();
   const focusId = searchParams.get("focus");
 
-  const markaEmoji = isletme?.markaEmoji || "🤍";
-  const markaAdi = isletme?.markaAdi || "Planlama Defterimiz";
-  const karsilamaBasligi = isletme?.karsilamaBasligi || "Merhaba Aşkım";
-  const karsilamaAltMetni = isletme?.karsilamaAltMetni || "Bugün aklına gelen bir şeyi birlikte planlayıp tamamlamak için not etmek ister misin?";
+  const markaEmoji = metinDeger(metinler, "marka_emoji", isletme?.markaEmoji || "🤍");
+  const markaAdi = metinDeger(metinler, "marka_adi", isletme?.markaAdi || "Planlama Defterimiz");
+  const karsilamaBasligi = metinDeger(metinler, "dashboard_karsilama_basligi", isletme?.karsilamaBasligi || "Merhaba Aşkım");
+  const karsilamaAltMetni = metinDeger(metinler, "dashboard_karsilama_alt_metin", isletme?.karsilamaAltMetni || "Bugün aklına gelen bir şeyi birlikte planlayıp tamamlamak için not etmek ister misin?");
 
   // Notlar yüklendi mi? Bildirimden gelirken o yüklendikten sonra scroll yapmamız gerek.
   const notlarQuery = useQuery({

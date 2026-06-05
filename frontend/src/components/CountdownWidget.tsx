@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsletme } from "@/lib/useIsletme";
+import { useIsletmeMetinleri, metinDeger } from "@/lib/useIsletmeMetinleri";
 
 function kalanHesapla(hedefMs: number) {
   const fark = hedefMs - Date.now();
@@ -17,12 +18,14 @@ function kalanHesapla(hedefMs: number) {
 
 export function CountdownWidget() {
   const { data: isletme } = useIsletme();
+  const { data: metinler } = useIsletmeMetinleri();
   const [mount, setMount] = useState(false);
   const [k, setK] = useState(() => ({ bitti: false, gun: 0, sa: 0, dk: 0, sn: 0 }));
 
-  // v16 — hedef tarih tenant'tan (DB date; local TR T00:00:00, saat hassasiyeti v-sonrasi)
-  const hedefMs = isletme?.sayacHedefTarihi
-    ? new Date(`${isletme.sayacHedefTarihi.slice(0, 10)}T00:00:00`).getTime()
+  // v18 (G.12) - hedef tarih isletme_metinleri'nden (sayac_hedef_tarihi); bos ise v16 isletme fallback
+  const hedefTarih = metinDeger(metinler, "sayac_hedef_tarihi", isletme?.sayacHedefTarihi ?? "");
+  const hedefMs = hedefTarih
+    ? new Date(`${hedefTarih.slice(0, 10)}T00:00:00`).getTime()
     : null;
 
   useEffect(() => {
@@ -34,10 +37,13 @@ export function CountdownWidget() {
   }, [hedefMs]);
 
   if (!mount) return null;
-  if (isletme?.sayacAktif === false) return null;   // v16 — sayac kapali → dashboard'da gizli
-  if (hedefMs === null) return null;                 // tarih yok / isletme yuklenmedi → gizli
+  // v18 - sayac_aktif isletme_metinleri'nde string ("true"/"false"); bos ise v16 isletme.sayacAktif fallback
+  const sayacAktifMetin = metinDeger(metinler, "sayac_aktif", "");
+  const sayacAktif = sayacAktifMetin !== "" ? sayacAktifMetin === "true" : isletme?.sayacAktif !== false;
+  if (!sayacAktif) return null;                      // sayac kapali -> dashboard'da gizli
+  if (hedefMs === null) return null;                 // tarih yok / yuklenmedi -> gizli
 
-  const baslik = isletme?.sayacBasligi || "kavuşmamıza son";
+  const baslik = metinDeger(metinler, "sayac_aktif_cumle", isletme?.sayacBasligi || "kavuşmamıza son");
 
   // KAVUSTUK durumu
   if (k.bitti) {
