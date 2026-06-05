@@ -278,3 +278,33 @@ public sealed class AiAyari
     public DateTimeOffset GuncellemeZamani { get; set; } = DateTimeOffset.UtcNow;
     public Guid? GuncelleyenKullaniciId { get; set; }       // son güncelleyen super admin
 }
+
+/// <summary>
+/// v18 - Tenant'in bir metin anahtari icin ozellestirdigi icerik (Sifir Sablon KATMAN 2).
+/// metin_anahtarlari (sistem katalog, v17) -> isletme_metinleri (tenant degeri, v18) -> runtime render.
+/// Anahtar gevsek bag (FK degil): katalog degisse de tenant metni korunur.
+/// </summary>
+public sealed class IsletmeMetni
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid IsletmeId { get; set; }                      // Tenant izolasyon (zorunlu, her sorguda filter)
+    public required string Anahtar { get; set; }             // metin_anahtarlari.Anahtar referansi (gevsek bag)
+    public required string Icerik { get; set; }              // Tenant'in bu anahtar icin degeri
+    public DateTimeOffset GuncellemeZamani { get; set; } = DateTimeOffset.UtcNow;
+    public Guid? GuncelleyenKullaniciId { get; set; }        // son guncelleyen (FK kullanicilar, SetNull)
+}
+
+/// <summary>
+/// v18 - isletme_metinleri version history. Her guncellemede eski icerik buraya kopyalanir.
+/// Son 10 versiyon tutulur (budama background job ileri asama).
+/// </summary>
+public sealed class IsletmeMetinVersiyonu
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid IsletmeId { get; set; }
+    public required string Anahtar { get; set; }
+    public required string Icerik { get; set; }
+    public int Versiyon { get; set; }                        // 1'den artan, (IsletmeId, Anahtar) bazli
+    public DateTimeOffset OlusturmaZamani { get; set; } = DateTimeOffset.UtcNow;
+    public Guid? OlusturanKullaniciId { get; set; }
+}

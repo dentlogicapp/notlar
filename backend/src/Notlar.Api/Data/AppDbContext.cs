@@ -22,6 +22,10 @@ public sealed class AppDbContext : DbContext
     // v17 - AI saglayici ayari (singleton)
     public DbSet<AiAyari> AiAyarlari => Set<AiAyari>();
 
+    // v18 - Sifir Sablon KATMAN 2 (tenant icerigi + version history)
+    public DbSet<IsletmeMetni> IsletmeMetinleri => Set<IsletmeMetni>();
+    public DbSet<IsletmeMetinVersiyonu> IsletmeMetinVersiyonlari => Set<IsletmeMetinVersiyonu>();
+
     protected override void OnModelCreating(ModelBuilder m)
     {
         m.Entity<Kullanici>(e =>
@@ -211,6 +215,34 @@ public sealed class AppDbContext : DbContext
             // ApiKeyEncrypted: text (uzunluk siniri yok) — DataProtection cipher
             e.HasOne<Kullanici>().WithMany()
              .HasForeignKey(x => x.GuncelleyenKullaniciId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // v18 - isletme_metinleri (tenant icerigi, Sifir Sablon KATMAN 2)
+        m.Entity<IsletmeMetni>(e =>
+        {
+            e.ToTable("isletme_metinleri");
+            e.Property(x => x.Anahtar).HasMaxLength(80).IsRequired();
+            e.Property(x => x.Icerik).IsRequired();
+            e.HasIndex(x => new { x.IsletmeId, x.Anahtar }).IsUnique();
+            e.HasIndex(x => x.IsletmeId);
+            e.HasIndex(x => x.Anahtar);
+            e.HasOne<Isletme>().WithMany()
+             .HasForeignKey(x => x.IsletmeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Kullanici>().WithMany()
+             .HasForeignKey(x => x.GuncelleyenKullaniciId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // v18 - isletme_metin_versiyonlari (version history)
+        m.Entity<IsletmeMetinVersiyonu>(e =>
+        {
+            e.ToTable("isletme_metin_versiyonlari");
+            e.Property(x => x.Anahtar).HasMaxLength(80).IsRequired();
+            e.Property(x => x.Icerik).IsRequired();
+            e.HasIndex(x => new { x.IsletmeId, x.Anahtar, x.Versiyon });
+            e.HasOne<Isletme>().WithMany()
+             .HasForeignKey(x => x.IsletmeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Kullanici>().WithMany()
+             .HasForeignKey(x => x.OlusturanKullaniciId).OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

@@ -501,6 +501,32 @@ using (var scope = app.Services.CreateScope())
             (gen_random_uuid(), 'form_klasor_olustur_placeholder', 'Klasör Oluştur Formu İpucu', 'Yeni klasör oluşturma form alanı için soluk ipucu. (Örn: ''Yeni klasör adı...'', ''Konu başlığı...'', ''Proje adı yaz...'')', 'Sol panelden ''Yeni klasör'' tıklandığında açılan formda görünür.', 'placeholder_kisa', false, '[]'::jsonb, 500, 'form', false, now(), now()),
             (gen_random_uuid(), 'form_giris_email_placeholder', 'Giriş Formu E-posta İpucu', 'Login sayfasında e-posta alanı için ipucu. (Örn: ''E-posta adresin'', ''E-mail address'', ''ornek@firma.com'')', 'Login sayfasında üst form alanında görünür.', 'placeholder_kisa', false, '[]'::jsonb, 510, 'form', false, now(), now())
             ON CONFLICT (""Anahtar"") DO NOTHING;
+
+            -- 15. v18 isletme_metinleri (tenant icerigi, Sifir Sablon KATMAN 2)
+            CREATE TABLE IF NOT EXISTS isletme_metinleri (
+                ""Id"" uuid PRIMARY KEY,
+                ""IsletmeId"" uuid NOT NULL REFERENCES isletmeler(""Id"") ON DELETE CASCADE,
+                ""Anahtar"" character varying(80) NOT NULL,
+                ""Icerik"" text NOT NULL,
+                ""GuncellemeZamani"" timestamptz NOT NULL DEFAULT now(),
+                ""GuncelleyenKullaniciId"" uuid REFERENCES kullanicilar(""Id"") ON DELETE SET NULL,
+                CONSTRAINT uq_isletme_metinleri UNIQUE (""IsletmeId"", ""Anahtar"")
+            );
+            CREATE INDEX IF NOT EXISTS ""IX_isletme_metinleri_IsletmeId"" ON isletme_metinleri (""IsletmeId"");
+            CREATE INDEX IF NOT EXISTS ""IX_isletme_metinleri_Anahtar"" ON isletme_metinleri (""Anahtar"");
+
+            -- 16. v18 isletme_metin_versiyonlari (version history, son 10 tutulur)
+            CREATE TABLE IF NOT EXISTS isletme_metin_versiyonlari (
+                ""Id"" uuid PRIMARY KEY,
+                ""IsletmeId"" uuid NOT NULL REFERENCES isletmeler(""Id"") ON DELETE CASCADE,
+                ""Anahtar"" character varying(80) NOT NULL,
+                ""Icerik"" text NOT NULL,
+                ""Versiyon"" integer NOT NULL,
+                ""OlusturmaZamani"" timestamptz NOT NULL DEFAULT now(),
+                ""OlusturanKullaniciId"" uuid REFERENCES kullanicilar(""Id"") ON DELETE SET NULL
+            );
+            CREATE INDEX IF NOT EXISTS ""IX_isletme_metin_versiyonlari_kayit""
+                ON isletme_metin_versiyonlari (""IsletmeId"", ""Anahtar"", ""Versiyon"" DESC);
         ");
         Log.Information("Şema güncellemeleri kontrol edildi (v15 multi-tenant dahil — idempotent)");
     }
