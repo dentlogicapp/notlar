@@ -1,46 +1,34 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronLeft, Heart, Loader2, Palette, Save } from "lucide-react";
+import { ChevronLeft, Heart, Loader2, Palette, Save, Search } from "lucide-react";
 import { toast } from "sonner";
 import { AuthGuard } from "@/components/AuthGuard";
 import { CountdownWidget } from "@/components/CountdownWidget";
 import { UserMenu } from "@/components/UserMenu";
+import { MetinAlani } from "@/components/MetinAlani";
 import { Button } from "@/components/ui/button";
-import { useIsletme } from "@/lib/useIsletme";
-import { isletmeApi } from "@/lib/api";
+import { metinApi } from "@/lib/api";
+import { useIsletmeMetinleri } from "@/lib/useIsletmeMetinleri";
 import { cn } from "@/lib/utils";
-import {
-  markaSchema, type MarkaForm,
-  MarkaSekmesi, KarsilamaSekmesi, SayacSekmesi, MailSekmesi,
-} from "@/components/MarkaSekmeleri";
-import {
-  MarkaOnizleme, KarsilamaOnizleme, SayacOnizleme, MailOnizleme,
-} from "@/components/MarkaOnizleme";
 
-type Sekme = "marka" | "karsilama" | "sayac" | "mail";
+type SekmeKod = "marka" | "karsilama" | "sayac" | "mail" | "diger";
 
-const SEKMELER: { kod: Sekme; etiket: string }[] = [
-  { kod: "marka", etiket: "Marka" },
-  { kod: "karsilama", etiket: "Karşılama" },
-  { kod: "sayac", etiket: "Sayaç" },
-  { kod: "mail", etiket: "Mail" },
+// v18 - Katalog-driven: sekmeler kategoriye gore filtreler; yeni anahtar otomatik gorunur (Sifir Sablon).
+const SEKMELER: { kod: SekmeKod; etiket: string; kategoriler: string[] }[] = [
+  { kod: "marka", etiket: "Marka", kategoriler: ["marka"] },
+  { kod: "karsilama", etiket: "Karşılama", kategoriler: ["dashboard"] },
+  { kod: "sayac", etiket: "Sayaç", kategoriler: ["sayac"] },
+  { kod: "mail", etiket: "Mail", kategoriler: ["mail"] },
+  { kod: "diger", etiket: "Diğer Metinler", kategoriler: ["bildirim", "form"] },
 ];
 
-const HATA_ALAN = {
-  MARKA_ADI_GECERSIZ: "markaAdi",
-  MARKA_EMOJI_GECERSIZ: "markaEmoji",
-  IKON_SETI_GECERSIZ: "ikonSeti",
-  KARSILAMA_BASLIGI_GECERSIZ: "karsilamaBasligi",
-  KARSILAMA_ALT_METNI_GECERSIZ: "karsilamaAltMetni",
-  SAYAC_BASLIGI_GECERSIZ: "sayacBasligi",
-  MAIL_IMZA_GECERSIZ: "mailImza",
-  MAIL_TONU_GECERSIZ: "mailTonu",
-} as const;
+const KATEGORI_BASLIK: Record<string, string> = {
+  bildirim: "Bildirim Metinleri",
+  form: "Form Metinleri",
+};
 
 export default function Page() {
   return (
@@ -52,59 +40,86 @@ export default function Page() {
 
 function Icerik() {
   const qc = useQueryClient();
-  const { data: isletme, isLoading } = useIsletme();
-  const [sekme, setSekme] = useState<Sekme>("marka");
+  const { data: metinler, isLoading, isError } = useIsletmeMetinleri();
+  const [sekme, setSekme] = useState<SekmeKod>("marka");
+  const [degerler, setDegerler] = useState<Record<string, string>>({});
+  const [ara, setAra] = useState("");
 
-  const form = useForm<MarkaForm>({ resolver: zodResolver(markaSchema), defaultValues: {} });
-  const { handleSubmit, reset, watch, formState: { isDirty } } = form;
-  const d = watch();
-
+  // URL hash ile sekme (paylasilabilir: /admin/marka#mail)
   useEffect(() => {
-    if (isletme) {
-      reset({
-        markaAdi: isletme.markaAdi,
-        markaEmoji: isletme.markaEmoji,
-        ikonSeti: isletme.ikonSeti as MarkaForm["ikonSeti"],
-        karsilamaBasligi: isletme.karsilamaBasligi,
-        karsilamaAltMetni: isletme.karsilamaAltMetni,
-        sayacAktif: isletme.sayacAktif,
-        sayacBasligi: isletme.sayacBasligi,
-        sayacHedefTarihi: isletme.sayacHedefTarihi?.slice(0, 10) ?? null,
-        mailTonu: isletme.mailTonu as MarkaForm["mailTonu"],
-        mailImza: isletme.mailImza,
-      });
+    const h = window.location.hash.replace("#", "") as SekmeKod;
+    if (SEKMELER.some((s) => s.kod === h)) setSekme(h);
+  }, []);
+
+  const sekmeSec = (kod: SekmeKod) => {
+    setSekme(kod);
+    window.history.replaceState(null, "", `#${kod}`);
+  };
+
+  // Metinler yuklenince form degerlerini doldur (tenant icerik ?? bos)
+  useEffect(() => {
+    if (metinler) {
+      const init: Record<string, string> = {};
+      for (const m of metinler) init[m.anahtar] = m.icerik ?? "";
+      setDegerler(init);
     }
-  }, [isletme, reset]);
+  }, [metinler]);
+
+  const aktifSekme = SEKMELER.find((s) => s.kod === sekme)!;
+
+  const sekmeMetinleri = useMemo(() => {
+    if (!metinler) return [];
+    let liste = metinler
+      .filter((m) => aktifSekme.kategoriler.includes(m.kategori))
+      .sort((a, b) => a.sira - b.sira);
+    if (sekme === "diger" && ara.trim()) {
+      const q = ara.trim().toLocaleLowerCase("tr");
+      liste = liste.filter(
+        (m) => m.etiket.toLocaleLowerCase("tr").includes(q) || m.aciklama.toLocaleLowerCase("tr").includes(q)
+      );
+    }
+    return liste;
+  }, [metinler, aktifSekme, sekme, ara]);
+
+  // Degisen anahtarlar (form degeri != tenant icerik)
+  const degisenler = useMemo(
+    () => (metinler ?? []).filter((m) => (degerler[m.anahtar] ?? "") !== (m.icerik ?? "")),
+    [metinler, degerler]
+  );
+
+  const onDegis = (anahtar: string, yeni: string) => setDegerler((p) => ({ ...p, [anahtar]: yeni }));
 
   const kaydet = useMutation({
-    mutationFn: (girdi: MarkaForm) => isletmeApi.aktifGuncelle(girdi),
-    onSuccess: (yeni) => {
+    mutationFn: async () => {
+      // Bos -> sifirla (tenant override kaldir, fallback'e doner); dolu -> guncelle
+      await Promise.all(
+        degisenler.map((m) => {
+          const yeni = (degerler[m.anahtar] ?? "").trim();
+          return yeni === "" ? metinApi.sifirla(m.anahtar) : metinApi.guncelle(m.anahtar, yeni);
+        })
+      );
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["isletme-metinleri"] });
       qc.invalidateQueries({ queryKey: ["isletme-aktif"] });
-      reset({
-        markaAdi: yeni.markaAdi,
-        markaEmoji: yeni.markaEmoji,
-        ikonSeti: yeni.ikonSeti as MarkaForm["ikonSeti"],
-        karsilamaBasligi: yeni.karsilamaBasligi,
-        karsilamaAltMetni: yeni.karsilamaAltMetni,
-        sayacAktif: yeni.sayacAktif,
-        sayacBasligi: yeni.sayacBasligi,
-        sayacHedefTarihi: yeni.sayacHedefTarihi?.slice(0, 10) ?? null,
-        mailTonu: yeni.mailTonu as MarkaForm["mailTonu"],
-        mailImza: yeni.mailImza,
-      });
-      toast.success("Marka ayarların güncellendi 🤍");
+      qc.invalidateQueries({ queryKey: ["onboarding-durum"] });
+      toast.success("Kaydedildi");
     },
-    onError: (err: Error & { kod?: string }) => {
-      const alan = err.kod ? HATA_ALAN[err.kod as keyof typeof HATA_ALAN] : undefined;
-      if (alan) form.setError(alan, { message: err.message });
-      else toast.error(err.message);
-    },
+    onError: () => toast.error("Kaydedilemedi, tekrar deneyin"),
   });
 
-  if (isLoading || !isletme) {
+  if (isLoading) {
     return (
       <main className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-clay-400 dark:text-ink-300" />
+      </main>
+    );
+  }
+
+  if (isError) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <p className="text-sm text-clay-500 dark:text-ink-200">Yüklenemedi, sayfayı yenileyin.</p>
       </main>
     );
   }
@@ -114,7 +129,7 @@ function Icerik() {
       <CountdownWidget />
 
       <header className="sticky top-0 z-30 bg-cream-100/85 dark:bg-ink-800/85 backdrop-blur-md border-b border-cream-300 dark:border-ink-700/60">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
           <Link href="/admin" className="flex items-center gap-1 text-clay-600 dark:text-ink-100 hover:text-clay-900 dark:hover:text-ink-50 transition-colors min-w-0">
             <ChevronLeft className="h-5 w-5 shrink-0" />
             <Heart className="h-4 w-4 text-terracotta hidden sm:inline" fill="currentColor" />
@@ -124,60 +139,80 @@ function Icerik() {
         </div>
       </header>
 
-      <form onSubmit={handleSubmit((girdi) => kaydet.mutate(girdi))}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6">
-          <div className="flex items-center gap-3">
-            <Palette className="h-6 w-6 text-terracotta" />
-            <h1 className="font-display text-3xl text-clay-900 dark:text-ink-50">Marka &amp; Görünüm</h1>
-          </div>
-
-          <div className="flex gap-1 border-b border-cream-300 dark:border-ink-700/60">
-            {SEKMELER.map((s) => (
-              <button
-                key={s.kod}
-                type="button"
-                onClick={() => setSekme(s.kod)}
-                className={cn(
-                  "px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors",
-                  sekme === s.kod
-                    ? "border-terracotta text-terracotta"
-                    : "border-transparent text-clay-500 dark:text-ink-200 hover:text-clay-800 dark:hover:text-ink-50"
-                )}
-              >
-                {s.etiket}
-              </button>
-            ))}
-          </div>
-
-          {/* Sol: form alanlari · Sag: canli onizleme (lg+ iki kolon, mobilde alt alta) */}
-          <div className="grid lg:grid-cols-[1fr_minmax(0,400px)] gap-6">
-            <div className="kart p-6 min-h-[200px]">
-              {sekme === "marka" && <MarkaSekmesi form={form} />}
-              {sekme === "karsilama" && <KarsilamaSekmesi form={form} />}
-              {sekme === "sayac" && <SayacSekmesi form={form} />}
-              {sekme === "mail" && <MailSekmesi form={form} />}
-            </div>
-
-            <aside className="lg:sticky lg:top-24 self-start">
-              <p className="text-xs italic text-clay-400 dark:text-ink-300 mb-2">Önizleme</p>
-              <div className="kart p-5">
-                {sekme === "marka" && <MarkaOnizleme markaAdi={d.markaAdi} markaEmoji={d.markaEmoji} ikonSeti={d.ikonSeti} />}
-                {sekme === "karsilama" && <KarsilamaOnizleme karsilamaBasligi={d.karsilamaBasligi} karsilamaAltMetni={d.karsilamaAltMetni} />}
-                {sekme === "sayac" && <SayacOnizleme sayacAktif={d.sayacAktif} sayacBasligi={d.sayacBasligi} sayacHedefTarihi={d.sayacHedefTarihi} />}
-                {sekme === "mail" && <MailOnizleme mailImza={d.mailImza} mailTonu={d.mailTonu} />}
-              </div>
-            </aside>
-          </div>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6">
+        <div className="flex items-center gap-3">
+          <Palette className="h-6 w-6 text-terracotta" />
+          <h1 className="font-display text-3xl text-clay-900 dark:text-ink-50">Marka &amp; Görünüm</h1>
         </div>
 
-        <div className="fixed bottom-0 left-0 right-0 z-30 bg-cream-100/90 dark:bg-ink-800/90 backdrop-blur-md border-t border-cream-300 dark:border-ink-700/60">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-end gap-3">
-            <Button type="submit" disabled={!isDirty || kaydet.isPending}>
-              {kaydet.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : (<><Save className="h-4 w-4 mr-1.5" /> Kaydet</>)}
-            </Button>
-          </div>
+        <div className="flex gap-1 border-b border-cream-300 dark:border-ink-700/60 overflow-x-auto">
+          {SEKMELER.map((s) => (
+            <button
+              key={s.kod}
+              type="button"
+              onClick={() => sekmeSec(s.kod)}
+              className={cn(
+                "px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap",
+                sekme === s.kod
+                  ? "border-terracotta text-terracotta"
+                  : "border-transparent text-clay-500 dark:text-ink-200 hover:text-clay-800 dark:hover:text-ink-50"
+              )}
+            >
+              {s.etiket}
+            </button>
+          ))}
         </div>
-      </form>
+
+        {sekme === "diger" && (
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-clay-400 dark:text-ink-300" />
+            <input
+              type="text"
+              value={ara}
+              placeholder="Metin ara..."
+              onChange={(e) => setAra(e.target.value)}
+              className="w-full rounded-lg border border-cream-300 dark:border-ink-700/60 bg-cream-50 dark:bg-ink-900/40 pl-9 pr-3 py-2 text-sm text-clay-900 dark:text-ink-50 focus:outline-none focus:ring-2 focus:ring-terracotta/40"
+            />
+          </div>
+        )}
+
+        <div className="kart p-6 space-y-6 min-h-[200px]">
+          {sekmeMetinleri.length === 0 ? (
+            <p className="text-sm text-clay-400 dark:text-ink-300 italic">Bu sekmede metin bulunmuyor.</p>
+          ) : sekme === "diger" ? (
+            // Diger: kategori basligi ile gruplu
+            aktifSekme.kategoriler.map((kat) => {
+              const grup = sekmeMetinleri.filter((m) => m.kategori === kat);
+              if (grup.length === 0) return null;
+              return (
+                <div key={kat} className="space-y-4">
+                  <h2 className="text-xs uppercase tracking-wider text-clay-400 dark:text-ink-300 font-medium">
+                    {KATEGORI_BASLIK[kat] ?? kat}
+                  </h2>
+                  {grup.map((m) => (
+                    <MetinAlani key={m.anahtar} metin={m} deger={degerler[m.anahtar] ?? ""} onDegis={onDegis} />
+                  ))}
+                </div>
+              );
+            })
+          ) : (
+            sekmeMetinleri.map((m) => (
+              <MetinAlani key={m.anahtar} metin={m} deger={degerler[m.anahtar] ?? ""} onDegis={onDegis} />
+            ))
+          )}
+        </div>
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 z-30 bg-cream-100/90 dark:bg-ink-800/90 backdrop-blur-md border-t border-cream-300 dark:border-ink-700/60">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+          <span className="text-xs text-clay-400 dark:text-ink-300">
+            {degisenler.length > 0 ? `${degisenler.length} degisiklik bekliyor` : "Tum degisiklikler kayitli"}
+          </span>
+          <Button type="button" onClick={() => kaydet.mutate()} disabled={degisenler.length === 0 || kaydet.isPending}>
+            {kaydet.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : (<><Save className="h-4 w-4 mr-1.5" /> Kaydet</>)}
+          </Button>
+        </div>
+      </div>
     </main>
   );
 }
