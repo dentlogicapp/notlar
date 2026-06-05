@@ -4,8 +4,9 @@ import { useRef, useEffect } from "react";
 import type { MetinBirlesik } from "@/lib/types";
 
 // v18 - Katalog-driven tek metin alani. tip -> uygun input; etiket/yonlendirme/aciklama katalogtan.
-// sayac_hedef_tarihi -> datetime-local. textarea auto-resize (madde 5): icerik kadar yukseklik,
-// scroll yok, sag alt koseden uzatilabilir (resize-y). hata -> enterprise inline uyari (kirmizi).
+// sayac_hedef_tarihi -> datetime-local (ozel). DIGER TUM alanlar (baslik/konu/govde dahil, uzunluk
+// fark etmez) textarea + auto-resize: icerik kadar yukseklik, scroll yok, sag alt koseden uzatilir
+// (resize-y). Butunsel gorsel dil (madde 5 - tum marka & gorunum field'leri).
 export function MetinAlani({
   metin,
   deger,
@@ -19,17 +20,17 @@ export function MetinAlani({
 }) {
   const taRef = useRef<HTMLTextAreaElement>(null);
   const tarihMi = metin.anahtar === "sayac_hedef_tarihi";
-  const cokSatir = metin.tip === "body" || metin.tip === "metin";
-  const minRows = metin.tip === "body" ? 4 : 2;
+  const genis = metin.tip === "body" || metin.tip === "metin";
+  const minRows = genis ? 3 : 1;
 
-  // madde 5 - auto-resize: icerik kadar yukseklik (scroll yerine uzar)
+  // auto-resize: icerik kadar yukseklik (bos -> yonlendirme satiri, dolu -> tam okunur)
   useEffect(() => {
     const ta = taRef.current;
     if (ta) {
       ta.style.height = "auto";
       ta.style.height = `${ta.scrollHeight}px`;
     }
-  }, [deger, cokSatir]);
+  }, [deger]);
 
   const ortakClass = [
     "w-full rounded-lg border bg-cream-50 dark:bg-ink-900/40",
@@ -55,7 +56,7 @@ export function MetinAlani({
           onChange={(e) => onDegis(metin.anahtar, e.target.value)}
           className={ortakClass}
         />
-      ) : cokSatir ? (
+      ) : (
         <textarea
           ref={taRef}
           rows={minRows}
@@ -63,14 +64,6 @@ export function MetinAlani({
           placeholder={metin.yonlendirme}
           onChange={(e) => onDegis(metin.anahtar, e.target.value)}
           className={ortakClass + " resize-y leading-relaxed overflow-hidden"}
-        />
-      ) : (
-        <input
-          type="text"
-          value={deger}
-          placeholder={metin.yonlendirme}
-          onChange={(e) => onDegis(metin.anahtar, e.target.value)}
-          className={ortakClass}
         />
       )}
 

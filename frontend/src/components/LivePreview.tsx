@@ -84,9 +84,44 @@ export function LivePreview({ sekme, degerler }: { sekme: string; degerler: Reco
     );
   }
 
+  if (sekme === "mail") {
+    // D - davetiye maili onizleme. Alicinin gordugu gercek mail temasi (sabit renkler),
+    // icerik field'lerden (cozMetin). Sayac cumlesi mail sablonunda kalanGun bazli sabit (ornek 89 gun).
+    const konu = c("mail_davetiye_konu") || "(mail konusu girilmedi)";
+    const giris = c("mail_davetiye_giris_metni") || "Davetiye giriş metni burada görünür.";
+    const imza = c("mail_imza");
+    return (
+      <div className="space-y-2">
+        <p className="text-[11px] text-clay-400 dark:text-ink-300">
+          <span className="uppercase tracking-wider">Konu</span> · {konu}
+        </p>
+        <div className="rounded-xl overflow-hidden" style={{ background: "#faf6ef", border: "1px solid #ebe3d4" }}>
+          <div style={{ background: "#ffffff", borderRadius: 14, margin: 10, padding: "22px 18px", border: "1px solid #ebe3d4" }}>
+            <div style={{ textAlign: "center", color: "#c4704d", fontSize: 30, lineHeight: 1 }}>♡</div>
+            <h3 style={{ fontFamily: "Georgia, serif", fontSize: 20, color: "#3d2817", margin: "8px 0 2px", textAlign: "center", fontWeight: 600 }}>Ayşegül,</h3>
+            <p style={{ color: "#c4704d", fontSize: 12, fontStyle: "italic", textAlign: "center", margin: 0 }}>planlama defterimiz seni bekliyor 🤍</p>
+            <p style={{ color: "#5d4a37", fontSize: 12.5, lineHeight: 1.7, textAlign: "justify", margin: "14px 0 0", whiteSpace: "pre-wrap" }}>{giris}</p>
+            <p style={{ color: "#5d4a37", fontSize: 12.5, textAlign: "center", margin: "10px 0 0" }}>
+              Düğünümüze kaldı: <strong>89 gün</strong> ✨
+            </p>
+            <div style={{ textAlign: "center", margin: "18px 0 4px" }}>
+              <span style={{ display: "inline-block", background: "#3d2817", color: "#faf6ef", padding: "10px 22px", borderRadius: 8, fontSize: 12.5, fontWeight: 500 }}>
+                Hesabımı Aç ve Şifre Belirle
+              </span>
+            </div>
+            {imza && (
+              <p style={{ color: "#9c8a73", fontSize: 12, textAlign: "center", margin: "16px 0 0", fontStyle: "italic", whiteSpace: "pre-wrap" }}>{imza}</p>
+            )}
+          </div>
+        </div>
+        <p className="text-[10px] italic text-clay-400 dark:text-ink-300">Alıcının göreceği davetiye maili (örnek: Ayşegül · 89 gün).</p>
+      </div>
+    );
+  }
+
   return (
     <p className="text-sm italic text-clay-400 dark:text-ink-300 leading-relaxed">
-      Bu sekme için canlı önizleme mail editörüyle birlikte gelecek.
+      Bu sekme için canlı önizleme yakında.
     </p>
   );
 }
