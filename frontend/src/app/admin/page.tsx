@@ -9,7 +9,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import {
   ChevronLeft, Heart, Loader2, Plus, KeyRound,
-  ShieldOff, Trash2, Lock, FileText, AlertTriangle, FolderHeart, FileEdit, Palette
+  ShieldOff, Trash2, Lock, FileText, AlertTriangle, FolderHeart, FileEdit, Palette, Settings, Sparkles
 } from "lucide-react";
 import { AuthGuard } from "@/components/AuthGuard";
 import { CountdownWidget } from "@/components/CountdownWidget";
@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import { adminApi } from "@/lib/api";
+import { useBen } from "@/lib/useBen";
 import { tarihFormat, bastari } from "@/lib/utils";
 import type { Kullanici } from "@/lib/types";
 
@@ -40,6 +41,7 @@ export default function Page() {
 
 function Icerik() {
   const qc = useQueryClient();
+  const { data: ben } = useBen();
   const { data: users, isLoading } = useQuery({
     queryKey: ["users"],
     queryFn: adminApi.listUsers,
@@ -110,6 +112,20 @@ function Icerik() {
                 <FileText className="h-4 w-4 mr-1.5" /> Denetim Günlüğü
               </Button>
             </Link>
+            {ben?.superAdmin && (
+              <>
+                <Link href="/admin/sistem/metin-anahtarlari">
+                  <Button variant="outline" size="sm">
+                    <Settings className="h-4 w-4 mr-1.5" /> Sistem Metinleri
+                  </Button>
+                </Link>
+                <Link href="/admin/sistem/ai-ayarlari">
+                  <Button variant="outline" size="sm">
+                    <Sparkles className="h-4 w-4 mr-1.5" /> AI Ayarlari
+                  </Button>
+                </Link>
+              </>
+            )}
             <KullaniciEkleDialog />
           </div>
         </div>
@@ -218,6 +234,7 @@ function KullaniciSatiri({ u, onSifre, onToggle, onKilit, onSil }: {
 
 function KullaniciEkleDialog() {
   const qc = useQueryClient();
+  const { data: ben } = useBen();
   const [open, setOpen] = useState(false);
   const { register, handleSubmit, reset, formState: { errors } } =
     useForm<z.infer<typeof schema>>({
