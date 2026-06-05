@@ -3,7 +3,8 @@ import type {
   DenetimListesi, TokenDogrulama,
   BildirimOzeti,
   Cinsiyet, HatirlatmaKime, HatirlatmaSekli,
-  Uyelik, Isletme, MetinAnahtari, AiAyari, AiModel, AiTestSonucu
+  Uyelik, Isletme, MetinAnahtari, AiAyari, AiModel, AiTestSonucu,
+  MetinBirlesik, MetinVersiyon, OnboardingDurum
 } from "./types";
 
 const API = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:5000";
@@ -271,4 +272,26 @@ export const aiAyarApi = {
   testAyar: () => ist<AiTestSonucu>("/api/super-admin/ai-ayarlari/test", { method: "POST" }),
   modeller: (saglayici: string) =>
     ist<{ saglayici: string; modeller: AiModel[] }>(`/api/super-admin/ai-ayarlari/modeller?saglayici=${encodeURIComponent(saglayici)}`),
+};
+
+// v18 - Sifir Sablon: tenant metin yonetimi (/api/admin/metinler)
+export const metinApi = {
+  list: () => ist<MetinBirlesik[]>("/api/admin/metinler"),
+  get: (anahtar: string) =>
+    ist<MetinBirlesik>(`/api/admin/metinler/${encodeURIComponent(anahtar)}`),
+  guncelle: (anahtar: string, icerik: string) =>
+    ist<MetinBirlesik>(`/api/admin/metinler/${encodeURIComponent(anahtar)}`, {
+      method: "PUT",
+      body: JSON.stringify({ icerik }),
+    }),
+  sifirla: (anahtar: string) =>
+    ist<void>(`/api/admin/metinler/${encodeURIComponent(anahtar)}`, { method: "DELETE" }),
+  versiyonlar: (anahtar: string) =>
+    ist<MetinVersiyon[]>(`/api/admin/metinler/${encodeURIComponent(anahtar)}/versiyonlar`),
+  versiyonaDon: (anahtar: string, versiyonId: string) =>
+    ist<MetinBirlesik>(
+      `/api/admin/metinler/${encodeURIComponent(anahtar)}/versiyona-don/${versiyonId}`,
+      { method: "POST" }
+    ),
+  onboardingDurum: () => ist<OnboardingDurum>("/api/admin/metinler/onboarding-durum"),
 };

@@ -197,3 +197,30 @@ export interface AiTestSonucu {
   saglayici: string;
   mesaj: string;
 }
+
+// v18 - Sifir Sablon: tenant metinleri (katalog + tenant deger birlesik)
+export interface MetinBirlesik {
+  anahtar: string;
+  etiket: string;
+  yonlendirme: string;
+  aciklama: string;
+  tip: string;            // 'baslik'|'metin'|'placeholder_kisa'|'subject'|'body'
+  kategori: string;       // 'marka'|'dashboard'|'sayac'|'mail'|'bildirim'|'form'
+  zorunlu: boolean;
+  sira: number;
+  placeholderlar: string[];
+  icerik: string | null;  // tenant degeri (null = henuz girilmemis -> fallback)
+}
+
+export interface MetinVersiyon {
+  id: string;
+  versiyon: number;
+  icerik: string;
+  olusturmaZamani: string;
+}
+
+export interface OnboardingDurum {
+  toplam: number;
+  dolu: number;
+  eksikAnahtarlar: string[];
+}
