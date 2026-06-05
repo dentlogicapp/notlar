@@ -109,6 +109,7 @@ public sealed class HatirlaticiKontrolcusu : BackgroundService
                                 kimeMetin,
                                 not.HatirlatmaZamani!.Value,
                                 not.Id,
+                                not.IsletmeId,
                                 ct);
                         }
                         catch (Exception mailEx)

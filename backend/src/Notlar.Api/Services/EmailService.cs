@@ -1,15 +1,18 @@
 using System.Net;
 using MailKit.Net.Smtp;
 using MimeKit;
+using Notlar.Api.Entities;
 
 namespace Notlar.Api.Services;
 
 public interface IEmailService
 {
-    Task SifreBelirleMailGonderAsync(string toEmail, string adSoyad, string link, string gonderenIlkAd, string mailImza, string markaAdi, CancellationToken ct = default);
+    // v18 - davetiye metinleri (konu/giris/imza/marka) artik isletme_metinleri'nden render edilir (G.23-b).
+    Task SifreBelirleMailGonderAsync(string toEmail, string adSoyad, string link, Guid isletmeId, CancellationToken ct = default);
     Task SifreSifirlamaMailGonderAsync(string toEmail, string adSoyad, string link, CancellationToken ct = default);
+    // v18 - hatirlatma konusu isletme_metinleri'nden render edilir; body (Asama 6 kapsami disi) korunur.
     Task HatirlaticiMailGonderAsync(string toEmail, string aliciAdSoyad, string notBaslik, string? notIcerik,
-        string? klasorAdi, string kimeMetin, DateTimeOffset hatirlatmaZamani, Guid notId, CancellationToken ct = default);
+        string? klasorAdi, string kimeMetin, DateTimeOffset hatirlatmaZamani, Guid notId, Guid isletmeId, CancellationToken ct = default);
 }
 
 public sealed class EmailService : IEmailService
@@ -20,25 +23,86 @@ public sealed class EmailService : IEmailService
 
     private readonly IConfiguration _cfg;
     private readonly ILogger<EmailService> _log;
+    private readonly IIsletmeMetinService _metin;
+    private readonly ISablonResolver _resolver;
+    private readonly IAuditService _audit;
 
-    public EmailService(IConfiguration cfg, ILogger<EmailService> log)
+    public EmailService(IConfiguration cfg, ILogger<EmailService> log,
+        IIsletmeMetinService metin, ISablonResolver resolver, IAuditService audit)
     {
         _cfg = cfg;
         _log = log;
+        _metin = metin;
+        _resolver = resolver;
+        _audit = audit;
+    }
+
+    // Tenant metinlerini anahtar -> icerik sozlugune cevirir (bos icerikli kayitlar atlanir).
+    private static Dictionary<string, string> SozlukYap(IReadOnlyList<IsletmeMetni> metinler)
+    {
+        var d = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var m in metinler)
+            if (!string.IsNullOrWhiteSpace(m.Icerik)) d[m.Anahtar] = m.Icerik!;
+        return d;
+    }
+
+    // Anahtar tenant'ta dolu ise SablonResolver ile cozer; degilse fallback + zorunlu audit (mail_anahtar_eksik).
+    // htmlEncode=false: body/konu metinleri admin-kontrollu, ic HTML (<em> vb.) korunur.
+    private async Task<string> CozVeyaFallbackAsync(IReadOnlyDictionary<string, string> sozluk,
+        string anahtar, string fallback, string mailTipi, Guid isletmeId,
+        IReadOnlyDictionary<string, string> runtime, bool htmlEncode, CancellationToken ct)
+    {
+        if (sozluk.TryGetValue(anahtar, out var ham) && !string.IsNullOrWhiteSpace(ham))
+        {
+            // tenant metni + runtime degerler birlesik sozluk uzerinde ozyinelemeli cozulur
+            var birlesik = new Dictionary<string, string>(sozluk, StringComparer.Ordinal);
+            foreach (var kv in runtime) birlesik[kv.Key] = kv.Value;
+            return _resolver.Coz(ham, birlesik, htmlEncode);
+        }
+
+        // Fallback: anahtar bos -> hardcoded deger + denetim kaydi (onboarding tamamlaninca tetiklenmez)
+        await _audit.YazAsync("mail_anahtar_eksik", hedefTip: "isletme_metni", hedefId: null,
+            degisenAlanlar: System.Text.Json.JsonSerializer.Serialize(new
+            {
+                anahtar,
+                mail_tipi = mailTipi,
+                fallback_icerik_kullanildi = true,
+                isletme_id = isletmeId
+            }), ct: ct);
+        return fallback;
     }
 
     /// <summary>
     /// Davetiye maili — Alt-3: tek mail, gender-neutral, imza gönderenin gerçek ilk adı.
     /// 7 maddeli kullanım rehberi (05 - Hatırlatıcı kurmak dahil).
     /// </summary>
-    public Task SifreBelirleMailGonderAsync(string toEmail, string adSoyad, string link, string gonderenIlkAd, string mailImza, string markaAdi, CancellationToken ct = default)
+    public async Task SifreBelirleMailGonderAsync(string toEmail, string adSoyad, string link, Guid isletmeId, CancellationToken ct = default)
     {
         var aliciIlkAd = adSoyad.Split(' ')[0];
         var kalanGun = Math.Max(0, (int)Math.Ceiling((DUGUN_UTC - DateTimeOffset.UtcNow).TotalDays));
 
-        var konu = $"{aliciIlkAd}, planlama defterimiz seni bekliyor";
-        var html = DavetiyeHtmlSablonu(aliciIlkAd, link, kalanGun, gonderenIlkAd, mailImza, markaAdi);
-        return GonderAsync(toEmail, adSoyad, konu, html, ct);
+        // Giris metni fallback'i (tenant mail_davetiye_giris_metni bos ise) - mevcut v16 metni korunur.
+        const string girisFallback =
+            "Bu küçük sistemi, en güzel günümüze adım adım hazırlanırken " +
+            "aklımıza gelen her şeyi <em>birlikte</em> planlayalım, " +
+            "<em>birlikte</em> tamamlayalım diye hayal ettim. Bir köşesi davetiyeler, " +
+            "bir köşesi nikâh hazırlığı, bir köşesi düğün öncesi alacaklarımız… " +
+            "Senin defterin, benim defterim, ikimizin defteri.";
+
+        var sozluk = SozlukYap(await _metin.TumunuGetirAsync(isletmeId, ct));
+        var runtime = new Dictionary<string, string>(StringComparer.Ordinal) { ["alici_ad"] = aliciIlkAd };
+
+        var konu = await CozVeyaFallbackAsync(sozluk, "mail_davetiye_konu",
+            $"{aliciIlkAd}, planlama defterimiz seni bekliyor", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
+        var girisMetni = await CozVeyaFallbackAsync(sozluk, "mail_davetiye_giris_metni",
+            girisFallback, "davetiye", isletmeId, runtime, htmlEncode: false, ct);
+        var imza = await CozVeyaFallbackAsync(sozluk, "mail_imza",
+            "", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
+        var markaAdi = await CozVeyaFallbackAsync(sozluk, "marka_adi",
+            "Planlama Defterimiz", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
+
+        var html = DavetiyeHtmlSablonu(aliciIlkAd, link, kalanGun, girisMetni, imza, markaAdi);
+        await GonderAsync(toEmail, adSoyad, konu, html, ct);
     }
 
     public Task SifreSifirlamaMailGonderAsync(string toEmail, string adSoyad, string link, CancellationToken ct = default)
@@ -52,15 +116,20 @@ public sealed class EmailService : IEmailService
     /// <summary>
     /// Hatırlatıcı maili — kısa + odaklı + brand tutarlı.
     /// </summary>
-    public Task HatirlaticiMailGonderAsync(string toEmail, string aliciAdSoyad, string notBaslik, string? notIcerik,
-        string? klasorAdi, string kimeMetin, DateTimeOffset hatirlatmaZamani, Guid notId, CancellationToken ct = default)
+    public async Task HatirlaticiMailGonderAsync(string toEmail, string aliciAdSoyad, string notBaslik, string? notIcerik,
+        string? klasorAdi, string kimeMetin, DateTimeOffset hatirlatmaZamani, Guid notId, Guid isletmeId, CancellationToken ct = default)
     {
         var aliciIlkAd = aliciAdSoyad.Split(' ')[0];
         var frontend = _cfg["FrontendBaseUrl"] ?? "https://notlar.dentlogicapp.com";
         var notLink = $"{frontend}/?focus={notId}";
-        var konu = $"♡ Hatırlatıcı — \"{notBaslik}\"";
+
+        var sozluk = SozlukYap(await _metin.TumunuGetirAsync(isletmeId, ct));
+        var runtime = new Dictionary<string, string>(StringComparer.Ordinal) { ["not_basligi"] = notBaslik };
+        var konu = await CozVeyaFallbackAsync(sozluk, "mail_hatirlatma_konu",
+            $"♡ Hatırlatıcı — \"{notBaslik}\"", "hatirlatma", isletmeId, runtime, htmlEncode: false, ct);
+
         var html = HatirlaticiHtmlSablonu(aliciIlkAd, notBaslik, notIcerik, klasorAdi, kimeMetin, hatirlatmaZamani, notLink);
-        return GonderAsync(toEmail, aliciAdSoyad, konu, html, ct);
+        await GonderAsync(toEmail, aliciAdSoyad, konu, html, ct);
     }
 
     private async Task GonderAsync(string toEmail, string toAd, string konu, string html, CancellationToken ct)
@@ -98,7 +167,7 @@ public sealed class EmailService : IEmailService
         }
     }
 
-    private static string DavetiyeHtmlSablonu(string aliciIlkAd, string link, int kalanGun, string gonderenIlkAd, string mailImza, string markaAdi)
+    private static string DavetiyeHtmlSablonu(string aliciIlkAd, string link, int kalanGun, string girisMetni, string mailImza, string markaAdi)
     {
         var sayacCumle = kalanGun > 1
             ? $"Düğünümüze kaldı: <strong>{kalanGun} gün</strong>"
@@ -154,11 +223,7 @@ public sealed class EmailService : IEmailService
 
       <tr><td style='padding:28px 40px 0;'>
         <p style='color:#5d4a37;font-size:15px;line-height:1.7;margin:0 0 14px;text-align:justify;hyphens:auto;'>
-          Bu küçük sistemi, en güzel günümüze adım adım hazırlanırken
-          aklımıza gelen her şeyi <em>birlikte</em> planlayalım,
-          <em>birlikte</em> tamamlayalım diye hayal ettim. Bir köşesi davetiyeler,
-          bir köşesi nikâh hazırlığı, bir köşesi düğün öncesi alacaklarımız…
-          Senin defterin, benim defterim, ikimizin defteri.
+          {girisMetni}
         </p>
         <p style='color:#5d4a37;font-size:15px;line-height:1.7;margin:0;text-align:center;'>
           {sayacCumle} ✨
