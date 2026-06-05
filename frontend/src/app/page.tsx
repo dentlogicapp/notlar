@@ -9,7 +9,6 @@ import { UserMenu } from "@/components/UserMenu";
 import { KlasorListesi } from "@/components/KlasorGrid";
 import { YeniNotFormu, NotListesi } from "@/components/Notlar";
 import { useBen } from "@/lib/useBen";
-import { useIsletme } from "@/lib/useIsletme";
 import { useIsletmeMetinleri, metinDeger } from "@/lib/useIsletmeMetinleri";
 import { notApi } from "@/lib/api";
 
@@ -23,16 +22,15 @@ export default function AnaSayfa() {
 
 function Icerik() {
   const { data: ben } = useBen();
-  const { data: isletme } = useIsletme();
   const { data: metinler } = useIsletmeMetinleri();
   const searchParams = useSearchParams();
   const router = useRouter();
   const focusId = searchParams.get("focus");
 
-  const markaEmoji = metinDeger(metinler, "marka_emoji", isletme?.markaEmoji || "🤍");
-  const markaAdi = metinDeger(metinler, "marka_adi", isletme?.markaAdi || "Planlama Defterimiz");
-  const karsilamaBasligi = metinDeger(metinler, "dashboard_karsilama_basligi", isletme?.karsilamaBasligi || "Merhaba Aşkım");
-  const karsilamaAltMetni = metinDeger(metinler, "dashboard_karsilama_alt_metin", isletme?.karsilamaAltMetni || "Bugün aklına gelen bir şeyi birlikte planlayıp tamamlamak için not etmek ister misin?");
+  const markaEmoji = metinDeger(metinler, "marka_emoji", "");
+  const markaAdi = metinDeger(metinler, "marka_adi", "");
+  const karsilamaBasligi = metinDeger(metinler, "dashboard_karsilama_basligi", "");
+  const karsilamaAltMetni = metinDeger(metinler, "dashboard_karsilama_alt_metin", "");
 
   // Notlar yüklendi mi? Bildirimden gelirken o yüklendikten sonra scroll yapmamız gerek.
   const notlarQuery = useQuery({
@@ -85,7 +83,7 @@ function Icerik() {
         {/* Karşılama */}
         <section className="animate-fade-in pr-0 md:pr-48 lg:pr-64">
           <p className="font-display text-2xl sm:text-3xl md:text-4xl text-clay-900 dark:text-ink-50 leading-tight">
-            {karsilamaBasligi} <span className="text-terracotta">{markaEmoji}</span>
+            {karsilamaBasligi}
           </p>
           <p className="text-clay-500 dark:text-ink-200 mt-1.5 sm:mt-2 italic text-[13px] sm:text-[15px] md:text-base leading-relaxed">
             {karsilamaAltMetni}

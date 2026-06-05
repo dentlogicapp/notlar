@@ -2,22 +2,19 @@
 
 import { useEffect } from "react";
 import { useBen } from "@/lib/useBen";
-import { useIsletme } from "@/lib/useIsletme";
 import { useIsletmeMetinleri, metinDeger } from "@/lib/useIsletmeMetinleri";
 
 /**
- * v16 - Tek document.title otoritesi.
- * v18 - Marka adi isletme_metinleri'nden (marka_adi); bos ise v16 isletme.markaAdi fallback.
- * Gorunur cikti yok; sadece yan etki (document.title) -> null render.
+ * v18 - document.title tek otoritesi. Marka adi SADECE isletme_metinleri'nden (marka_adi).
+ * Bos ise (metinler yuklenmedi / onboarding eksik) layout static title korunur - hardcode yok.
  */
 export function MarkaBaslik() {
   const { data: ben } = useBen();
-  const { data: isletme } = useIsletme();
   const { data: metinler } = useIsletmeMetinleri();
-
-  const markaAdi = metinDeger(metinler, "marka_adi", isletme?.markaAdi || "Planlama Defterimiz");
+  const markaAdi = metinDeger(metinler, "marka_adi", "");
 
   useEffect(() => {
+    if (!markaAdi) return; // bos -> layout static title kalir
     document.title = (ben?.superAdmin ? "⚜ " : "") + markaAdi;
   }, [markaAdi, ben?.superAdmin]);
 

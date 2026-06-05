@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useIsletme } from "@/lib/useIsletme";
 import { useIsletmeMetinleri, metinDeger } from "@/lib/useIsletmeMetinleri";
 
 function kalanHesapla(hedefMs: number) {
@@ -17,13 +16,12 @@ function kalanHesapla(hedefMs: number) {
 }
 
 export function CountdownWidget() {
-  const { data: isletme } = useIsletme();
   const { data: metinler } = useIsletmeMetinleri();
   const [mount, setMount] = useState(false);
   const [k, setK] = useState(() => ({ bitti: false, gun: 0, sa: 0, dk: 0, sn: 0 }));
 
-  // v18 (G.12) - hedef tarih isletme_metinleri'nden (sayac_hedef_tarihi); bos ise v16 isletme fallback
-  const hedefTarih = metinDeger(metinler, "sayac_hedef_tarihi", isletme?.sayacHedefTarihi ?? "");
+  // v18 - hedef tarih SADECE isletme_metinleri'nden (field tek kaynak; hardcode/isletme fallback yok)
+  const hedefTarih = metinDeger(metinler, "sayac_hedef_tarihi", "");
   const hedefMs = hedefTarih
     ? new Date(`${hedefTarih.slice(0, 10)}T00:00:00`).getTime()
     : null;
@@ -37,13 +35,13 @@ export function CountdownWidget() {
   }, [hedefMs]);
 
   if (!mount) return null;
-  // v18 - sayac_aktif isletme_metinleri'nde string ("true"/"false"); bos ise v16 isletme.sayacAktif fallback
-  const sayacAktifMetin = metinDeger(metinler, "sayac_aktif", "");
-  const sayacAktif = sayacAktifMetin !== "" ? sayacAktifMetin === "true" : isletme?.sayacAktif !== false;
+  // v18 - sayac_aktif field'den (string "true"/"false"); bos -> kapali. Field tek kaynak.
+  const sayacAktif = metinDeger(metinler, "sayac_aktif", "") === "true";
   if (!sayacAktif) return null;                      // sayac kapali -> dashboard'da gizli
   if (hedefMs === null) return null;                 // tarih yok / yuklenmedi -> gizli
 
-  const baslik = metinDeger(metinler, "sayac_aktif_cumle", isletme?.sayacBasligi || "kavuşmamıza son");
+  const baslik = metinDeger(metinler, "sayac_aktif_cumle", "");
+  const bittiCumle = metinDeger(metinler, "sayac_bitti_cumle", "");
 
   // KAVUSTUK durumu
   if (k.bitti) {
@@ -51,8 +49,7 @@ export function CountdownWidget() {
       <>
         <Heart className="h-7 w-7 text-terracotta animate-heart-beat shrink-0" fill="currentColor" strokeWidth={1.5} />
         <div className="flex flex-col">
-          <span className="text-[10px] uppercase tracking-[0.18em] text-clay-500 dark:text-ink-200 leading-none font-medium">kavuştuk</span>
-          <span className="font-display text-xl text-clay-900 dark:text-ink-50 leading-tight mt-1">Mutluluklar 🤍</span>
+          <span className="font-display text-xl text-clay-900 dark:text-ink-50 leading-tight">{bittiCumle}</span>
         </div>
       </>
     );

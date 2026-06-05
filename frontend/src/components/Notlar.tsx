@@ -10,6 +10,7 @@ import {
   Eye, Pencil, Trash2, Plus, History, CheckCircle2, Loader2, FolderHeart, Tag, Bell, Lock, AlertTriangle
 } from "lucide-react";
 import { notApi, klasorApi } from "@/lib/api";
+import { useIsletmeMetinleri, metinDeger } from "@/lib/useIsletmeMetinleri";
 import { useEditLock } from "@/lib/useEditLock";
 import { Button } from "./ui/button";
 import { Input, Textarea, Label } from "./ui/input";
@@ -28,6 +29,9 @@ const yeniSchema = z.object({
 
 export function YeniNotFormu({ klasorId }: { klasorId?: string | null }) {
   const qc = useQueryClient();
+  // v18 - not ekleme ipucu isletme_metinleri'nden (not_form_placeholder); field tek kaynak
+  const { data: metinler } = useIsletmeMetinleri();
+  const notIpucu = metinDeger(metinler, "not_form_placeholder", "");
   const { register, handleSubmit, reset, formState: { errors } } =
     useForm<z.infer<typeof yeniSchema>>({
       resolver: zodResolver(yeniSchema),
@@ -51,7 +55,7 @@ export function YeniNotFormu({ klasorId }: { klasorId?: string | null }) {
       <div className="flex-1">
         <Input
           {...register("baslik")}
-          placeholder="Bir not düşün..."
+          placeholder={notIpucu}
           disabled={m.isPending}
           autoFocus
         />
