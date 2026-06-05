@@ -499,7 +499,8 @@ using (var scope = app.Services.CreateScope())
             (gen_random_uuid(), 'bildirim_not_tamamlandi_metin', 'Not Tamamlandı Bildirimi', 'Bir not tamamlandığında gösterilecek bildirim. (Örn: ''✓ {{not_basligi}} tamamlandı'', ''{{kullanici_adi}} tamamladı: {{not_basligi}}'')', 'İlgili kullanıcılara in-app + opsiyonel mail.', 'metin', false, '[]'::jsonb, 410, 'bildirim', false, now(), now()),
             (gen_random_uuid(), 'bildirim_hatirlatici_metin', 'Hatırlatıcı Bildirimi Metni', 'Hatırlatıcı zamanı geldiğinde gösterilen bildirim. (Örn: ''⏰ Hatırlatma: {{not_basligi}}'', ''{{not_basligi}} için bugün son gün'')', 'Tarih/saat geldiğinde in-app + mail.', 'metin', false, '[]'::jsonb, 420, 'bildirim', false, now(), now()),
             (gen_random_uuid(), 'form_klasor_olustur_placeholder', 'Klasör Oluştur Formu İpucu', 'Yeni klasör oluşturma form alanı için soluk ipucu. (Örn: ''Yeni klasör adı...'', ''Konu başlığı...'', ''Proje adı yaz...'')', 'Sol panelden ''Yeni klasör'' tıklandığında açılan formda görünür.', 'placeholder_kisa', false, '[]'::jsonb, 500, 'form', false, now(), now()),
-            (gen_random_uuid(), 'form_giris_email_placeholder', 'Giriş Formu E-posta İpucu', 'Login sayfasında e-posta alanı için ipucu. (Örn: ''E-posta adresin'', ''E-mail address'', ''ornek@firma.com'')', 'Login sayfasında üst form alanında görünür.', 'placeholder_kisa', false, '[]'::jsonb, 510, 'form', false, now(), now())
+            (gen_random_uuid(), 'form_giris_email_placeholder', 'Giriş Formu E-posta İpucu', 'Login sayfasında e-posta alanı için ipucu. (Örn: ''E-posta adresin'', ''E-mail address'', ''ornek@firma.com'')', 'Login sayfasında üst form alanında görünür.', 'placeholder_kisa', false, '[]'::jsonb, 510, 'form', false, now(), now()),
+            (gen_random_uuid(), 'mail_tonu', 'Mail Tonu', 'Mail metinlerinin genel tarzı. (Örn: samimi / profesyonel / resmi)', 'Davetiye ve hatirlatma maillerinin genel tonu - AI yardimcisi onerileri ve ton sliderinin varsayilan degeri.', 'placeholder_kisa', false, '[]'::jsonb, 305, 'mail', false, now(), now())
             ON CONFLICT (""Anahtar"") DO NOTHING;
 
             -- 15. v18 isletme_metinleri (tenant icerigi, Sifir Sablon KATMAN 2)
@@ -527,6 +528,32 @@ using (var scope = app.Services.CreateScope())
             );
             CREATE INDEX IF NOT EXISTS ""IX_isletme_metin_versiyonlari_kayit""
                 ON isletme_metin_versiyonlari (""IsletmeId"", ""Anahtar"", ""Versiyon"" DESC);
+
+            -- 17a. v18 mail_tonu katalog guvence (Asama 11 seed ile ayni, idempotent emniyet)
+            INSERT INTO metin_anahtarlari (
+                ""Id"",""Anahtar"",""Etiket"",""Yonlendirme"",""Aciklama"",""Tip"",""Zorunlu"",""DesteklenenPlaceholderlar"",""Sira"",""Kategori"",""Deprecated"",""OlusturmaZamani"",""GuncellemeZamani""
+            ) VALUES
+            (gen_random_uuid(), 'mail_tonu', 'Mail Tonu', 'Mail metinlerinin genel tarzı. (Örn: samimi / profesyonel / resmi)', 'Davetiye ve hatirlatma maillerinin genel tonu - AI yardimcisi onerileri ve ton sliderinin varsayilan degeri.', 'placeholder_kisa', false, '[]'::jsonb, 305, 'mail', false, now(), now())
+            ON CONFLICT (""Anahtar"") DO NOTHING;
+
+            -- 17b. v18 mevcut tenant verisi: isletmeler kolonlari -> isletme_metinleri (idempotent)
+            INSERT INTO isletme_metinleri (""Id"", ""IsletmeId"", ""Anahtar"", ""Icerik"", ""GuncellemeZamani"")
+            SELECT gen_random_uuid(), i.""Id"", v.anahtar, v.icerik, now()
+            FROM isletmeler i
+            CROSS JOIN LATERAL (VALUES
+                ('marka_adi', i.""MarkaAdi""),
+                ('marka_emoji', i.""MarkaEmoji""),
+                ('marka_ikon_seti', i.""IkonSeti""),
+                ('dashboard_karsilama_basligi', i.""KarsilamaBasligi""),
+                ('dashboard_karsilama_alt_metin', i.""KarsilamaAltMetni""),
+                ('sayac_aktif', CASE WHEN i.""SayacAktif"" THEN 'true' ELSE 'false' END),
+                ('sayac_aktif_cumle', i.""SayacBasligi""),
+                ('sayac_hedef_tarihi', to_char(i.""SayacHedefTarihi"", 'YYYY-MM-DD')),
+                ('mail_imza', i.""MailImza""),
+                ('mail_tonu', i.""MailTonu"")
+            ) AS v(anahtar, icerik)
+            WHERE v.icerik IS NOT NULL AND v.icerik <> ''
+            ON CONFLICT (""IsletmeId"", ""Anahtar"") DO NOTHING;
         ");
         Log.Information("Şema güncellemeleri kontrol edildi (v15 multi-tenant dahil — idempotent)");
     }
