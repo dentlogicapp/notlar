@@ -58,8 +58,8 @@ public static class PromptBuilder
         sb.AppendLine();
         sb.AppendLine($"Anahtar kodu: {anahtarKodu}");
         sb.AppendLine($"Etiket: {baglam.Etiket}");
-        sb.AppendLine($"Tip: {baglam.Tip ?? \"-\"}");
-        sb.AppendLine($"Kategori: {baglam.Kategori ?? \"-\"}");
+        sb.AppendLine($"Tip: {baglam.Tip ?? "-"}");
+        sb.AppendLine($"Kategori: {baglam.Kategori ?? "-"}");
         sb.AppendLine();
         sb.AppendLine("Kurallar:");
         sb.AppendLine("1. Tam olarak 3 öneri üret.");
