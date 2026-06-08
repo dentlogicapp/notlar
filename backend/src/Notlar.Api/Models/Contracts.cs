@@ -147,12 +147,13 @@ public sealed record MetinAnahtariIstegi(
     bool? Zorunlu,                        // default false
     List<string>? DesteklenenPlaceholderlar,  // JSONB <-> List (endpoint serialize)
     int? Sira,                            // default 100
-    string Kategori);                     // mail|dashboard|sayac|bildirim|form|marka
+    string Kategori,                      // mail|dashboard|sayac|bildirim|form|marka
+    int? KarakterLimiti = null);          // v18 Asama 11.8 - null = tipten gelen default
 
 public sealed record MetinAnahtariYaniti(
     Guid Id, string Anahtar, string Etiket, string Yonlendirme, string Aciklama,
     string Tip, bool Zorunlu, List<string> DesteklenenPlaceholderlar,
-    int Sira, string Kategori, bool Deprecated,
+    int Sira, string Kategori, int? KarakterLimiti, bool Deprecated,
     DateTimeOffset OlusturmaZamani, DateTimeOffset GuncellemeZamani);
 
 // v17 - AI saglayici ayar (super admin)
@@ -174,7 +175,7 @@ public sealed record MetinKaydetIstegi(string Icerik);
 public sealed record MetinBirlesik(
     string Anahtar, string Etiket, string Yonlendirme, string Aciklama,
     string Tip, string Kategori, bool Zorunlu, int Sira,
-    IReadOnlyList<string> Placeholderlar, string? Icerik);
+    IReadOnlyList<string> Placeholderlar, string? Icerik, int? KarakterLimiti = null);
 
 public sealed record MetinVersiyonYaniti(Guid Id, int Versiyon, string Icerik, DateTimeOffset OlusturmaZamani);
 

@@ -3,9 +3,8 @@
 import Link from "next/link";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, Heart, Loader2, Plus, Search, FileText } from "lucide-react";
+import { ChevronLeft, Heart, Loader2, Search, FileText } from "lucide-react";
 import { UserMenu } from "@/components/UserMenu";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { sistemApi } from "@/lib/api";
 
@@ -60,9 +59,10 @@ export default function Page() {
             <FileText className="h-6 w-6 text-terracotta" />
             <h1 className="font-display text-3xl text-clay-900 dark:text-ink-50">Metin Anahtarlari</h1>
           </div>
-          <Link href="/admin/sistem/metin-anahtarlari/yeni">
-            <Button className="gap-2"><Plus className="h-4 w-4" /> Yeni Anahtar</Button>
-          </Link>
+        </div>
+
+        <div className="rounded-lg border border-cream-300 dark:border-ink-700/60 bg-cream-50 dark:bg-ink-900/30 px-3 py-2 text-[12px] text-clay-500 dark:text-ink-300">
+          Sistem anahtarları kod-bağlı (schema-driven). Yeni anahtar eklemek için sürüm (release) gerekir. Buradan yalnızca dokümantasyon (etiket, yönlendirme, açıklama, sıra, karakter limiti) düzenlenebilir.
         </div>
 
         <div className="relative max-w-md">

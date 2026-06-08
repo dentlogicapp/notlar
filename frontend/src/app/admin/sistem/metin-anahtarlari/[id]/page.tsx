@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ChevronLeft, Heart, Loader2, Save, Copy, Archive, Trash2 } from "lucide-react";
+import { ChevronLeft, Heart, Loader2, Save, Archive } from "lucide-react";
 import { UserMenu } from "@/components/UserMenu";
 import { AiAssist } from "@/components/AiAssist";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ const schema = z.object({
   zorunlu: z.boolean(),
   sira: z.coerce.number().int().min(0).max(9999),
   placeholderMetin: z.string().optional(),
+  karakterLimiti: z.coerce.number().int().min(1).max(99999).nullable().optional(),
 });
 type Form = z.infer<typeof schema>;
 
@@ -58,7 +59,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
 
   const form = useForm<Form>({
     resolver: zodResolver(schema),
-    defaultValues: { tip: "metin", kategori: "form", zorunlu: false, sira: 100 },
+    defaultValues: { tip: "metin", kategori: "form", zorunlu: false, sira: 100, karakterLimiti: null },
   });
   const { register, handleSubmit, reset, setError, setValue, watch, formState: { errors, isDirty } } = form;
 
@@ -74,6 +75,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         zorunlu: mevcut.zorunlu,
         sira: mevcut.sira,
         placeholderMetin: (mevcut.desteklenenPlaceholderlar ?? []).join(", "),
+        karakterLimiti: mevcut.karakterLimiti,
       });
     }
   }, [mevcut, reset]);
@@ -96,6 +98,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         zorunlu: v.zorunlu,
         sira: v.sira,
         desteklenenPlaceholderlar: placeholderlariAyikla(v.placeholderMetin),
+        karakterLimiti: v.karakterLimiti ?? null,
       };
       return yeniMi ? sistemApi.createAnahtar(data) : sistemApi.updateAnahtar(id, data);
     },
@@ -113,26 +116,6 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       qc.invalidateQueries({ queryKey: ["metin-anahtarlari"] });
       qc.invalidateQueries({ queryKey: ["metin-anahtari", id] });
       toast.success("Anahtar deprecated olarak isaretlendi");
-    },
-    onError: (err: Error) => toast.error(err.message),
-  });
-
-  const kopyala = useMutation({
-    mutationFn: () => sistemApi.kopyalaAnahtar(id),
-    onSuccess: (yeni) => {
-      qc.invalidateQueries({ queryKey: ["metin-anahtarlari"] });
-      toast.success("Kopya olusturuldu");
-      router.push(`/admin/sistem/metin-anahtarlari/${yeni.id}`);
-    },
-    onError: (err: Error) => toast.error(err.message),
-  });
-
-  const sil = useMutation({
-    mutationFn: () => sistemApi.deleteAnahtar(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["metin-anahtarlari"] });
-      toast.success("Anahtar silindi");
-      router.push("/admin/sistem/metin-anahtarlari");
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -166,9 +149,13 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
           {yeniMi ? "Yeni Anahtar" : "Anahtar Duzenle"}
         </h1>
 
+        <div className="rounded-lg border border-cream-300 dark:border-ink-700/60 bg-cream-50 dark:bg-ink-900/30 px-3 py-2 text-[12px] text-clay-500 dark:text-ink-300">
+          Anahtar adı, tip ve kategori kod sözleşmesidir, değiştirilemez. Buradan dokümantasyon (etiket, yönlendirme, açıklama, sıra, karakter limiti) düzenlersin. Yeni anahtar sürüm (release) ile eklenir.
+        </div>
+
         <div className="space-y-1">
           <Label>Anahtar (sistem kodu)</Label>
-          <Input {...register("anahtar")} placeholder="mail_davetiye_konu" disabled={!yeniMi} />
+          <Input {...register("anahtar")} placeholder="mail_davetiye_konu" disabled className="bg-cream-200/50 dark:bg-ink-900/40 opacity-70" />
           {errors.anahtar && <p className="text-sm text-red-500">{errors.anahtar.message}</p>}
           {!yeniMi && <p className="text-xs text-clay-400 dark:text-ink-300">Mevcut anahtarin kodu degistirilemez.</p>}
         </div>
@@ -220,14 +207,14 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <Label>Tip</Label>
-            <select {...register("tip")} className="w-full rounded-xl border border-cream-300 dark:border-ink-700/60 bg-white/60 dark:bg-ink-800/40 px-3 py-2 text-sm">
+            <Label>Tip (değiştirilemez)</Label>
+            <select {...register("tip")} disabled className="w-full rounded-xl border border-cream-300 dark:border-ink-700/60 bg-cream-200/50 dark:bg-ink-900/40 px-3 py-2 text-sm opacity-70 cursor-not-allowed">
               {TIPLER.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
           <div className="space-y-1">
-            <Label>Kategori</Label>
-            <select {...register("kategori")} className="w-full rounded-xl border border-cream-300 dark:border-ink-700/60 bg-white/60 dark:bg-ink-800/40 px-3 py-2 text-sm">
+            <Label>Kategori (değiştirilemez)</Label>
+            <select {...register("kategori")} disabled className="w-full rounded-xl border border-cream-300 dark:border-ink-700/60 bg-cream-200/50 dark:bg-ink-900/40 px-3 py-2 text-sm opacity-70 cursor-not-allowed">
               {KATEGORILER.map((k) => <option key={k} value={k}>{k}</option>)}
             </select>
           </div>
@@ -245,6 +232,19 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         </div>
 
         <div className="space-y-1">
+          <Label>Karakter limiti (opsiyonel)</Label>
+          <Input
+            type="number"
+            {...register("karakterLimiti", { setValueAs: (v) => (v === "" || v === null || v === undefined ? null : Number(v)) })}
+            placeholder="Boş bırakırsanız tipten gelen değer kullanılır"
+          />
+          <p className="text-[11px] text-clay-400 dark:text-ink-300">
+            Tip varsayılanları: subject 50, baslik 60, metin 200, body 5000, placeholder_kisa 80. Doldurursanız bu değeri geçer.
+          </p>
+          {errors.karakterLimiti && <p className="text-sm text-red-500">{errors.karakterLimiti.message}</p>}
+        </div>
+
+        <div className="space-y-1">
           <Label>Desteklenen placeholder'lar</Label>
           <Input {...register("placeholderMetin")} placeholder="alici_ad, kalan_gun, site_url" />
           {errors.placeholderMetin && <p className="text-sm text-red-500">{errors.placeholderMetin.message}</p>}
@@ -258,17 +258,9 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
           </Button>
 
           {!yeniMi && (
-            <>
-              <Button type="button" variant="outline" onClick={() => kopyala.mutate()} disabled={kopyala.isPending} className="gap-2">
-                <Copy className="h-4 w-4" /> Kopyala
-              </Button>
-              <Button type="button" variant="outline" onClick={() => deprecate.mutate()} disabled={deprecate.isPending || mevcut?.deprecated} className="gap-2">
-                <Archive className="h-4 w-4" /> {mevcut?.deprecated ? "Deprecated" : "Deprecate"}
-              </Button>
-              <Button type="button" variant="ghost" onClick={() => { if (confirm("Bu anahtari kalici silmek istiyor musun?")) sil.mutate(); }} disabled={sil.isPending} className="gap-2 text-red-500">
-                <Trash2 className="h-4 w-4" /> Sil
-              </Button>
-            </>
+            <Button type="button" variant="outline" onClick={() => deprecate.mutate()} disabled={deprecate.isPending || mevcut?.deprecated} className="gap-2">
+              <Archive className="h-4 w-4" /> {mevcut?.deprecated ? "Deprecated" : "Deprecate"}
+            </Button>
           )}
         </div>
       </form>

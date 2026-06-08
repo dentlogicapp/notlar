@@ -92,7 +92,7 @@ export function MetinAlani({
             )
           )}
         </div>
-        {!tarihMi && <KarakterSayaci mevcut={deger.length} tip={metin.tip} />}
+        {!tarihMi && <KarakterSayaci mevcut={deger.length} tip={metin.tip} karakterLimiti={metin.karakterLimiti} />}
       </div>
     </div>
   );

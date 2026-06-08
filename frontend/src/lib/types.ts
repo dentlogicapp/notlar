@@ -168,6 +168,7 @@ export interface MetinAnahtari {
   desteklenenPlaceholderlar: string[];
   sira: number;
   kategori: string;
+  karakterLimiti: number | null;   // v18 Asama 11.8 - null = tipten gelen default
   deprecated: boolean;
   olusturmaZamani: string;
   guncellemeZamani: string;
@@ -210,6 +211,7 @@ export interface MetinBirlesik {
   sira: number;
   placeholderlar: string[];
   icerik: string | null;  // tenant degeri (null = henuz girilmemis -> fallback)
+  karakterLimiti: number | null;  // v18 Asama 11.8 - null = tipten gelen default
 }
 
 export interface MetinVersiyon {

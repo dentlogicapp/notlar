@@ -256,6 +256,7 @@ public sealed class MetinAnahtari
     public string DesteklenenPlaceholderlar { get; set; } = "[]";  // JSONB — izin verilen runtime placeholder'lar
     public int Sira { get; set; } = 100;                    // UI sıralama (yükselen)
     public required string Kategori { get; set; }           // 'mail'|'dashboard'|'sayac'|'bildirim'|'form'|'marka'
+    public int? KarakterLimiti { get; set; }                // v18 Asama 11.8 - null = tipten gelen default gecerli
     public bool Deprecated { get; set; }                    // Eski anahtar; yeni tenant'lara önerilmez
     public DateTimeOffset OlusturmaZamani { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset GuncellemeZamani { get; set; } = DateTimeOffset.UtcNow;

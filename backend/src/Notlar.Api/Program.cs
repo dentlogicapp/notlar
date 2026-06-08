@@ -460,12 +460,16 @@ using (var scope = app.Services.CreateScope())
                 ""Kategori"" character varying(40) NOT NULL,
                 ""Deprecated"" boolean NOT NULL DEFAULT false,
                 ""OlusturmaZamani"" timestamp with time zone NOT NULL DEFAULT now(),
-                ""GuncellemeZamani"" timestamp with time zone NOT NULL DEFAULT now()
+                ""GuncellemeZamani"" timestamp with time zone NOT NULL DEFAULT now(),
+                ""KarakterLimiti"" integer
             );
             CREATE INDEX IF NOT EXISTS ""IX_metin_anahtarlari_Kategori"" 
                 ON metin_anahtarlari (""Kategori"");
             CREATE INDEX IF NOT EXISTS ""IX_metin_anahtarlari_Deprecated"" 
                 ON metin_anahtarlari (""Deprecated"");
+            -- v18 Asama 11.8: anahtar bazinda karakter limiti override (mevcut DB icin; null = tipten gelen default)
+            ALTER TABLE metin_anahtarlari
+                ADD COLUMN IF NOT EXISTS ""KarakterLimiti"" integer;
             -- 13. AI sağlayıcı ayarı (v17 — singleton, Strategy Pattern)
             CREATE TABLE IF NOT EXISTS ai_ayarlari (
                 ""Id"" uuid NOT NULL PRIMARY KEY,

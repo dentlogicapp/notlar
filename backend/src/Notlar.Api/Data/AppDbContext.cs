@@ -199,6 +199,7 @@ public sealed class AppDbContext : DbContext
             e.Property(x => x.DesteklenenPlaceholderlar)
              .HasColumnType("jsonb").HasDefaultValueSql("'[]'::jsonb");
             e.Property(x => x.Sira).HasDefaultValue(100);
+            e.Property(x => x.KarakterLimiti);  // v18 Asama 11.8 - nullable, default yok (null = tip default)
             e.HasIndex(x => x.Anahtar).IsUnique();
             e.HasIndex(x => x.Kategori);
             e.HasIndex(x => x.Deprecated);

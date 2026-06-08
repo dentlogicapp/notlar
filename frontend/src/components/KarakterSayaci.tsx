@@ -10,8 +10,9 @@ const HEDEFLER: Record<string, number> = {
   placeholder_kisa: 80,
 };
 
-export function KarakterSayaci({ mevcut, tip }: { mevcut: number; tip: string }) {
-  const hedef = HEDEFLER[tip];
+export function KarakterSayaci({ mevcut, tip, karakterLimiti }: { mevcut: number; tip: string; karakterLimiti?: number | null }) {
+  // v18 Asama 11.8 - anahtar bazli ozel limit varsa onu kullan, yoksa tipten gelen default
+  const hedef = karakterLimiti ?? HEDEFLER[tip];
   if (!hedef) return null;
 
   const oran = hedef > 0 ? mevcut / hedef : 0;

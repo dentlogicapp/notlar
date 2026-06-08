@@ -43,34 +43,6 @@ public static class SistemEndpoints
                 : Results.Ok(ToYanit(a));
         });
 
-        // POST / — oluştur
-        g.MapPost("/", async (
-            MetinAnahtariIstegi req, AppDbContext db,
-            IAuditService audit, CancellationToken ct) =>
-        {
-            var (gecerli, hata, mesaj) = await Dogrula(req, db, null, ct);
-            if (!gecerli)
-                return Results.Json(new { hata, mesaj }, statusCode: hata == "ANAHTAR_BENZERSIZ_DEGIL" ? 409 : 400);
-
-            var yeni = new MetinAnahtari
-            {
-                Anahtar = req.Anahtar.Trim(),
-                Etiket = req.Etiket.Trim(),
-                Yonlendirme = req.Yonlendirme.Trim(),
-                Aciklama = (req.Aciklama ?? "").Trim(),
-                Tip = req.Tip.Trim(),
-                Zorunlu = req.Zorunlu ?? false,
-                DesteklenenPlaceholderlar = JsonSerializer.Serialize(req.DesteklenenPlaceholderlar ?? new List<string>()),
-                Sira = req.Sira ?? 100,
-                Kategori = req.Kategori.Trim(),
-            };
-            db.MetinAnahtarlari.Add(yeni);
-            // audit.YazAsync tek SaveChangesAsync ile anahtar insert'i + audit satirini atomik yazar
-            await audit.YazAsync("metin_anahtari_olustur", "metin_anahtari", yeni.Id,
-                degisenAlanlar: JsonSerializer.Serialize(new { anahtar = yeni.Anahtar, kategori = yeni.Kategori }), ct: ct);
-            return Results.Ok(ToYanit(yeni));
-        });
-
         // PUT /{id} — güncelle
         g.MapPut("/{id:guid}", async (
             Guid id, MetinAnahtariIstegi req, AppDbContext db,
@@ -79,6 +51,14 @@ public static class SistemEndpoints
             var a = await db.MetinAnahtarlari.FindAsync(new object[] { id }, ct);
             if (a is null)
                 return Results.NotFound(new { hata = "ANAHTAR_BULUNAMADI", mesaj = "Metin anahtari bulunamadi." });
+
+            // v18 Asama 11.8 - immutable alanlar (kod sozlesmesi): Anahtar/Tip/Kategori degistirilemez
+            if (req.Anahtar.Trim() != a.Anahtar)
+                return Results.Json(new { hata = "ALAN_DEGISTIRILEMEZ", mesaj = "Anahtar adi degistirilemez - kod sozlesmesi sabit." }, statusCode: 400);
+            if (req.Tip.Trim() != a.Tip)
+                return Results.Json(new { hata = "ALAN_DEGISTIRILEMEZ", mesaj = "Tip degistirilemez - karakter limiti ve render etkilenir." }, statusCode: 400);
+            if (req.Kategori.Trim() != a.Kategori)
+                return Results.Json(new { hata = "ALAN_DEGISTIRILEMEZ", mesaj = "Kategori degistirilemez - sekme yerlesimi etkilenir." }, statusCode: 400);
 
             var (gecerli, hata, mesaj) = await Dogrula(req, db, id, ct);
             if (!gecerli)
@@ -105,6 +85,7 @@ public static class SistemEndpoints
             if (yPlaceholder != a.DesteklenenPlaceholderlar) { degisenler["DesteklenenPlaceholderlar"] = new { eski = a.DesteklenenPlaceholderlar, yeni = yPlaceholder }; a.DesteklenenPlaceholderlar = yPlaceholder; }
             if (ySira != a.Sira) { degisenler["Sira"] = new { eski = a.Sira, yeni = ySira }; a.Sira = ySira; }
             if (yKategori != a.Kategori) { degisenler["Kategori"] = new { eski = a.Kategori, yeni = yKategori }; a.Kategori = yKategori; }
+            if (req.KarakterLimiti != a.KarakterLimiti) { degisenler["KarakterLimiti"] = new { eski = a.KarakterLimiti, yeni = req.KarakterLimiti }; a.KarakterLimiti = req.KarakterLimiti; }
 
             // Değişiklik yoksa: yazma + audit yok, mevcut anahtarı dön
             if (degisenler.Count > 0)
@@ -114,20 +95,6 @@ public static class SistemEndpoints
                     degisenAlanlar: JsonSerializer.Serialize(degisenler), ct: ct);
             }
             return Results.Ok(ToYanit(a));
-        });
-
-        // DELETE /{id} — hard sil
-        g.MapDelete("/{id:guid}", async (
-            Guid id, AppDbContext db, IAuditService audit, CancellationToken ct) =>
-        {
-            var a = await db.MetinAnahtarlari.FindAsync(new object[] { id }, ct);
-            if (a is null)
-                return Results.NotFound(new { hata = "ANAHTAR_BULUNAMADI", mesaj = "Metin anahtari bulunamadi." });
-
-            db.MetinAnahtarlari.Remove(a);
-            await audit.YazAsync("metin_anahtari_sil", "metin_anahtari", a.Id,
-                degisenAlanlar: JsonSerializer.Serialize(new { anahtar = a.Anahtar }), ct: ct);
-            return Results.Ok(new { mesaj = "Metin anahtari silindi." });
         });
 
         // POST /{id}/deprecate — soft (yeni tenant'lara önerilmez)
@@ -147,50 +114,13 @@ public static class SistemEndpoints
             return Results.Ok(ToYanit(a));
         });
 
-        // POST /{id}/kopyala — şablonla (yeni Id + benzersiz anahtar)
-        g.MapPost("/{id:guid}/kopyala", async (
-            Guid id, AppDbContext db, IAuditService audit, CancellationToken ct) =>
-        {
-            var kaynak = await db.MetinAnahtarlari.FindAsync(new object[] { id }, ct);
-            if (kaynak is null)
-                return Results.NotFound(new { hata = "ANAHTAR_BULUNAMADI", mesaj = "Metin anahtari bulunamadi." });
-
-            // Benzersiz yeni anahtar üret: <anahtar>_kopya, _kopya_2, ...
-            var temel = $"{kaynak.Anahtar}_kopya";
-            var yeniAnahtar = temel;
-            var sayac = 1;
-            while (await db.MetinAnahtarlari.AnyAsync(x => x.Anahtar == yeniAnahtar, ct))
-            {
-                sayac++;
-                yeniAnahtar = $"{temel}_{sayac}";
-            }
-            if (yeniAnahtar.Length > 80)
-                return Results.Json(new { hata = "ANAHTAR_FORMATI_GECERSIZ", mesaj = "Kopya anahtar adi 80 karakteri asiyor." }, statusCode: 400);
-
-            var kopya = new MetinAnahtari
-            {
-                Anahtar = yeniAnahtar,
-                Etiket = kaynak.Etiket,
-                Yonlendirme = kaynak.Yonlendirme,
-                Aciklama = kaynak.Aciklama,
-                Tip = kaynak.Tip,
-                Zorunlu = kaynak.Zorunlu,
-                DesteklenenPlaceholderlar = kaynak.DesteklenenPlaceholderlar,
-                Sira = kaynak.Sira,
-                Kategori = kaynak.Kategori,
-            };
-            db.MetinAnahtarlari.Add(kopya);
-            await audit.YazAsync("metin_anahtari_kopyala", "metin_anahtari", kopya.Id,
-                degisenAlanlar: JsonSerializer.Serialize(new { kaynak_anahtar = kaynak.Anahtar, yeni_anahtar = yeniAnahtar }), ct: ct);
-            return Results.Ok(ToYanit(kopya));
-        });
     }
 
     // --- Helper: entity -> yanit DTO (JSONB string -> List<string>) ---
     private static MetinAnahtariYaniti ToYanit(MetinAnahtari a) => new(
         a.Id, a.Anahtar, a.Etiket, a.Yonlendirme, a.Aciklama, a.Tip, a.Zorunlu,
         JsonSerializer.Deserialize<List<string>>(a.DesteklenenPlaceholderlar) ?? new List<string>(),
-        a.Sira, a.Kategori, a.Deprecated, a.OlusturmaZamani, a.GuncellemeZamani);
+        a.Sira, a.Kategori, a.KarakterLimiti, a.Deprecated, a.OlusturmaZamani, a.GuncellemeZamani);
 
     // --- Helper: validasyon (G.5 — placeholder sistem-katalog VEYA mevcut-anahtar) ---
     private static async Task<(bool gecerli, string? hata, string? mesaj)> Dogrula(
