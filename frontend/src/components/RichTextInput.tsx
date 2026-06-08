@@ -56,7 +56,7 @@ export function RichTextInput({
   // Dis value degisince (sifirla / versiyona don) editoru senkronla
   useEffect(() => {
     if (editor && !editor.isFocused && value !== editor.getHTML()) {
-      editor.commands.setContent(value || "", false);
+      editor.commands.setContent(value || "", { emitUpdate: false });
     }
   }, [value, editor]);
 
