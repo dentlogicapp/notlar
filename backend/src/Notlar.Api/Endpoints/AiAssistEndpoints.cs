@@ -1,6 +1,8 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Notlar.Api.Data;
+using Notlar.Api.Entities;
 using Notlar.Api.Models;
 using Notlar.Api.Services;
 
@@ -12,7 +14,8 @@ public static class AiAssistEndpoints
 {
     public static void MapAiAssistEndpoints(this WebApplication app)
     {
-        var g = app.MapGroup("/api/admin/ai-assist").WithTags("AiAssist").RequireAuthorization("AdminOnly");
+        // v18 Asama 11.5 - AI sadece super admin (maliyet kontrolu). Tenant erisimi yok (RequireSuperAdmin -> 403).
+        var g = app.MapGroup("/api/super-admin/ai-assist").WithTags("SuperAdmin").RequireAuthorization().RequireSuperAdmin();
 
         // Saglik - AI buton aktif/pasif (60sn cache servis icinde). Hata da olsa false doner (buton gri).
         g.MapGet("/saglik", async (IAiAssistServiceFactory factory, CancellationToken ct) =>

@@ -3,7 +3,6 @@
 import { useRef, useEffect } from "react";
 import type { MetinBirlesik } from "@/lib/types";
 import { RichTextInput } from "./RichTextInput";
-import { AiAssist } from "./AiAssist";
 import { KarakterSayaci } from "./KarakterSayaci";
 import { VersiyonGecmisi } from "./VersiyonGecmisi";
 
@@ -54,9 +53,6 @@ export function MetinAlani({
           {metin.zorunlu && <span className="text-terracotta text-xs">zorunlu</span>}
         </label>
         <div className="flex items-center gap-2.5 shrink-0">
-          {!tarihMi && (
-            <AiAssist anahtar={metin.anahtar} onTaslakSec={(m) => onDegis(metin.anahtar, m)} />
-          )}
           <VersiyonGecmisi anahtar={metin.anahtar} onDon={(ic) => onDegis(metin.anahtar, ic)} />
         </div>
       </div>
