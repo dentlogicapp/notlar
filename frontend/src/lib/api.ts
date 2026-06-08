@@ -4,7 +4,7 @@ import type {
   BildirimOzeti,
   Cinsiyet, HatirlatmaKime, HatirlatmaSekli,
   Uyelik, Isletme, MetinAnahtari, AiAyari, AiModel, AiTestSonucu,
-  MetinBirlesik, MetinVersiyon, OnboardingDurum
+  MetinBirlesik, MetinVersiyon, OnboardingDurum,
   TaslakSonucu,
 } from "./types";
 
