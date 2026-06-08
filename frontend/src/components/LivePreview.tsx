@@ -90,6 +90,10 @@ export function LivePreview({ sekme, degerler }: { sekme: string; degerler: Reco
     const konu = c("mail_davetiye_konu") || "(mail konusu girilmedi)";
     const giris = c("mail_davetiye_giris_metni") || "Davetiye giriş metni burada görünür.";
     const imza = c("mail_imza");
+    // sayac cumlesi mailde de field'lerden (backend MailSayac ile ayni mantik)
+    const mailSayacAktif = (degerler["sayac_aktif"] ?? "") === "true";
+    const mailSayacBaslik = sk.gecti ? c("sayac_bitti_cumle") : c("sayac_aktif_cumle");
+    const mailSayacGoster = mailSayacAktif && hedefMs !== null && mailSayacBaslik.length > 0;
     return (
       <div className="space-y-2">
         <p className="text-[11px] text-clay-400 dark:text-ink-300">
@@ -101,9 +105,11 @@ export function LivePreview({ sekme, degerler }: { sekme: string; degerler: Reco
             <h3 style={{ fontFamily: "Georgia, serif", fontSize: 20, color: "#3d2817", margin: "8px 0 2px", textAlign: "center", fontWeight: 600 }}>Ayşegül,</h3>
             <p style={{ color: "#c4704d", fontSize: 12, fontStyle: "italic", textAlign: "center", margin: 0 }}>planlama defterimiz seni bekliyor 🤍</p>
             <p style={{ color: "#5d4a37", fontSize: 12.5, lineHeight: 1.7, textAlign: "justify", margin: "14px 0 0", whiteSpace: "pre-wrap" }}>{giris}</p>
-            <p style={{ color: "#5d4a37", fontSize: 12.5, textAlign: "center", margin: "10px 0 0" }}>
-              Düğünümüze kaldı: <strong>89 gün</strong> ✨
-            </p>
+            {mailSayacGoster && (
+              <p style={{ color: "#5d4a37", fontSize: 12.5, textAlign: "center", margin: "10px 0 0" }}>
+                {mailSayacBaslik} <strong>{sk.gun} gün</strong> ✨
+              </p>
+            )}
             <div style={{ textAlign: "center", margin: "18px 0 4px" }}>
               <span style={{ display: "inline-block", background: "#3d2817", color: "#faf6ef", padding: "10px 22px", borderRadius: 8, fontSize: 12.5, fontWeight: 500 }}>
                 Hesabımı Aç ve Şifre Belirle
@@ -114,7 +120,7 @@ export function LivePreview({ sekme, degerler }: { sekme: string; degerler: Reco
             )}
           </div>
         </div>
-        <p className="text-[10px] italic text-clay-400 dark:text-ink-300">Alıcının göreceği davetiye maili (örnek: Ayşegül · 89 gün).</p>
+        <p className="text-[10px] italic text-clay-400 dark:text-ink-300">Alıcının göreceği davetiye maili (örnek alıcı: Ayşegül).</p>
       </div>
     );
   }

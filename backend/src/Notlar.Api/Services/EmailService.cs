@@ -79,7 +79,6 @@ public sealed class EmailService : IEmailService
     public async Task SifreBelirleMailGonderAsync(string toEmail, string adSoyad, string link, Guid isletmeId, CancellationToken ct = default)
     {
         var aliciIlkAd = adSoyad.Split(' ')[0];
-        var kalanGun = Math.Max(0, (int)Math.Ceiling((DUGUN_UTC - DateTimeOffset.UtcNow).TotalDays));
 
         // Giris metni fallback'i (tenant mail_davetiye_giris_metni bos ise) - mevcut v16 metni korunur.
         const string girisFallback =
@@ -101,7 +100,19 @@ public sealed class EmailService : IEmailService
         var markaAdi = await CozVeyaFallbackAsync(sozluk, "marka_adi",
             "Planlama Defterimiz", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
 
-        var html = DavetiyeHtmlSablonu(aliciIlkAd, link, kalanGun, girisMetni, imza, markaAdi);
+        // v18 Paket2 - mail sayac cumlesi sayac field'lerinden (ileri sayim dahil); DUGUN_UTC kaldirildi.
+        // Kapali veya cumle bos ise sayac blogu hic basilmaz. Tek kaynak: isletme_metinleri.
+        var sayacAktif = sozluk.TryGetValue("sayac_aktif", out var saDeger) && saDeger == "true";
+        var (sayacGecti, sayacGun) = MailSayac(sozluk.GetValueOrDefault("sayac_hedef_tarihi"));
+        var sayacBaslik = sayacGecti
+            ? sozluk.GetValueOrDefault("sayac_bitti_cumle", "")
+            : sozluk.GetValueOrDefault("sayac_aktif_cumle", "");
+        var sayacGoster = sayacAktif && !string.IsNullOrWhiteSpace(sayacBaslik);
+        var sayacCumleHtml = sayacGoster
+            ? $"{WebUtility.HtmlEncode(sayacBaslik)} <strong>{sayacGun} gün</strong>"
+            : "";
+
+        var html = DavetiyeHtmlSablonu(aliciIlkAd, link, sayacGoster, sayacCumleHtml, girisMetni, imza, markaAdi);
         await GonderAsync(toEmail, adSoyad, konu, html, ct);
     }
 
@@ -167,15 +178,25 @@ public sealed class EmailService : IEmailService
         }
     }
 
-    private static string DavetiyeHtmlSablonu(string aliciIlkAd, string link, int kalanGun, string girisMetni, string mailImza, string markaAdi)
+    // v18 Paket2 - datetime-local ("YYYY-MM-DDTHH:mm") / date string -> (gecti, mutlak gun).
+    // UTC varsayar (mail gun hassasiyeti); gecersiz/bos -> (false, 0). Gecince ileri (mutlak gun).
+    private static (bool gecti, int gun) MailSayac(string? hedefTarih)
     {
-        var sayacCumle = kalanGun > 1
-            ? $"Düğünümüze kaldı: <strong>{kalanGun} gün</strong>"
-            : kalanGun == 1
-                ? "Düğünümüze kaldı: <strong>1 gün</strong>"
-                : kalanGun == 0
-                    ? "Bugün <strong>en güzel günümüz</strong>"
-                    : "Mutlu evliliğimizin <strong>güzel günlerinde</strong>";
+        if (string.IsNullOrWhiteSpace(hedefTarih) ||
+            !DateTime.TryParse(hedefTarih, System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal, out var hedef))
+            return (false, 0);
+        var fark = hedef - DateTime.UtcNow;
+        return (fark.TotalSeconds <= 0, (int)Math.Floor(Math.Abs(fark.TotalDays)));
+    }
+
+    private static string DavetiyeHtmlSablonu(string aliciIlkAd, string link, bool sayacGoster, string sayacCumleHtml, string girisMetni, string mailImza, string markaAdi)
+    {
+        // v18 Paket2 - sayac cumlesi field'lerden (sayac_aktif_cumle/bitti_cumle) + ileri sayim;
+        // hesaplama caller'da (MailSayac). Sayac kapali/bos ise blok hic basilmaz.
+        var sayacBlok = sayacGoster
+            ? $@"<p style='color:#5d4a37;font-size:15px;line-height:1.7;margin:0;text-align:center;'>{sayacCumleHtml} ✨</p>"
+            : "";
 
         // Madde tasarım disiplini: rozet (28x28 terracotta) + başlık + justify açıklama + ince dashed ayraç
         static string Madde(string rakam, string baslik, string aciklama, bool sonMu = false) => $@"
@@ -225,9 +246,7 @@ public sealed class EmailService : IEmailService
         <p style='color:#5d4a37;font-size:15px;line-height:1.7;margin:0 0 14px;text-align:justify;hyphens:auto;'>
           {girisMetni}
         </p>
-        <p style='color:#5d4a37;font-size:15px;line-height:1.7;margin:0;text-align:center;'>
-          {sayacCumle} ✨
-        </p>
+        {sayacBlok}
       </td></tr>
 
       <tr><td style='padding:32px 40px 12px;text-align:center;'>
