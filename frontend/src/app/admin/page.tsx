@@ -114,9 +114,9 @@ function Icerik() {
             </Link>
             {ben?.superAdmin && (
               <>
-                <Link href="/admin/sistem/metin-anahtarlari">
+                <Link href="/admin/sistem/sema">
                   <Button variant="outline" size="sm">
-                    <Settings className="h-4 w-4 mr-1.5" /> Sistem Metinleri
+                    <Settings className="h-4 w-4 mr-1.5" /> Sistem Şeması
                   </Button>
                 </Link>
                 <Link href="/admin/sistem/ai-ayarlari">

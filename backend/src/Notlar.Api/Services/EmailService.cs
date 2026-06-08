@@ -3,6 +3,8 @@ using MailKit.Net.Smtp;
 using MimeKit;
 using Notlar.Api.Entities;
 
+using Notlar.Api.Models.Sema;
+
 namespace Notlar.Api.Services;
 
 public interface IEmailService
@@ -91,22 +93,22 @@ public sealed class EmailService : IEmailService
         var sozluk = SozlukYap(await _metin.TumunuGetirAsync(isletmeId, ct));
         var runtime = new Dictionary<string, string>(StringComparer.Ordinal) { ["alici_ad"] = aliciIlkAd };
 
-        var konu = await CozVeyaFallbackAsync(sozluk, "mail_davetiye_konu",
+        var konu = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailDavetiyeKonu,
             $"{aliciIlkAd}, planlama defterimiz seni bekliyor", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
-        var girisMetni = await CozVeyaFallbackAsync(sozluk, "mail_davetiye_giris_metni",
+        var girisMetni = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailDavetiyeGirisMetni,
             girisFallback, "davetiye", isletmeId, runtime, htmlEncode: false, ct);
-        var imza = await CozVeyaFallbackAsync(sozluk, "mail_imza",
+        var imza = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailImza,
             "", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
-        var markaAdi = await CozVeyaFallbackAsync(sozluk, "marka_adi",
+        var markaAdi = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MarkaAdi,
             "Planlama Defterimiz", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
 
         // v18 Paket2 - mail sayac cumlesi sayac field'lerinden (ileri sayim dahil); DUGUN_UTC kaldirildi.
         // Kapali veya cumle bos ise sayac blogu hic basilmaz. Tek kaynak: isletme_metinleri.
-        var sayacAktif = sozluk.TryGetValue("sayac_aktif", out var saDeger) && saDeger == "true";
-        var (sayacGecti, sayacGun) = MailSayac(sozluk.GetValueOrDefault("sayac_hedef_tarihi"));
+        var sayacAktif = sozluk.TryGetValue(AnahtarKodu.SayacAktif, out var saDeger) && saDeger == "true";
+        var (sayacGecti, sayacGun) = MailSayac(sozluk.GetValueOrDefault(AnahtarKodu.SayacHedefTarihi));
         var sayacBaslik = sayacGecti
-            ? sozluk.GetValueOrDefault("sayac_bitti_cumle", "")
-            : sozluk.GetValueOrDefault("sayac_aktif_cumle", "");
+            ? sozluk.GetValueOrDefault(AnahtarKodu.SayacBittiCumle, "")
+            : sozluk.GetValueOrDefault(AnahtarKodu.SayacAktifCumle, "");
         var sayacGoster = sayacAktif && !string.IsNullOrWhiteSpace(sayacBaslik);
         var sayacCumleHtml = sayacGoster
             ? $"{WebUtility.HtmlEncode(sayacBaslik)} <strong>{sayacGun} gün</strong>"
@@ -136,7 +138,7 @@ public sealed class EmailService : IEmailService
 
         var sozluk = SozlukYap(await _metin.TumunuGetirAsync(isletmeId, ct));
         var runtime = new Dictionary<string, string>(StringComparer.Ordinal) { ["not_basligi"] = notBaslik };
-        var konu = await CozVeyaFallbackAsync(sozluk, "mail_hatirlatma_konu",
+        var konu = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailHatirlatmaKonu,
             $"♡ Hatırlatıcı — \"{notBaslik}\"", "hatirlatma", isletmeId, runtime, htmlEncode: false, ct);
 
         var html = HatirlaticiHtmlSablonu(aliciIlkAd, notBaslik, notIcerik, klasorAdi, kimeMetin, hatirlatmaZamani, notLink);

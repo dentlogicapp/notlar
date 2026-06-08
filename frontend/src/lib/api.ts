@@ -241,6 +241,30 @@ export interface MetinAnahtariOnerisi {
   kategori: string;
 }
 
+export interface SemaAnahtar {
+  anahtar: string;
+  kategori: string;
+  tip: string;
+  efektifLimit: number;
+  ozelLimit: number | null;
+  etiket: string;
+  yonlendirme: string;
+  aciklama: string;
+  placeholderlar: string[];
+  zorunlu: boolean;
+  deprecated: boolean;
+  sira: number;
+  tenantDolduran: number;
+  tenantToplam: number;
+}
+
+export interface SemaYaniti {
+  surum: string;
+  sonGuncelleme: string | null;
+  toplamTenant: number;
+  anahtarlar: SemaAnahtar[];
+}
+
 export const sistemApi = {
   listAnahtar: () => ist<MetinAnahtari[]>("/api/super-admin/metin-anahtarlari"),
   getAnahtar: (id: string) => ist<MetinAnahtari>(`/api/super-admin/metin-anahtarlari/${id}`),
@@ -254,6 +278,8 @@ export const sistemApi = {
     ist<MetinAnahtari>(`/api/super-admin/metin-anahtarlari/${id}/deprecate`, { method: "POST" }),
   kopyalaAnahtar: (id: string) =>
     ist<MetinAnahtari>(`/api/super-admin/metin-anahtarlari/${id}/kopyala`, { method: "POST" }),
+  // v18 Asama 11.9 B2 - read-only sistem semasi
+  getSema: () => ist<SemaYaniti>("/api/super-admin/sema"),
 };
 
 // v17 - AI saglayici ayar istegi

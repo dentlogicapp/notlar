@@ -32,6 +32,7 @@ builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<AnahtarSyncService>();  // v18 Asama 11.9 - Schema-as-Code sync
 // v17 - AI API key sifreleme + DataProtection key persistence (docker volume /keys)
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo("/keys"))
@@ -494,33 +495,6 @@ using (var scope = app.Services.CreateScope())
             )
             ON CONFLICT (""Id"") DO NOTHING;
 
-            -- 14. v17 metin anahtarlari seed (20 anahtar, uretim kalitesi, idempotent ON CONFLICT Anahtar)
-            INSERT INTO metin_anahtarlari (
-                ""Id"",""Anahtar"",""Etiket"",""Yonlendirme"",""Aciklama"",""Tip"",""Zorunlu"",""DesteklenenPlaceholderlar"",""Sira"",""Kategori"",""Deprecated"",""OlusturmaZamani"",""GuncellemeZamani""
-            ) VALUES
-            (gen_random_uuid(), 'marka_adi', 'Marka Adı', 'Çalışma grubu, işletme veya etkinlik için kullanılacak ismi yazınız.', 'Browser sekmesi, dashboard başlığı ve mail footer''da görünür.', 'baslik', true, '[]'::jsonb, 10, 'marka', false, now(), now()),
-            (gen_random_uuid(), 'marka_emoji', 'Marka Emojisi', 'Markanı temsil eden tek bir emoji seç. (Örn: 🤍, 📚, ☕, 🏢)', 'Browser sekmesi ve dashboard üst başlıkta marka adınla birlikte görünür.', 'placeholder_kisa', false, '[]'::jsonb, 20, 'marka', false, now(), now()),
-            (gen_random_uuid(), 'marka_ikon_seti', 'İkon Seti', 'Dashboard ikonların tonu. (kalp / klasik / ekip / aile / tatil)', 'Geri sayım ve karşılama widget''larında kullanılacak ikon stili.', 'placeholder_kisa', false, '[]'::jsonb, 30, 'marka', false, now(), now()),
-            (gen_random_uuid(), 'dashboard_karsilama_basligi', 'Dashboard Karşılama Başlığı', 'Kullanıcılar siteye girince üstte gördüğü ana başlık. (Örn: ''Merhaba'', ''Hoşgeldin'', ''Selam Ekip'')', 'Her sayfada üst kısımda görünür.', 'baslik', true, '[""alici_ad""]'::jsonb, 100, 'dashboard', false, now(), now()),
-            (gen_random_uuid(), 'dashboard_karsilama_alt_metin', 'Dashboard Karşılama Alt Metni', 'Başlığın altında zarif bir cümle. (Örn: ''Bugün ne planlayalım?'', ''Çalışmaya hazır mıyız?'')', 'Dashboard üstünde italik gri olarak görünür.', 'metin', false, '[]'::jsonb, 110, 'dashboard', false, now(), now()),
-            (gen_random_uuid(), 'not_form_placeholder', 'Not Ekleme Form İpucu', 'Yeni not ekleme kutusunda kullanıcıya gösterilecek soluk ipucu. (Örn: ''Bir hatıra düşün...'', ''Bir dosya notu ekle...'', ''Bir menü fikri yaz...'')', 'Ana sayfada büyük not ekleme kutusunda görünür.', 'placeholder_kisa', false, '[]'::jsonb, 120, 'dashboard', false, now(), now()),
-            (gen_random_uuid(), 'sayac_aktif', 'Sayaç Aktif', 'Geri sayım widget''ı dashboard''da görünsün mü? (true / false)', 'Sayaç kapalıysa hiç gösterilmez.', 'placeholder_kisa', false, '[]'::jsonb, 200, 'sayac', false, now(), now()),
-            (gen_random_uuid(), 'sayac_aktif_cumle', 'Sayaç Aktif Cümle', 'Geri sayımda kalan süre öncesinde gösterilecek cümle. (Örn: ''Düğünümüze kaldı'', ''Lansmana kaldı'', ''Sınava kaldı'')', 'Hedef tarihe ne kadar kaldığını anlatır.', 'metin', false, '[""kalan_gun"",""kalan_saat""]'::jsonb, 210, 'sayac', false, now(), now()),
-            (gen_random_uuid(), 'sayac_bitti_cumle', 'Sayaç Bitti Cümle', 'Hedef tarih geldikten sonra gösterilecek cümle. (Örn: ''Bugün en güzel günümüz'', ''Açılışımız oldu'', ''Sınava girdik'')', 'Sayaç 0 olduğunda görünür.', 'metin', false, '[]'::jsonb, 220, 'sayac', false, now(), now()),
-            (gen_random_uuid(), 'sayac_hedef_tarihi', 'Sayaç Hedef Tarihi', 'Geri sayımın yöneleceği tarih. (YYYY-AA-GG formatında)', 'Bugünden en az 1 gün sonra, en fazla 5 yıl sonra olmalı.', 'placeholder_kisa', false, '[]'::jsonb, 230, 'sayac', false, now(), now()),
-            (gen_random_uuid(), 'mail_imza', 'Mail İmzası', 'Mail sonunda gösterilecek ve çalışmanızı en iyi açıklayacak imzanızı yazınız. (Örn: ''Bilgi Kitap Evi Çalışma Grup Yönetimi'', ''Sevgilerle, Musa & Ayşegül'', ''Saygılarımızla, Yıldız Hukuk Bürosu'')', 'Hatırlatıcı ve davet maillerinin sonunda görünür.', 'metin', true, '[]'::jsonb, 300, 'mail', false, now(), now()),
-            (gen_random_uuid(), 'mail_davetiye_konu', 'Davet Maili Konusu', 'Yeni kullanıcıya gönderilecek davet e-postasının konusu. {{alici_ad}} yazarsanız kullanıcının ilk adı otomatik gelir. (Örn: ''{{alici_ad}}, planlama defterimiz seni bekliyor'')', 'E-posta inbox''unda subject olarak görünür. İlgi çekici ve kişisel tutun.', 'subject', true, '[""alici_ad"",""marka_adi""]'::jsonb, 310, 'mail', false, now(), now()),
-            (gen_random_uuid(), 'mail_davetiye_alt_baslik', 'Davet Maili Alt Başlık', 'Mail içinde isim altında italik gösterilecek kısa açıklama. (Örn: ''planlama defterimiz seni bekliyor 🤍'', ''ekibe hoşgeldin'', ''çalışma grubumuza katılım daveti'')', 'Mail içinde başlığın hemen altında küçük italik metin olarak görünür.', 'metin', false, '[]'::jsonb, 320, 'mail', false, now(), now()),
-            (gen_random_uuid(), 'mail_davetiye_giris_metni', 'Davet Maili Giriş Metni', 'Mail''in üst kısmında kullanıcıya hitap eden açıklama paragraf. Markanı, neden davet ettiğini ve nasıl katkıda bulunabileceğini anlat.', 'Mail içinde CTA butonundan önce görünür. 2-4 cümle önerilir.', 'body', true, '[""alici_ad"",""marka_adi""]'::jsonb, 330, 'mail', false, now(), now()),
-            (gen_random_uuid(), 'mail_hatirlatma_konu', 'Hatırlatıcı Maili Konusu', 'Bir not için hatırlatıcı kurulduğunda gönderilecek mail''in konusu. (Örn: ''♡ Hatırlatıcı - {{not_basligi}}'', ''Hatırlatıyoruz: {{not_basligi}}'')', 'Hatırlatma zamanı geldiğinde gönderilen mail''in subject''i.', 'subject', false, '[""not_basligi"",""kullanici_adi""]'::jsonb, 340, 'mail', false, now(), now()),
-            (gen_random_uuid(), 'bildirim_yeni_not_metin', 'Yeni Not Bildirimi Metni', 'Diğer kullanıcı yeni not eklediğinde in-app bildirim metni. (Örn: ''{{kullanici_adi}} yeni bir not ekledi: {{not_basligi}}'')', 'Sağ üst köşede toast olarak görünür.', 'metin', false, '[""kullanici_adi"",""not_basligi""]'::jsonb, 400, 'bildirim', false, now(), now()),
-            (gen_random_uuid(), 'bildirim_not_tamamlandi_metin', 'Not Tamamlandı Bildirimi', 'Bir not tamamlandığında gösterilecek bildirim. (Örn: ''✓ {{not_basligi}} tamamlandı'', ''{{kullanici_adi}} tamamladı: {{not_basligi}}'')', 'İlgili kullanıcılara in-app + opsiyonel mail.', 'metin', false, '[]'::jsonb, 410, 'bildirim', false, now(), now()),
-            (gen_random_uuid(), 'bildirim_hatirlatici_metin', 'Hatırlatıcı Bildirimi Metni', 'Hatırlatıcı zamanı geldiğinde gösterilen bildirim. (Örn: ''⏰ Hatırlatma: {{not_basligi}}'', ''{{not_basligi}} için bugün son gün'')', 'Tarih/saat geldiğinde in-app + mail.', 'metin', false, '[]'::jsonb, 420, 'bildirim', false, now(), now()),
-            (gen_random_uuid(), 'form_klasor_olustur_placeholder', 'Klasör Oluştur Formu İpucu', 'Yeni klasör oluşturma form alanı için soluk ipucu. (Örn: ''Yeni klasör adı...'', ''Konu başlığı...'', ''Proje adı yaz...'')', 'Sol panelden ''Yeni klasör'' tıklandığında açılan formda görünür.', 'placeholder_kisa', false, '[]'::jsonb, 500, 'form', false, now(), now()),
-            (gen_random_uuid(), 'form_giris_email_placeholder', 'Giriş Formu E-posta İpucu', 'Login sayfasında e-posta alanı için ipucu. (Örn: ''E-posta adresin'', ''E-mail address'', ''ornek@firma.com'')', 'Login sayfasında üst form alanında görünür.', 'placeholder_kisa', false, '[]'::jsonb, 510, 'form', false, now(), now()),
-            (gen_random_uuid(), 'mail_tonu', 'Mail Tonu', 'Mail metinlerinin genel tarzı. (Örn: samimi / profesyonel / resmi)', 'Davetiye ve hatirlatma maillerinin genel tonu - AI yardimcisi onerileri ve ton sliderinin varsayilan degeri.', 'placeholder_kisa', false, '[]'::jsonb, 305, 'mail', false, now(), now())
-            ON CONFLICT (""Anahtar"") DO NOTHING;
-
             -- 15. v18 isletme_metinleri (tenant icerigi, Sifir Sablon KATMAN 2)
             CREATE TABLE IF NOT EXISTS isletme_metinleri (
                 ""Id"" uuid PRIMARY KEY,
@@ -689,8 +663,16 @@ app.MapLockEndpoints();
 app.MapExportEndpoints();
 app.MapIsletmeEndpoints();  // v15
 app.MapSistemEndpoints();   // v17 — super admin metin anahtar katalogu
+app.MapSemaEndpoints();      // v18 Asama 11.9 B2 - read-only sistem semasi
 app.MapAiAyarlariEndpoints();
 app.MapMetinlerEndpoints();   // v18 - tenant icerigi   // v17 - AI saglayici ayar yonetimi + saglik
 app.MapAiAssistEndpoints();   // v18 Asama 11/12 - AI taslak oneri (saglik + taslak-oner)
+
+// v18 Asama 11.9 - Schema-as-Code: anahtar katalogu DB'ye senkronize (idempotent, migration sonrasi)
+using (var semaScope = app.Services.CreateScope())
+{
+    var sync = semaScope.ServiceProvider.GetRequiredService<AnahtarSyncService>();
+    await sync.SenkronizeAsync();
+}
 
 app.Run();
