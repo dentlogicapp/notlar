@@ -243,9 +243,9 @@ public sealed class EmailService : IEmailService
       </td></tr>
 
       <tr><td style='padding:28px 40px 0;'>
-        <p style='color:#5d4a37;font-size:15px;line-height:1.7;margin:0 0 14px;text-align:justify;hyphens:auto;'>
+        <div style='color:#5d4a37;font-size:15px;line-height:1.7;margin:0 0 14px;text-align:justify;hyphens:auto;'>
           {girisMetni}
-        </p>
+        </div>
         {sayacBlok}
       </td></tr>
 

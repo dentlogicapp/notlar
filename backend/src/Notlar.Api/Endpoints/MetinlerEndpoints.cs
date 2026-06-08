@@ -59,7 +59,8 @@ public static class MetinlerEndpoints
 
         // PUT /{anahtar} -> icerik guncelle (versiyona kaydet)
         g.MapPut("/{anahtar}", async (string anahtar, MetinKaydetIstegi req, HttpContext http,
-            AppDbContext db, IUserContext uc, IIsletmeMetinService svc, IAuditService audit, CancellationToken ct) =>
+            AppDbContext db, IUserContext uc, IIsletmeMetinService svc, IAuditService audit,
+            Ganss.Xss.HtmlSanitizer sanitizer, CancellationToken ct) =>
         {
             if (uc.AktifIsletmeId is null) return Results.Unauthorized();
             if (GoruntulemeYazmaYok(http) is { } engel) return engel;
@@ -69,7 +70,10 @@ public static class MetinlerEndpoints
             var katalog = await db.MetinAnahtarlari.FirstOrDefaultAsync(a => a.Anahtar == anahtar && !a.Deprecated, ct);
             if (katalog is null) return Results.NotFound(new { hata = "ANAHTAR_BULUNAMADI", mesaj = "Key not found." });
 
-            var metin = await svc.KaydetAsync(uc.AktifIsletmeId.Value, anahtar, req.Icerik.Trim(), uc.KullaniciId, ct);
+            // v18 Asama10 - body tipi WYSIWYG HTML uretir; 2. katman sanitize (TipTap whitelist arkasinda).
+            var icerik = req.Icerik.Trim();
+            if (katalog.Tip == "body") icerik = sanitizer.Sanitize(icerik);
+            var metin = await svc.KaydetAsync(uc.AktifIsletmeId.Value, anahtar, icerik, uc.KullaniciId, ct);
             await audit.YazAsync("isletme_metni_guncelle", "isletme_metni", metin.Id, detay: anahtar, ct: ct);
             return Results.Ok(Birlestir(katalog, metin.Icerik));
         });

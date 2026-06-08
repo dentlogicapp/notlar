@@ -2,6 +2,7 @@
 
 import { useRef, useEffect } from "react";
 import type { MetinBirlesik } from "@/lib/types";
+import { RichTextInput } from "./RichTextInput";
 
 // v18 - Katalog-driven tek metin alani. tip -> uygun input; etiket/yonlendirme/aciklama katalogtan.
 // sayac_hedef_tarihi -> datetime-local (ozel). DIGER TUM alanlar (baslik/konu/govde dahil, uzunluk
@@ -55,6 +56,13 @@ export function MetinAlani({
           value={deger}
           onChange={(e) => onDegis(metin.anahtar, e.target.value)}
           className={ortakClass}
+        />
+      ) : metin.tip === "body" ? (
+        <RichTextInput
+          value={deger}
+          onChange={(html) => onDegis(metin.anahtar, html)}
+          placeholder={metin.yonlendirme}
+          hata={!!hata}
         />
       ) : (
         <textarea

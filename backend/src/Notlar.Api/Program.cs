@@ -44,6 +44,18 @@ builder.Services.AddHttpClient<OpenAiAssistService>();
 builder.Services.AddScoped<IAiAssistServiceFactory, AiAssistServiceFactory>();
 // v17 - Runtime placeholder cozucu (G.4 minimal iskelet, stateless singleton)
 builder.Services.AddSingleton<ISablonResolver, SablonResolver>();
+// v18 Asama10 - WYSIWYG body sanitize (XSS 2. katman, TipTap whitelist arkasinda). Izinli: strong/em/a[href]/br/p.
+builder.Services.AddSingleton(_ =>
+{
+    var s = new Ganss.Xss.HtmlSanitizer();
+    s.AllowedTags.Clear();
+    foreach (var t in new[] { "strong", "em", "a", "br", "p" }) s.AllowedTags.Add(t);
+    s.AllowedAttributes.Clear();
+    s.AllowedAttributes.Add("href");
+    s.AllowedSchemes.Clear();
+    foreach (var sc in new[] { "http", "https", "mailto" }) s.AllowedSchemes.Add(sc);
+    return s;
+});
 // v18 - tenant icerigi + version history (Senaryo A, dogrudan AppDbContext)
 builder.Services.AddScoped<IIsletmeMetinService, IsletmeMetinService>();
 

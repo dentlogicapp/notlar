@@ -104,7 +104,7 @@ export function LivePreview({ sekme, degerler }: { sekme: string; degerler: Reco
             <div style={{ textAlign: "center", color: "#c4704d", fontSize: 30, lineHeight: 1 }}>♡</div>
             <h3 style={{ fontFamily: "Georgia, serif", fontSize: 20, color: "#3d2817", margin: "8px 0 2px", textAlign: "center", fontWeight: 600 }}>Ayşegül,</h3>
             <p style={{ color: "#c4704d", fontSize: 12, fontStyle: "italic", textAlign: "center", margin: 0 }}>planlama defterimiz seni bekliyor 🤍</p>
-            <p style={{ color: "#5d4a37", fontSize: 12.5, lineHeight: 1.7, textAlign: "justify", margin: "14px 0 0", whiteSpace: "pre-wrap" }}>{giris}</p>
+            <div style={{ color: "#5d4a37", fontSize: 12.5, lineHeight: 1.7, textAlign: "justify", margin: "14px 0 0" }} dangerouslySetInnerHTML={{ __html: giris }} />
             {mailSayacGoster && (
               <p style={{ color: "#5d4a37", fontSize: 12.5, textAlign: "center", margin: "10px 0 0" }}>
                 {mailSayacBaslik} <strong>{sk.gun} gün</strong> ✨
