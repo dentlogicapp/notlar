@@ -8,10 +8,16 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [qc] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
-        staleTime: 30_000,
-        refetchOnWindowFocus: false,
-        refetchIntervalInBackground: false, // Sekme arka planda polling durur
-        retry: 1,
+        // v18 Asama 11.7 - Real-time senkron (A: polling + focus). SSE v20+.
+        staleTime: 5_000,                    // 5sn taze
+        gcTime: 300_000,                     // 5dk cache
+        refetchInterval: 15_000,             // 15sn arka plan polling
+        refetchIntervalInBackground: false,  // arka plan sekmede polling durur (pil + ag)
+        refetchOnWindowFocus: true,          // sekmeye donunce ANINDA
+        refetchOnReconnect: true,            // ag geri gelince aninda
+        refetchOnMount: "always",            // sayfa acilinca taze ver
+        retry: 2,
+        retryDelay: (attemptIndex: number) => Math.min(1000 * 2 ** attemptIndex, 30_000),
       },
     },
   }));

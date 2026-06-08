@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { AuthGuard } from "@/components/AuthGuard";
 import { CountdownWidget } from "@/components/CountdownWidget";
 import { UserMenu } from "@/components/UserMenu";
+import { Yenile } from "@/components/Yenile";
 import { MetinAlani } from "@/components/MetinAlani";
 import { LivePreview } from "@/components/LivePreview";
 import { Button } from "@/components/ui/button";
@@ -175,7 +176,10 @@ function Icerik() {
             <Heart className="h-4 w-4 text-terracotta hidden sm:inline" fill="currentColor" />
             <span className="font-display text-base truncate">Marka &amp; Görünüm</span>
           </Link>
-          <UserMenu />
+          <div className="flex items-center gap-3 shrink-0">
+            <Yenile />
+            <UserMenu />
+          </div>
         </div>
       </header>
 
