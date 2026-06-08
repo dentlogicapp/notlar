@@ -74,6 +74,29 @@ public static class AiAssistEndpoints
                 return Results.Json(new { hata = ex.Kod, mesaj = "AI su an kullanilamiyor." }, statusCode: 503);
             }
         });
+
+        // v18 Asama 11.6 - Dokumantasyon oner: super admin metin-anahtari formunda Yonlendirme/Aciklama
+        // alanlari icin oneri. Tenant/DB lookup YOK (yeni anahtar olabilir); form verisi kullanilir.
+        g.MapPost("/dokumantasyon-oner", async (DokumantasyonOnerIstegi req,
+            IAiAssistServiceFactory factory, CancellationToken ct) =>
+        {
+            var baglam = new AiTaslakBaglam(
+                string.IsNullOrWhiteSpace(req.Etiket) ? req.AnahtarKodu : req.Etiket!,
+                null, Array.Empty<string>(), "(sistem dokumantasyonu)", null,
+                "acik ve yonlendirici", null, null,
+                Mod: "dokumantasyon", Tip: req.Tip, Kategori: req.Kategori, HedefAlan: req.HedefAlan);
+
+            try
+            {
+                var servis = await factory.ServisGetirAsync(ct);
+                var sonuc = await servis.TaslakOnerAsync(req.AnahtarKodu, baglam, ct);
+                return Results.Ok(sonuc);
+            }
+            catch (AiKullanilamazException ex)
+            {
+                return Results.Json(new { hata = ex.Kod, mesaj = "AI su an kullanilamiyor." }, statusCode: 503);
+            }
+        });
     }
 
     private static IReadOnlyList<string> PlaceholderListesi(string jsonb)
@@ -85,3 +108,6 @@ public static class AiAssistEndpoints
 
 // Body: anahtar + ton/uzunluk/etkinlik baglami (katalog + tenant verisi backend'de doldurulur).
 public sealed record TaslakOnerIstegi(string Anahtar, string? Ton, string? Uzunluk, string? EtkinlikTanimi);
+
+// v18 Asama 11.6 - Dokumantasyon oner istegi (super admin metin-anahtari formu; tenant/DB lookup yok).
+public sealed record DokumantasyonOnerIstegi(string AnahtarKodu, string? Etiket, string? Tip, string? Kategori, string? HedefAlan);

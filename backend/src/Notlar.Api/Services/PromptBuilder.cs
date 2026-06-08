@@ -14,6 +14,9 @@ public static class PromptBuilder
 
     public static string TaslakOner(string anahtar, AiTaslakBaglam baglam)
     {
+        if (baglam.Mod == "dokumantasyon")
+            return DokumantasyonOner(anahtar, baglam);
+
         var sb = new StringBuilder();
         sb.AppendLine($"Anahtar: {anahtar}");
         sb.AppendLine($"Etiket: {baglam.Etiket}");
@@ -39,6 +42,32 @@ public static class PromptBuilder
         sb.AppendLine("   - metin: 150 karakter");
         sb.AppendLine("   - body: 500 karakter");
         sb.AppendLine("   - placeholder_kisa: 80 karakter");
+        return sb.ToString();
+    }
+
+    // v18 Asama 11.6 - Super admin icin SISTEM DOKUMANTASYONU onerisi (tenant metni DEGIL).
+    // HedefAlan: "yonlendirme" (input placeholder/ipucu) veya "aciklama" (form alti yardim).
+    private static string DokumantasyonOner(string anahtarKodu, AiTaslakBaglam baglam)
+    {
+        var aciklamaMi = baglam.HedefAlan == "aciklama";
+        var sb = new StringBuilder();
+        sb.AppendLine("ÖNEMLİ: Bu bir SaaS platformunun SİSTEM DOKÜMANTASYONUDUR, tenant metni DEĞİL.");
+        sb.AppendLine("Platformun süper yöneticisine yardım ediyorsun. Aşağıdaki metin anahtarı için " + (aciklamaMi
+            ? "form altında gösterilecek kısa YARDIM AÇIKLAMASI yaz (tenant yöneticisine ne doldurması gerektiğini anlatan)."
+            : "input alanında gösterilecek YÖNLENDİRME/PLACEHOLDER metni yaz (tenant yöneticisine örnek/ipucu veren)."));
+        sb.AppendLine();
+        sb.AppendLine($"Anahtar kodu: {anahtarKodu}");
+        sb.AppendLine($"Etiket: {baglam.Etiket}");
+        sb.AppendLine($"Tip: {baglam.Tip ?? \"-\"}");
+        sb.AppendLine($"Kategori: {baglam.Kategori ?? \"-\"}");
+        sb.AppendLine();
+        sb.AppendLine("Kurallar:");
+        sb.AppendLine("1. Tam olarak 3 öneri üret.");
+        sb.AppendLine(aciklamaMi
+            ? "2. Her öneri kısa bir yardım cümlesi olsun (maks 120 karakter), ne doldurulacağını açıklasın."
+            : "2. Her öneri somut bir örnek/ipucu olsun (maks 80 karakter), farklı sektörlerden ilham versin (düğün, klinik, ekip vb.).");
+        sb.AppendLine("3. Türkçe, açık ve eyleme yönelik yaz.");
+        sb.AppendLine("4. Örneklerde {{alici_ad}} gibi placeholder gösterimini koru.");
         return sb.ToString();
     }
 

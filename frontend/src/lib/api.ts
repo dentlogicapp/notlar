@@ -305,4 +305,10 @@ export const aiApi = {
       method: "POST",
       body: JSON.stringify(govde),
     }),
+  // v18 Asama 11.6 - Super admin metin-anahtari formu icin dokumantasyon onerisi (tenant'siz, DB lookup yok).
+  dokumantasyonOner: (govde: { anahtarKodu: string; etiket?: string; tip?: string; kategori?: string; hedefAlan?: string }) =>
+    ist<TaslakSonucu>("/api/super-admin/ai-assist/dokumantasyon-oner", {
+      method: "POST",
+      body: JSON.stringify(govde),
+    }),
 };

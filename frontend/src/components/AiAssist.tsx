@@ -18,14 +18,28 @@ const UZUNLUKLAR = [
   { k: "uzun", e: "Uzun" },
 ];
 
-export function AiAssist({ anahtar, onTaslakSec }: { anahtar: string; onTaslakSec: (metin: string) => void }) {
+export function AiAssist({ anahtar, onTaslakSec, mod = "metin", etiket, tip, kategori, hedefAlan }: {
+  anahtar: string;
+  onTaslakSec: (metin: string) => void;
+  mod?: "metin" | "dokumantasyon";
+  etiket?: string;
+  tip?: string;
+  kategori?: string;
+  hedefAlan?: string;
+}) {
   const { data: saglik } = useAiSaglik();
   const saglikli = saglik?.saglikli ?? false;
+  const dokMu = mod === "dokumantasyon";
   const [acik, setAcik] = useState(false);
   const [ton, setTon] = useState("samimi");
   const [uzunluk, setUzunluk] = useState("kisa");
 
-  const oner = useMutation({ mutationFn: () => aiApi.taslakOner({ anahtar, ton, uzunluk }) });
+  const oner = useMutation({
+    mutationFn: () =>
+      dokMu
+        ? aiApi.dokumantasyonOner({ anahtarKodu: anahtar, etiket, tip, kategori, hedefAlan })
+        : aiApi.taslakOner({ anahtar, ton, uzunluk }),
+  });
 
   if (!saglikli) {
     return (
@@ -59,7 +73,7 @@ export function AiAssist({ anahtar, onTaslakSec }: { anahtar: string; onTaslakSe
           >
             <div className="flex items-center justify-between">
               <h3 className="font-display text-lg text-clay-900 dark:text-ink-50 flex items-center gap-1.5">
-                <Sparkles className="h-4 w-4 text-terracotta" /> AI ile taslak öner
+                <Sparkles className="h-4 w-4 text-terracotta" /> {dokMu ? "AI ile öneri" : "AI ile taslak öner"}
               </h3>
               <button
                 type="button"
@@ -71,8 +85,17 @@ export function AiAssist({ anahtar, onTaslakSec }: { anahtar: string; onTaslakSe
               </button>
             </div>
 
-            <Segmented label="Ton" secenekler={TONLAR} deger={ton} onSec={setTon} />
-            <Segmented label="Uzunluk" secenekler={UZUNLUKLAR} deger={uzunluk} onSec={setUzunluk} />
+            {!dokMu && (
+              <>
+                <Segmented label="Ton" secenekler={TONLAR} deger={ton} onSec={setTon} />
+                <Segmented label="Uzunluk" secenekler={UZUNLUKLAR} deger={uzunluk} onSec={setUzunluk} />
+              </>
+            )}
+            {dokMu && (
+              <p className="text-xs text-clay-500 dark:text-ink-200">
+                {hedefAlan === "aciklama" ? "Form altı yardım açıklaması için 3 öneri üret." : "Input yönlendirme/placeholder metni için 3 öneri üret."}
+              </p>
+            )}
 
             <button
               type="button"

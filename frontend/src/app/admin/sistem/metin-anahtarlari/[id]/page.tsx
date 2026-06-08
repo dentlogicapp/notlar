@@ -10,6 +10,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { ChevronLeft, Heart, Loader2, Save, Copy, Archive, Trash2 } from "lucide-react";
 import { UserMenu } from "@/components/UserMenu";
+import { AiAssist } from "@/components/AiAssist";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { sistemApi } from "@/lib/api";
@@ -59,7 +60,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     resolver: zodResolver(schema),
     defaultValues: { tip: "metin", kategori: "form", zorunlu: false, sira: 100 },
   });
-  const { register, handleSubmit, reset, setError, formState: { errors, isDirty } } = form;
+  const { register, handleSubmit, reset, setError, setValue, watch, formState: { errors, isDirty } } = form;
 
   useEffect(() => {
     if (mevcut) {
@@ -179,13 +180,35 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         </div>
 
         <div className="space-y-1">
-          <Label>Yonlendirme (input placeholder)</Label>
+          <div className="flex items-center justify-between gap-2">
+            <Label>Yonlendirme (input placeholder)</Label>
+            <AiAssist
+              anahtar={watch("anahtar") || ""}
+              etiket={watch("etiket")}
+              tip={watch("tip")}
+              kategori={watch("kategori")}
+              mod="dokumantasyon"
+              hedefAlan="yonlendirme"
+              onTaslakSec={(m) => setValue("yonlendirme", m, { shouldDirty: true, shouldValidate: true })}
+            />
+          </div>
           <Input {...register("yonlendirme")} placeholder="Orn. Dugunumuze davetlisiniz" />
           {errors.yonlendirme && <p className="text-sm text-red-500">{errors.yonlendirme.message}</p>}
         </div>
 
         <div className="space-y-1">
-          <Label>Aciklama (form alti yardim)</Label>
+          <div className="flex items-center justify-between gap-2">
+            <Label>Aciklama (form alti yardim)</Label>
+            <AiAssist
+              anahtar={watch("anahtar") || ""}
+              etiket={watch("etiket")}
+              tip={watch("tip")}
+              kategori={watch("kategori")}
+              mod="dokumantasyon"
+              hedefAlan="aciklama"
+              onTaslakSec={(m) => setValue("aciklama", m, { shouldDirty: true })}
+            />
+          </div>
           <textarea
             {...register("aciklama")}
             rows={2}

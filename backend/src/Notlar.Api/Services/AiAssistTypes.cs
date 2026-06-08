@@ -11,7 +11,11 @@ public sealed record AiTaslakBaglam(
     string? EtkinlikTanimi,                   // etkinlik/is tipi (dugun, klinik, ekip vb.)
     string Ton,                               // 'samimi' | 'resmi' | ...
     string? Uzunluk,                          // istenen uzunluk ipucu (kisa/orta/uzun)
-    IReadOnlyList<string>? DigerMetinler);    // tutarlilik baglami (dolu diger metinler)
+    IReadOnlyList<string>? DigerMetinler,     // tutarlilik baglami (dolu diger metinler)
+    string? Mod = null,                       // v18 Asama 11.6 - null/"tenant" | "dokumantasyon"
+    string? Tip = null,                       // dokumantasyon: anahtar tipi (subject/baslik/metin/body/placeholder_kisa)
+    string? Kategori = null,                  // dokumantasyon: anahtar kategorisi
+    string? HedefAlan = null);                // dokumantasyon: "yonlendirme" | "aciklama"
 
 /// <summary>
 /// v17 - Yeniden yazma modu. Deger lowercase_snake: prompt + JSON request ile dogal eslesir.

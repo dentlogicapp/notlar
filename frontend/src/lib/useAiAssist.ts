@@ -10,6 +10,7 @@ export function useAiSaglik() {
     queryFn: () => aiApi.saglik(),
     staleTime: 60_000,
     gcTime: 300_000,
+    refetchInterval: false, // v18 Asama 11.6 - saglik nadir degisir; global 15sn polling burada kapali
     retry: false,
   });
 }
