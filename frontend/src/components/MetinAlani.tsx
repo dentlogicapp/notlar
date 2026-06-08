@@ -5,6 +5,7 @@ import type { MetinBirlesik } from "@/lib/types";
 import { RichTextInput } from "./RichTextInput";
 import { AiAssist } from "./AiAssist";
 import { KarakterSayaci } from "./KarakterSayaci";
+import { VersiyonGecmisi } from "./VersiyonGecmisi";
 
 // v18 - Katalog-driven tek metin alani. tip -> uygun input; etiket/yonlendirme/aciklama katalogtan.
 // sayac_hedef_tarihi -> datetime-local (ozel). DIGER TUM alanlar (baslik/konu/govde dahil, uzunluk
@@ -52,9 +53,12 @@ export function MetinAlani({
           {metin.etiket}
           {metin.zorunlu && <span className="text-terracotta text-xs">zorunlu</span>}
         </label>
-        {!tarihMi && (
-          <AiAssist anahtar={metin.anahtar} onTaslakSec={(m) => onDegis(metin.anahtar, m)} />
-        )}
+        <div className="flex items-center gap-2.5 shrink-0">
+          {!tarihMi && (
+            <AiAssist anahtar={metin.anahtar} onTaslakSec={(m) => onDegis(metin.anahtar, m)} />
+          )}
+          <VersiyonGecmisi anahtar={metin.anahtar} onDon={(ic) => onDegis(metin.anahtar, ic)} />
+        </div>
       </div>
 
       {tarihMi ? (
