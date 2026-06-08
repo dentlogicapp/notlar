@@ -4,6 +4,7 @@ import { useRef, useEffect } from "react";
 import type { MetinBirlesik } from "@/lib/types";
 import { RichTextInput } from "./RichTextInput";
 import { AiAssist } from "./AiAssist";
+import { KarakterSayaci } from "./KarakterSayaci";
 
 // v18 - Katalog-driven tek metin alani. tip -> uygun input; etiket/yonlendirme/aciklama katalogtan.
 // sayac_hedef_tarihi -> datetime-local (ozel). DIGER TUM alanlar (baslik/konu/govde dahil, uzunluk
@@ -81,13 +82,18 @@ export function MetinAlani({
         />
       )}
 
-      {hata ? (
-        <p className="text-xs text-red-600 dark:text-red-400 leading-relaxed">{hata}</p>
-      ) : (
-        metin.aciklama && (
-          <p className="text-xs text-clay-400 dark:text-ink-300 leading-relaxed">{metin.aciklama}</p>
-        )
-      )}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          {hata ? (
+            <p className="text-xs text-red-600 dark:text-red-400 leading-relaxed">{hata}</p>
+          ) : (
+            metin.aciklama && (
+              <p className="text-xs text-clay-400 dark:text-ink-300 leading-relaxed">{metin.aciklama}</p>
+            )
+          )}
+        </div>
+        {!tarihMi && <KarakterSayaci mevcut={deger.length} tip={metin.tip} />}
+      </div>
     </div>
   );
 }
