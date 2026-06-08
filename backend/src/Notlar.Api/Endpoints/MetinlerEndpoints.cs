@@ -15,6 +15,21 @@ public static class MetinlerEndpoints
 {
     public static void MapMetinlerEndpoints(this WebApplication app)
     {
+        // v18 - Public okuma: render icin (dashboard/marka/sayac/mail) TUM auth kullanicilar (es dahil,
+        // kullanici rolu). Sadece GET; duzenleme /api/admin/metinler (AdminOnly) altinda kalir. Tenant-scoped.
+        var gOku = app.MapGroup("/api/metinler").WithTags("Metinler").RequireAuthorization();
+        gOku.MapGet("/", async (AppDbContext db, IUserContext uc, IIsletmeMetinService svc, CancellationToken ct) =>
+        {
+            if (uc.AktifIsletmeId is null) return Results.Unauthorized();
+            var tid = uc.AktifIsletmeId.Value;
+            var anahtarlar = await db.MetinAnahtarlari
+                .Where(a => !a.Deprecated).OrderBy(a => a.Sira).ToListAsync(ct);
+            var metinler = await svc.TumunuGetirAsync(tid, ct);
+            var map = metinler.ToDictionary(m => m.Anahtar, m => m.Icerik);
+            var sonuc = anahtarlar.Select(a => Birlestir(a, map.GetValueOrDefault(a.Anahtar))).ToList();
+            return Results.Ok(sonuc);
+        });
+
         var g = app.MapGroup("/api/admin/metinler").WithTags("Metinler").RequireAuthorization("AdminOnly");
 
         // GET / -> katalog (metin_anahtarlari) + tenant degeri (isletme_metinleri) birlesik

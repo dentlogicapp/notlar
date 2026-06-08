@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { authApi, bildirimApi, defteriIndir, isletmeApi, type DefteriIndirFormat } from "@/lib/api";
 import { useBen } from "@/lib/useBen";
+import { useIsletmeMetinleri, metinDeger } from "@/lib/useIsletmeMetinleri";
 import { useTema } from "@/lib/tema";
 import { cn, bastari } from "@/lib/utils";
 import type { Bildirim } from "@/lib/types";
@@ -38,6 +39,10 @@ function gecenSureMetni(zaman: string): string {
 
 export function UserMenu() {
   const { data: ben } = useBen();
+  // v18 - aktif workspace adi/emoji isletme_metinleri'nden (tek kaynak); uyelik (isletmeler) fallback.
+  const { data: metinler } = useIsletmeMetinleri();
+  const aktifMarkaAdi = metinDeger(metinler, "marka_adi", "");
+  const aktifMarkaEmoji = metinDeger(metinler, "marka_emoji", "");
   const router = useRouter();
   const qc = useQueryClient();
   const [acik, setAcik] = useState(false);
@@ -151,7 +156,7 @@ export function UserMenu() {
               {aktifUyelik && (
                 <p className="text-[11px] text-clay-500 dark:text-ink-200 mt-1.5 truncate">
                   {cokluUyelik && <span className="opacity-60">Aktif marka:{" "}</span>}
-                  {aktifUyelik.markaEmoji} {aktifUyelik.markaAdi}
+                  {aktifMarkaEmoji || aktifUyelik.markaEmoji} {aktifMarkaAdi || aktifUyelik.markaAdi}
                 </p>
               )}
             </div>

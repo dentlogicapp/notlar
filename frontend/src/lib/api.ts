@@ -276,7 +276,7 @@ export const aiAyarApi = {
 
 // v18 - Sifir Sablon: tenant metin yonetimi (/api/admin/metinler)
 export const metinApi = {
-  list: () => ist<MetinBirlesik[]>("/api/admin/metinler"),
+  list: () => ist<MetinBirlesik[]>("/api/metinler"),
   get: (anahtar: string) =>
     ist<MetinBirlesik>(`/api/admin/metinler/${encodeURIComponent(anahtar)}`),
   guncelle: (anahtar: string, icerik: string) =>
