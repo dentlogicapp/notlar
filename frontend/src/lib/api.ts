@@ -5,6 +5,7 @@ import type {
   Cinsiyet, HatirlatmaKime, HatirlatmaSekli,
   Uyelik, Isletme, MetinAnahtari, AiAyari, AiModel, AiTestSonucu,
   MetinBirlesik, MetinVersiyon, OnboardingDurum
+  TaslakSonucu,
 } from "./types";
 
 const API = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:5000";
@@ -294,4 +295,14 @@ export const metinApi = {
       { method: "POST" }
     ),
   onboardingDurum: () => ist<OnboardingDurum>("/api/admin/metinler/onboarding-durum"),
+};
+
+// v18 Asama 11/12 - AI taslak oneri (saglik durumu + taslak uretme). Saglayicidan habersiz.
+export const aiApi = {
+  saglik: () => ist<{ saglikli: boolean }>("/api/admin/ai-assist/saglik"),
+  taslakOner: (govde: { anahtar: string; ton?: string; uzunluk?: string; etkinlikTanimi?: string }) =>
+    ist<TaslakSonucu>("/api/admin/ai-assist/taslak-oner", {
+      method: "POST",
+      body: JSON.stringify(govde),
+    }),
 };

@@ -224,3 +224,11 @@ export interface OnboardingDurum {
   dolu: number;
   eksikAnahtarlar: string[];
 }
+
+// v18 Asama 11/12 - AI taslak oneri sonucu (backend TaslakSonucu, camelCase)
+export interface TaslakSonucu {
+  oneriler: string[];
+  saglayiciAdi: string;
+  modelId: string;
+  yanitSuresiMs: number;
+}

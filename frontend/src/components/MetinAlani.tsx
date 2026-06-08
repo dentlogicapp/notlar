@@ -3,6 +3,7 @@
 import { useRef, useEffect } from "react";
 import type { MetinBirlesik } from "@/lib/types";
 import { RichTextInput } from "./RichTextInput";
+import { AiAssist } from "./AiAssist";
 
 // v18 - Katalog-driven tek metin alani. tip -> uygun input; etiket/yonlendirme/aciklama katalogtan.
 // sayac_hedef_tarihi -> datetime-local (ozel). DIGER TUM alanlar (baslik/konu/govde dahil, uzunluk
@@ -45,10 +46,15 @@ export function MetinAlani({
 
   return (
     <div className="space-y-1.5">
-      <label className="flex items-center gap-2 text-sm font-medium text-clay-800 dark:text-ink-50">
-        {metin.etiket}
-        {metin.zorunlu && <span className="text-terracotta text-xs">zorunlu</span>}
-      </label>
+      <div className="flex items-center justify-between gap-2">
+        <label className="flex items-center gap-2 text-sm font-medium text-clay-800 dark:text-ink-50">
+          {metin.etiket}
+          {metin.zorunlu && <span className="text-terracotta text-xs">zorunlu</span>}
+        </label>
+        {!tarihMi && (
+          <AiAssist anahtar={metin.anahtar} onTaslakSec={(m) => onDegis(metin.anahtar, m)} />
+        )}
+      </div>
 
       {tarihMi ? (
         <input
