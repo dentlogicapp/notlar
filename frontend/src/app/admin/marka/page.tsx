@@ -13,6 +13,7 @@ import { LivePreview } from "@/components/LivePreview";
 import { Button } from "@/components/ui/button";
 import { metinApi } from "@/lib/api";
 import { useIsletmeMetinleri } from "@/lib/useIsletmeMetinleri";
+import { useAutoSave } from "@/lib/useAutoSave";
 import { cn } from "@/lib/utils";
 
 type SekmeKod = "marka" | "karsilama" | "sayac" | "mail" | "diger";
@@ -96,23 +97,32 @@ function Icerik() {
 
   const onDegis = (anahtar: string, yeni: string) => setDegerler((p) => ({ ...p, [anahtar]: yeni }));
 
-  const kaydet = useMutation({
+  const [sonKayit, setSonKayit] = useState<number | null>(null);
+
+  const otoKaydet = useMutation({
     mutationFn: async () => {
-      // Kosullu zorunluluk: sayac acik ise sayac cumleleri + hedef tarih bos olamaz (enterprise inline uyari)
+      // Kosullu zorunluluk: sayac acik ise sayac cumleleri + hedef tarih bos olamaz (inline uyari).
+      // Auto-save sessiz: hatali alanlari ATLA (toast/sekme zorlamasi yok), gecerli alanlari kaydet.
       const h: Record<string, string> = {};
-      if ((degerler["sayac_aktif"] ?? "") === "true") {
+      const sayacAcik = (degerler["sayac_aktif"] ?? "") === "true";
+      if (sayacAcik) {
         for (const a of ["sayac_aktif_cumle", "sayac_bitti_cumle", "sayac_hedef_tarihi"])
           if (!(degerler[a] ?? "").trim()) h[a] = "Sayaç açıkken bu alan boş bırakılamaz.";
       }
       setHatalar(h);
-      if (Object.keys(h).length > 0) {
-        setSekme("sayac");
-        throw new Error("Sayaç açık — Sayaç sekmesindeki zorunlu alanları doldurun.");
-      }
+      const sayacEksik = Object.keys(h).length > 0;
+
+      // Gecerli degisen alanlar: hatali olanlari + (sayac eksikse) sayac grubunu atla
+      const kaydedilecek = degisenler.filter((m) => {
+        if (h[m.anahtar]) return false;
+        if (sayacEksik && m.kategori === "sayac") return false;
+        return true;
+      });
+      if (kaydedilecek.length === 0) return;
 
       // Bos -> sifirla (tenant override kaldir, fallback'e doner); dolu -> guncelle
       await Promise.all(
-        degisenler.map((m) => {
+        kaydedilecek.map((m) => {
           const yeni = (degerler[m.anahtar] ?? "").trim();
           return yeni === "" ? metinApi.sifirla(m.anahtar) : metinApi.guncelle(m.anahtar, yeni);
         })
@@ -122,10 +132,21 @@ function Icerik() {
       qc.invalidateQueries({ queryKey: ["isletme-metinleri"] });
       qc.invalidateQueries({ queryKey: ["isletme-aktif"] });
       qc.invalidateQueries({ queryKey: ["onboarding-durum"] });
-      toast.success("Kaydedildi");
+      setSonKayit(Date.now());
     },
-    onError: () => toast.error("Kaydedilemedi, tekrar deneyin"),
+    retry: 3,
+    retryDelay: (n) => Math.min(1000 * 2 ** n, 8000),
+    onError: () => toast.error("Kaydedilemedi — bağlantını kontrol et"),
   });
+
+  // Auto-save: icerik degisince 2sn debounce; "Simdi kaydet" butonu anlik tetikler.
+  useAutoSave(JSON.stringify(degerler), degisenler.length > 0, () => otoKaydet.mutate());
+
+  const durum: "bos" | "yaziliyor" | "kaydediliyor" | "kaydedildi" | "hata" =
+    otoKaydet.isError ? "hata"
+    : otoKaydet.isPending ? "kaydediliyor"
+    : degisenler.length > 0 ? "yaziliyor"
+    : sonKayit ? "kaydedildi" : "bos";
 
   if (isLoading) {
     return (
@@ -233,11 +254,17 @@ function Icerik() {
 
       <div className="fixed bottom-0 left-0 right-0 z-30 bg-cream-100/90 dark:bg-ink-800/90 backdrop-blur-md border-t border-cream-300 dark:border-ink-700/60">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
-          <span className="text-xs text-clay-400 dark:text-ink-300">
-            {degisenler.length > 0 ? `${degisenler.length} degisiklik bekliyor` : "Tum degisiklikler kayitli"}
+          <span className="text-xs flex items-center gap-1.5">
+            {durum === "kaydediliyor" && (
+              <><Loader2 className="h-3.5 w-3.5 animate-spin text-clay-500" /><span className="text-clay-500 dark:text-ink-300">Kaydediliyor...</span></>
+            )}
+            {durum === "yaziliyor" && <span className="text-clay-500 dark:text-ink-300">✏️ Yazılıyor...</span>}
+            {durum === "kaydedildi" && <span className="text-green-700 dark:text-green-400">✓ Kaydedildi</span>}
+            {durum === "hata" && <span className="text-red-600 dark:text-red-400">⚠ Bağlantı hatası — otomatik tekrar deneniyor</span>}
+            {durum === "bos" && <span className="text-clay-400 dark:text-ink-300">Tüm değişiklikler kayıtlı</span>}
           </span>
-          <Button type="button" onClick={() => kaydet.mutate()} disabled={degisenler.length === 0 || kaydet.isPending}>
-            {kaydet.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : (<><Save className="h-4 w-4 mr-1.5" /> Kaydet</>)}
+          <Button type="button" onClick={() => otoKaydet.mutate()} disabled={degisenler.length === 0 || otoKaydet.isPending}>
+            {otoKaydet.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : (<><Save className="h-4 w-4 mr-1.5" /> Şimdi kaydet</>)}
           </Button>
         </div>
       </div>
