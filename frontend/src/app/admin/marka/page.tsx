@@ -11,6 +11,7 @@ import { UserMenu } from "@/components/UserMenu";
 import { Yenile } from "@/components/Yenile";
 import { MetinAlani } from "@/components/MetinAlani";
 import { LivePreview } from "@/components/LivePreview";
+import { HosgeldinModal } from "@/components/HosgeldinModal";
 import { Button } from "@/components/ui/button";
 import { metinApi } from "@/lib/api";
 import { useIsletmeMetinleri } from "@/lib/useIsletmeMetinleri";
@@ -37,6 +38,7 @@ export default function Page() {
   return (
     <AuthGuard requireAdmin>
       <Icerik />
+      <HosgeldinModal />
     </AuthGuard>
   );
 }

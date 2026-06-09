@@ -138,7 +138,7 @@ public static class MetinlerEndpoints
     // metin_anahtarlari (katalog) + tenant Icerik -> birlesik yanit
     private static MetinBirlesik Birlestir(Notlar.Api.Entities.MetinAnahtari a, string? icerik)
         => new(a.Anahtar, a.Etiket, a.Yonlendirme, a.Aciklama, a.Tip, a.Kategori, a.Zorunlu, a.Sira,
-               PlaceholderListesi(a.DesteklenenPlaceholderlar), icerik, a.KarakterLimiti);
+               PlaceholderListesi(a.DesteklenenPlaceholderlar), icerik, a.KarakterLimiti, a.Deprecated);
 
     private static IReadOnlyList<string> PlaceholderListesi(string jsonb)
     {

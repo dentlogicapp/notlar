@@ -4,6 +4,8 @@ using Notlar.Api.Entities;
 using Notlar.Api.Models;
 using Notlar.Api.Services;
 
+using Notlar.Api.Models.Sema;
+
 namespace Notlar.Api.Endpoints;
 
 /// <summary>
@@ -62,7 +64,7 @@ public static class AdminEndpoints
         g.MapPost("/kullanicilar", async (
             KullaniciOlusturIstegi req, AppDbContext db,
             IUserContext uc,
-            IEmailService email, IAuditService audit,
+            IEmailService email, IAuditService audit, IIsletmeMetinService metinSvc,
             IConfiguration cfg, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(req.Email) || string.IsNullOrWhiteSpace(req.AdSoyad))
@@ -79,6 +81,30 @@ public static class AdminEndpoints
 
             // v15 — Bu email zaten varsa: sadece bu tenant'a yeni üyelik ekle (varsa)
             var mevcut = await db.Kullanicilar.FirstOrDefaultAsync(u => u.Email == mail, ct);
+
+            // v18 Asama 17 - Mail guard (defense in depth): yeni kullaniciya davetiye gidecek.
+            // Zorunlu davetiye metinleri (konu/giris/imza) bos ise bos/fallback mail gitmesin -> 412.
+            // Mevcut kullaniciya uyelik eklemede mail gonderilmez, guard atlanir.
+            if (mevcut is null)
+            {
+                var davetiyeAnahtarlari = new[]
+                {
+                    AnahtarKodu.MailDavetiyeKonu,
+                    AnahtarKodu.MailDavetiyeGirisMetni,
+                    AnahtarKodu.MailImza,
+                };
+                var tenantMetinleri = await metinSvc.TumunuGetirAsync(tenantId, ct);
+                var doluSet = tenantMetinleri
+                    .Where(m => !string.IsNullOrWhiteSpace(m.Icerik))
+                    .Select(m => m.Anahtar)
+                    .ToHashSet(StringComparer.Ordinal);
+                var eksikMail = davetiyeAnahtarlari.Where(a => !doluSet.Contains(a)).ToList();
+                if (eksikMail.Count > 0)
+                    return Results.Json(
+                        new { hata = "MAIL_METINLERI_EKSIK", eksikAnahtarlar = eksikMail },
+                        statusCode: 412);
+            }
+
             Kullanici user;
             string? setupToken = null;
             bool yeniKullanici = false;
@@ -146,6 +172,45 @@ public static class AdminEndpoints
                     user.SifreBelirlenmeZamani != null, user.KilitlenmeZamani != null,
                     user.OlusturmaZamani, user.SonGirisZamani,
                     0, 0));
+        });
+
+        // v18 Asama 17-E - wizard sonu welcome/davetiye onizleme test maili (kullanici OLUSTURMAZ)
+        g.MapPost("/onboarding-test-mail", async (
+            OnboardingTestMailIstegi req, IUserContext uc, IEmailService email,
+            IIsletmeMetinService metinSvc, IConfiguration cfg, CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(req.Email))
+                return Results.BadRequest(new { hata = "Email zorunlu." });
+            if (uc.AktifIsletmeId is null) return Results.Unauthorized();
+            if (uc.GoruntumeModu) return Results.StatusCode(403);
+            var tenantId = uc.AktifIsletmeId.Value;
+
+            // Mail guard (defense in depth): zorunlu davetiye metinleri dolu olmali
+            var davetiyeAnahtarlari = new[]
+            {
+                AnahtarKodu.MailDavetiyeKonu,
+                AnahtarKodu.MailDavetiyeGirisMetni,
+                AnahtarKodu.MailImza,
+            };
+            var metinler = await metinSvc.TumunuGetirAsync(tenantId, ct);
+            var doluSet = metinler
+                .Where(m => !string.IsNullOrWhiteSpace(m.Icerik))
+                .Select(m => m.Anahtar)
+                .ToHashSet(StringComparer.Ordinal);
+            var eksik = davetiyeAnahtarlari.Where(a => !doluSet.Contains(a)).ToList();
+            if (eksik.Count > 0)
+                return Results.Json(
+                    new { hata = "MAIL_METINLERI_EKSIK", eksikAnahtarlar = eksik },
+                    statusCode: 412);
+
+            // Davetiye onizlemesi: tenant'in kendi metniyle gercek render, link = frontend ana sayfa
+            var frontend = cfg["FrontendBaseUrl"] ?? "http://localhost:3000";
+            await email.SifreBelirleMailGonderAsync(
+                req.Email.Trim(),
+                string.IsNullOrWhiteSpace(req.Ad) ? "Misafir" : req.Ad!.Trim(),
+                frontend, tenantId, ct);
+
+            return Results.Ok(new { gonderildi = true });
         });
 
         // Admin trigger şifre sıfırlama

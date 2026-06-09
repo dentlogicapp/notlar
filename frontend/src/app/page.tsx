@@ -7,6 +7,7 @@ import { AuthGuard } from "@/components/AuthGuard";
 import { CountdownWidget } from "@/components/CountdownWidget";
 import { UserMenu } from "@/components/UserMenu";
 import { KlasorListesi } from "@/components/KlasorGrid";
+import { OnboardingBanner } from "@/components/OnboardingBanner";
 import { YeniNotFormu, NotListesi } from "@/components/Notlar";
 import { useBen } from "@/lib/useBen";
 import { useIsletmeMetinleri, metinDeger } from "@/lib/useIsletmeMetinleri";
@@ -64,6 +65,7 @@ function Icerik() {
 
   return (
     <main className="min-h-screen pb-24">
+      <OnboardingBanner />
       <CountdownWidget />
 
       {/* Üst bar */}

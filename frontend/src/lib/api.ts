@@ -321,6 +321,12 @@ export const metinApi = {
       { method: "POST" }
     ),
   onboardingDurum: () => ist<OnboardingDurum>("/api/admin/metinler/onboarding-durum"),
+  // v18 Asama 17-E - welcome/davetiye onizleme test maili
+  onboardingTestMail: (email: string, ad?: string) =>
+    ist<{ gonderildi: boolean }>("/api/admin/onboarding-test-mail", {
+      method: "POST",
+      body: JSON.stringify({ email, ad }),
+    }),
 };
 
 // v18 Asama 11/12 - AI taslak oneri (saglik durumu + taslak uretme). Saglayicidan habersiz.

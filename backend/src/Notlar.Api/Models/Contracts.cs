@@ -175,8 +175,11 @@ public sealed record MetinKaydetIstegi(string Icerik);
 public sealed record MetinBirlesik(
     string Anahtar, string Etiket, string Yonlendirme, string Aciklama,
     string Tip, string Kategori, bool Zorunlu, int Sira,
-    IReadOnlyList<string> Placeholderlar, string? Icerik, int? KarakterLimiti = null);
+    IReadOnlyList<string> Placeholderlar, string? Icerik, int? KarakterLimiti = null, bool Deprecated = false);
 
 public sealed record MetinVersiyonYaniti(Guid Id, int Versiyon, string Icerik, DateTimeOffset OlusturmaZamani);
 
 public sealed record OnboardingDurum(int Toplam, int Dolu, IReadOnlyList<string> EksikAnahtarlar);
+
+// v18 Asama 17-E - wizard sonu welcome/davetiye onizleme test maili
+public sealed record OnboardingTestMailIstegi(string Email, string? Ad = null);
