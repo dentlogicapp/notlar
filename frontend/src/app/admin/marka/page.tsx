@@ -5,7 +5,8 @@ import { useState, useEffect, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, Heart, HelpCircle, Loader2, Palette, Save, Search } from "lucide-react";
 import { toast } from "sonner";
-import Joyride, { CallBackProps, STATUS } from "react-joyride";
+import { driver } from "driver.js";
+import "driver.js/dist/driver.css";
 import confetti from "canvas-confetti";
 import { useTour } from "@/hooks/useTour";
 import { AuthGuard } from "@/components/AuthGuard";
@@ -50,39 +51,48 @@ function Icerik() {
   const { data: metinler, isLoading, isError } = useIsletmeMetinleri({ kapsam: "Tenant" });
   const { run: turRun, tamamla: turTamamla, atla: turAtla, tekrarBaslat: turTekrar } = useTour();
 
-  const turAdimlari = [
-    { target: "body", placement: "center" as const, disableBeacon: true, title: "Hoşgeldin!",
-      content: "İşletmenin tüm metinlerini buradan yönetirsin. Hızlı bir tura çıkalım mı?" },
-    { target: '[data-tour-step="sekmeler"]', title: "Kategoriler",
-      content: "Marka, Karşılama, Sayaç ve Mail kategorilerine ayrılmış sekmeler. Her sekme ilgili metinleri gruplar." },
-    { target: '[data-tour-step="metin-alani"]', title: "Otomatik Kayıt",
-      content: "Yazdıkların kısa süre sonra otomatik kaydedilir. Ayrıca Kaydet butonuna basmana gerek yok." },
-    { target: '[data-tour-step="mail-sekmesi"]', title: "Mail Metinleri",
-      content: "Davetiye, hatırlatma ve imza metinleri burada. Önemli: mail metinleri eksikken davetiye gönderemezsin, sistem seni korur." },
-    { target: '[data-tour-step="karakter-sayaci"]', title: "Karakter Limiti",
-      content: "Her alanın kendi limiti var, sağ altta sayaç gösterir. Mail konusu için kısa, gövde için uzun gibi." },
-    { target: '[data-tour-step="live-preview"]', title: "Anlık Önizleme",
-      content: "Sağ panelde yazdıklarının nasıl görüneceğini anlık gör. Mail içeriği, dashboard karşılaması, hepsi canlı." },
-    { target: '[data-tour-step="versiyon-gecmisi"]', title: "Eski Sürüme Dönüş",
-      content: "Her alanın geçmişi tutulur. Yanlışlıkla değiştirdiysen saat ikonundan eski sürüme dönebilirsin." },
-    { target: '[data-tour-step="user-menu"]', title: "Hazırsın!",
-      content: "Buradan workspace geçişi, ayarlar ve çıkış. Artık davetiyeni göndermeye başlayabilirsin." },
-  ];
-
-  const turCallback = (d: CallBackProps) => {
-    if (d.type === "step:after" && d.action === "next") {
-      turApi.audit("tur_adim_tamamlandi", d.index + 1).catch(() => {});
-    }
-    if (d.status === STATUS.FINISHED) {
-      turTamamla();
-      confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 }, colors: ["#c4704d", "#d4a661", "#f3ebda"] });
-      toast.success("Hazırsın! İlk davetiyeni göndermeye başla.");
-      turApi.audit("tur_tamamlandi", d.index + 1).catch(() => {});
-    } else if (d.status === STATUS.SKIPPED) {
-      turAtla();
-      turApi.audit("tur_atlandi", d.index + 1).catch(() => {});
-    }
-  };
+  useEffect(() => {
+    if (!turRun) return;
+    let atlandi = false;
+    const d = driver({
+      showProgress: true,
+      progressText: "{{current}}/{{total}}",
+      nextBtnText: "İleri",
+      prevBtnText: "Geri",
+      doneBtnText: "Bitir",
+      steps: [
+        { popover: { title: "Hoşgeldin!", description: "İşletmenin tüm metinlerini buradan yönetirsin. Hızlı bir tura çıkalım mı?" } },
+        { element: '[data-tour-step="sekmeler"]', popover: { title: "Kategoriler", description: "Marka, Karşılama, Sayaç ve Mail kategorilerine ayrılmış sekmeler. Her sekme ilgili metinleri gruplar." } },
+        { element: '[data-tour-step="metin-alani"]', popover: { title: "Otomatik Kayıt", description: "Yazdıkların kısa süre sonra otomatik kaydedilir. Ayrıca Kaydet butonuna basmana gerek yok." } },
+        { element: '[data-tour-step="mail-sekmesi"]', popover: { title: "Mail Metinleri", description: "Davetiye, hatırlatma ve imza metinleri burada. Önemli: mail metinleri eksikken davetiye gönderemezsin, sistem seni korur." } },
+        { element: '[data-tour-step="karakter-sayaci"]', popover: { title: "Karakter Limiti", description: "Her alanın kendi limiti var, sağ altta sayaç gösterir. Mail konusu için kısa, gövde için uzun gibi." } },
+        { element: '[data-tour-step="live-preview"]', popover: { title: "Anlık Önizleme", description: "Sağ panelde yazdıklarının nasıl görüneceğini anlık gör. Mail içeriği, dashboard karşılaması, hepsi canlı." } },
+        { element: '[data-tour-step="versiyon-gecmisi"]', popover: { title: "Eski Sürüme Dönüş", description: "Her alanın geçmişi tutulur. Yanlışlıkla değiştirdiysen saat ikonundan eski sürüme dönebilirsin." } },
+        { element: '[data-tour-step="user-menu"]', popover: { title: "Hazırsın!", description: "Buradan workspace geçişi, ayarlar ve çıkış. Artık davetiyeni göndermeye başlayabilirsin." } },
+      ],
+      onNextClick: (_el, _step, opts) => {
+        const idx = opts.state.activeIndex ?? 0;
+        turApi.audit("tur_adim_tamamlandi", idx + 1).catch(() => {});
+        d.moveNext();
+      },
+      onCloseClick: () => {
+        atlandi = true;
+        const idx = d.getActiveIndex() ?? 0;
+        turAtla();
+        turApi.audit("tur_atlandi", idx + 1).catch(() => {});
+        d.destroy();
+      },
+      onDestroyed: () => {
+        if (atlandi) return;
+        turTamamla();
+        confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 }, colors: ["#c4704d", "#d4a661", "#f3ebda"] });
+        toast.success("Hazırsın! İlk davetiyeni göndermeye başla.");
+        turApi.audit("tur_tamamlandi", 8).catch(() => {});
+      },
+    });
+    d.drive();
+    return () => { d.destroy(); };
+  }, [turRun]);
   const [sekme, setSekme] = useState<SekmeKod>("marka");
   const [degerler, setDegerler] = useState<Record<string, string>>({});
   const [ara, setAra] = useState("");
@@ -319,20 +329,6 @@ function Icerik() {
         </div>
       </div>
 
-      <Joyride
-        steps={turAdimlari}
-        run={turRun}
-        continuous
-        showProgress
-        showSkipButton
-        scrollToFirstStep
-        callback={turCallback}
-        styles={{ options: {
-          primaryColor: "#c4704d", backgroundColor: "#faf6ef", textColor: "#3d2817",
-          arrowColor: "#faf6ef", overlayColor: "rgba(61, 40, 23, 0.5)", zIndex: 10000,
-        } }}
-        locale={{ back: "Geri", close: "Kapat", last: "Bitir", next: "İleri", skip: "Atla" }}
-      />
     </main>
   );
 }
