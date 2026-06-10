@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { metinApi } from "./api";
 import type { MetinBirlesik } from "./types";
@@ -12,11 +13,15 @@ export function useIsletmeMetinleri(opts?: { kapsam?: "Tenant" | "Sistem" }) {
     queryFn: () => metinApi.list(),
     staleTime: 30_000,
   });
-  // v18 Asama 17.1 - kapsam filtresi (client-side; cache ayni queryKey ile paylasilir)
-  if (opts?.kapsam && q.data) {
-    return { ...q, data: q.data.filter((m) => m.kapsam === opts.kapsam) };
-  }
-  return q;
+  // v18 Asama 17.1 - kapsam filtresi (client-side; cache ayni queryKey ile paylasilir).
+  // useMemo ZORUNLU: aksi halde her render yeni array referansi -> tuketici effect'leri
+  // sonsuz tetiklenir (wizard degerler state reset, menu crash).
+  const kapsam = opts?.kapsam;
+  const data = useMemo(
+    () => (kapsam && q.data ? q.data.filter((m) => m.kapsam === kapsam) : q.data),
+    [q.data, kapsam]
+  );
+  return { ...q, data };
 }
 
 export function useOnboardingDurum() {
