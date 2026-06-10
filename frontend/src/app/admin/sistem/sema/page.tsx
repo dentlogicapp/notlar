@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, Loader2, Search, Database, Hash } from "lucide-react";
+import { CountdownWidget } from "@/components/CountdownWidget";
 import { UserMenu } from "@/components/UserMenu";
 import { SemaSkeleton } from "@/components/skeleton/Skeleton";
 import { Input } from "@/components/ui/input";
@@ -70,14 +71,16 @@ export default function SemaPage() {
 
   return (
     <main className="min-h-screen pb-24">
+      <CountdownWidget />
+
       <header className="sticky top-0 z-30 bg-cream-100/85 dark:bg-ink-800/85 backdrop-blur-md border-b border-cream-300 dark:border-ink-700/60">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
           <Link
             href="/admin"
             className="flex items-center gap-1 text-clay-600 dark:text-ink-100 hover:text-clay-900 dark:hover:text-ink-50 transition-colors min-w-0"
           >
             <ChevronLeft className="h-5 w-5 shrink-0" />
-            <span className="truncate">Sistem Şeması</span>
+            <span className="font-display text-base truncate">Sistem Şeması</span>
           </Link>
           <UserMenu />
         </div>
