@@ -306,7 +306,7 @@ export const aiAyarApi = {
 // v18 Asama 19 B2 - tur analytics
 export const turApi = {
   audit: (eylem: string, adimNo: number, kalanSureSn?: number) =>
-    ist<{ kaydedildi: boolean }>("/tur-audit", {
+    ist<{ kaydedildi: boolean }>("/api/tur-audit", {
       method: "POST",
       body: JSON.stringify({ eylem, adimNo, kalanSureSn }),
     }),
