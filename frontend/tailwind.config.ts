@@ -75,11 +75,16 @@ export default {
           "0%, 100%": { boxShadow: "0 0 0 0 rgba(239, 68, 68, 0.45)" },
           "50%":      { boxShadow: "0 0 0 6px rgba(239, 68, 68, 0)" },
         },
+        "shimmer": {
+          "0%":   { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
       },
       animation: {
         "heart-beat": "heart-beat 1.6s ease-in-out infinite",
         "fade-in": "fade-in 0.4s ease-out",
         "pulse-red-bildirim": "pulse-red-bildirim 2s ease-in-out infinite",
+        "shimmer": "shimmer 1.8s ease-in-out infinite",
       },
     },
   },

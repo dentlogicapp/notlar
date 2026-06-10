@@ -16,6 +16,7 @@ import { Yenile } from "@/components/Yenile";
 import { MetinAlani } from "@/components/MetinAlani";
 import { LivePreview } from "@/components/LivePreview";
 import { HosgeldinModal } from "@/components/HosgeldinModal";
+import { MarkaSkeleton } from "@/components/skeleton/Skeleton";
 import { Button } from "@/components/ui/button";
 import { metinApi, turApi } from "@/lib/api";
 import { useIsletmeMetinleri } from "@/lib/useIsletmeMetinleri";
@@ -178,15 +179,37 @@ function Icerik() {
         })
       );
     },
+    // v18 Asama 20 - optimistic: backend beklemeden cache + indicator guncellenir
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: ["isletme-metinleri"] });
+      const onceki = qc.getQueryData(["isletme-metinleri"]);
+      qc.setQueryData(["isletme-metinleri"], (eski: any) =>
+        Array.isArray(eski)
+          ? eski.map((m: any) => {
+              if (!degisenler.some((d) => d.anahtar === m.anahtar)) return m;
+              const yeni = (degerler[m.anahtar] ?? "").trim();
+              return { ...m, icerik: yeni === "" ? null : yeni };
+            })
+          : eski
+      );
+      setSonKayit(Date.now()); // optimistic: "Kaydedildi" hemen gorunur
+      return { onceki };
+    },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["isletme-metinleri"] });
       qc.invalidateQueries({ queryKey: ["isletme-aktif"] });
       qc.invalidateQueries({ queryKey: ["onboarding-durum"] });
-      setSonKayit(Date.now());
+    },
+    onError: (_e, _v, ctx: any) => {
+      // rollback: cache eski haline doner (controlled input otomatik yansir)
+      if (ctx?.onceki) qc.setQueryData(["isletme-metinleri"], ctx.onceki);
+      setSonKayit(null);
+      toast.error("Kaydedilemedi — bağlantını kontrol et");
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["isletme-metinleri"] });
     },
     retry: 3,
     retryDelay: (n) => Math.min(1000 * 2 ** n, 8000),
-    onError: () => toast.error("Kaydedilemedi — bağlantını kontrol et"),
   });
 
   // Auto-save: icerik degisince 2sn debounce; "Simdi kaydet" butonu anlik tetikler.
@@ -200,8 +223,8 @@ function Icerik() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-clay-400 dark:text-ink-300" />
+      <main className="min-h-screen mx-auto max-w-5xl px-4 py-8 animate-fade-in">
+        <MarkaSkeleton />
       </main>
     );
   }

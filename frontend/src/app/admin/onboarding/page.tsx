@@ -6,6 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Check, Loader2, PartyPopper, Lightbulb } from "lucide-react";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
+import { OnboardingSkeleton } from "@/components/skeleton/Skeleton";
 import { AuthGuard } from "@/components/AuthGuard";
 import { UserMenu } from "@/components/UserMenu";
 import { MetinAlani } from "@/components/MetinAlani";
@@ -216,8 +217,8 @@ function Icerik() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-clay-400 dark:text-ink-300" />
+      <main className="min-h-screen mx-auto max-w-2xl px-4 py-8 animate-fade-in">
+        <OnboardingSkeleton />
       </main>
     );
   }

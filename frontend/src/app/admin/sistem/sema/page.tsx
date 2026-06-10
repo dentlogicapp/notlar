@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, Loader2, Search, Database, Hash } from "lucide-react";
 import { UserMenu } from "@/components/UserMenu";
+import { SemaSkeleton } from "@/components/skeleton/Skeleton";
 import { Input } from "@/components/ui/input";
 import { sistemApi, type SemaAnahtar } from "@/lib/api";
 
@@ -142,8 +143,8 @@ export default function SemaPage() {
 
         {/* Liste */}
         {isLoading ? (
-          <div className="flex justify-center py-16">
-            <Loader2 className="h-6 w-6 animate-spin text-clay-400 dark:text-ink-300" />
+          <div className="animate-fade-in">
+            <SemaSkeleton />
           </div>
         ) : toplamGorunen === 0 ? (
           <p className="text-clay-400 dark:text-ink-300 py-12 text-center">Sonuç bulunamadı.</p>
