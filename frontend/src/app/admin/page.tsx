@@ -126,7 +126,9 @@ function Icerik() {
                 </Link>
               </>
             )}
-            <KullaniciEkleDialog />
+            <div className="col-span-2 sm:w-auto sm:contents">
+              <KullaniciEkleDialog />
+            </div>
           </div>
         </div>
 
@@ -256,8 +258,8 @@ function KullaniciEkleDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm">
-          <Plus className="h-4 w-4 mr-1.5" /> Yeni Kullanıcı
+        <Button size="sm" className="w-full h-auto min-h-[44px] py-2 whitespace-normal justify-center text-center leading-tight">
+          <Plus className="h-4 w-4 mr-1.5 shrink-0" /> Yeni Kullanıcı
         </Button>
       </DialogTrigger>
       <DialogContent>
