@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Check, Loader2, PartyPopper, Lightbulb } from "lucide-react";
 import { toast } from "sonner";
+import confetti from "canvas-confetti";
 import { AuthGuard } from "@/components/AuthGuard";
 import { UserMenu } from "@/components/UserMenu";
 import { MetinAlani } from "@/components/MetinAlani";
@@ -60,6 +61,19 @@ function Icerik() {
   const [adimIndex, setAdimIndex] = useState(0);
   const [tamamlandi, setTamamlandi] = useState(false);
   const [sonKayit, setSonKayit] = useState<number | null>(null);
+
+  // Asama 18: tamamlama confetti burst (3sn, terracotta + cream + accent)
+  useEffect(() => {
+    if (!tamamlandi) return;
+    const bitis = Date.now() + 3000;
+    const renkler = ["#c4704d", "#d4a661", "#f3ebda", "#ede0d0"];
+    const frame = () => {
+      confetti({ particleCount: 4, angle: 60, spread: 60, startVelocity: 45, origin: { x: 0, y: 0.7 }, colors: renkler });
+      confetti({ particleCount: 4, angle: 120, spread: 60, startVelocity: 45, origin: { x: 1, y: 0.7 }, colors: renkler });
+      if (Date.now() < bitis) requestAnimationFrame(frame);
+    };
+    frame();
+  }, [tamamlandi]);
   const resumeYapildi = useRef(false);
 
   // Adimlar: non-deprecated anahtari olan kategoriler, sabit sirada
