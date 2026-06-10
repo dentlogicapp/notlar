@@ -86,7 +86,7 @@ function Icerik() {
       onDestroyed: () => {
         if (atlandi) return;
         turTamamla();
-        confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 }, colors: ["#c4704d", "#d4a661", "#f3ebda"] });
+        confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 }, colors: ["#c4704d", "#d4a661", "#f3ebda"], zIndex: 10000 });
         toast.success("Hazırsın! İlk davetiyeni göndermeye başla.");
         turApi.audit("tur_tamamlandi", 8).catch(() => {});
       },
@@ -193,6 +193,7 @@ function Icerik() {
           : eski
       );
       setSonKayit(Date.now()); // optimistic: "Kaydedildi" hemen gorunur
+      toast.success("Kaydedildi", { duration: 1500 }); // mobilde alt-bar gorulmuyor -> belirgin feedback
       return { onceki };
     },
     onSuccess: () => {

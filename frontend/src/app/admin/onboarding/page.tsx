@@ -69,8 +69,8 @@ function Icerik() {
     const bitis = Date.now() + 3000;
     const renkler = ["#c4704d", "#d4a661", "#f3ebda", "#ede0d0"];
     const frame = () => {
-      confetti({ particleCount: 4, angle: 60, spread: 60, startVelocity: 45, origin: { x: 0, y: 0.7 }, colors: renkler });
-      confetti({ particleCount: 4, angle: 120, spread: 60, startVelocity: 45, origin: { x: 1, y: 0.7 }, colors: renkler });
+      confetti({ particleCount: 4, angle: 60, spread: 60, startVelocity: 45, origin: { x: 0, y: 0.7 }, colors: renkler, zIndex: 10000 });
+      confetti({ particleCount: 4, angle: 120, spread: 60, startVelocity: 45, origin: { x: 1, y: 0.7 }, colors: renkler, zIndex: 10000 });
       if (Date.now() < bitis) requestAnimationFrame(frame);
     };
     frame();
