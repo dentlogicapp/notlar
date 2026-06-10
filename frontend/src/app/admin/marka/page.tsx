@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, Heart, HelpCircle, Loader2, Palette, Save, Search } from "lucide-react";
+import { ChevronLeft, HelpCircle, Loader2, Palette, Save, Search } from "lucide-react";
 import { toast } from "sonner";
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
@@ -246,7 +246,6 @@ function Icerik() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
           <Link href="/admin" className="flex items-center gap-1 text-clay-600 dark:text-ink-100 hover:text-clay-900 dark:hover:text-ink-50 transition-colors min-w-0">
             <ChevronLeft className="h-5 w-5 shrink-0" />
-            <Heart className="h-4 w-4 text-terracotta hidden sm:inline" fill="currentColor" />
             <span className="font-display text-base truncate">Marka &amp; Görünüm</span>
           </Link>
           <div className="flex items-center gap-3 shrink-0">

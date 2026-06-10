@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import {
-  ChevronLeft, Heart, Loader2, Plus, KeyRound,
+  ChevronLeft, Loader2, Plus, KeyRound,
   ShieldOff, Trash2, Lock, FileText, AlertTriangle, FolderHeart, FileEdit, Palette, Settings, Sparkles
 } from "lucide-react";
 import { AuthGuard } from "@/components/AuthGuard";
@@ -91,7 +91,6 @@ function Icerik() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
           <Link href="/" className="flex items-center gap-1 text-clay-600 dark:text-ink-100 hover:text-clay-900 dark:hover:text-ink-50 transition-colors min-w-0">
             <ChevronLeft className="h-5 w-5 shrink-0" />
-            <Heart className="h-4 w-4 text-terracotta hidden sm:inline" fill="currentColor" />
             <span className="font-display text-base truncate">Yönetim</span>
           </Link>
           <UserMenu />
