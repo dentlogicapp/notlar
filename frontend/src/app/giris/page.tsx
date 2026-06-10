@@ -66,7 +66,7 @@ export default function GirisSayfasi() {
           <form onSubmit={handleSubmit((d) => m.mutate(d))} className="space-y-4">
             <div>
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" autoComplete="email" autoFocus {...register("email")} />
+              <Input id="email" type="email" inputMode="email" autoComplete="email" autoFocus {...register("email")} />
               {errors.email && <p className="text-xs text-red-600 mt-1">{errors.email.message}</p>}
             </div>
 
