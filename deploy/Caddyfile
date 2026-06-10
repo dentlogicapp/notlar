@@ -10,10 +10,14 @@ notlar.dentlogicapp.com {
     reverse_proxy frontend:3000
 
     header {
-        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        # v18 Asama 21 - CSP (connect-src api subdomain ZORUNLU; script/style unsafe-inline Next.js+Tailwind icin)
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: https:; connect-src 'self' https://api.dentlogicapp.com; frame-ancestors 'none'; form-action 'self'; base-uri 'self';"
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
         X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
         Referrer-Policy "strict-origin-when-cross-origin"
-        X-Frame-Options "SAMEORIGIN"
+        Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+        -Server
     }
 }
 
@@ -22,8 +26,9 @@ api.dentlogicapp.com {
     reverse_proxy backend:8080
 
     header {
-        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
         X-Content-Type-Options "nosniff"
         Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
     }
 }
