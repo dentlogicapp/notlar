@@ -87,7 +87,7 @@ export default function SemaPage() {
         {/* Baslik + B3 surum badge */}
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
-            <h1 className="font-display text-3xl text-clay-900 dark:text-ink-50 flex items-center gap-2">
+            <h1 className="font-display text-2xl sm:text-3xl text-clay-900 dark:text-ink-50 flex items-center gap-2">
               <Database className="h-6 w-6 text-terracotta" /> Sistem Şeması
             </h1>
             <p className="text-sm text-clay-500 dark:text-ink-300 mt-1 max-w-xl">
@@ -119,7 +119,7 @@ export default function SemaPage() {
           </div>
           <button
             onClick={() => setDeprecatedGoster((v) => !v)}
-            className={`text-xs px-3 py-2 rounded-lg border transition-colors ${
+            className={`text-xs px-3 min-h-[44px] rounded-lg border transition-colors ${
               deprecatedGoster
                 ? "border-terracotta/50 bg-terracotta/10 text-terracotta"
                 : "border-cream-300 dark:border-ink-700/60 text-clay-500 dark:text-ink-300"
@@ -131,7 +131,7 @@ export default function SemaPage() {
             onClick={() =>
               setKapsamFiltre((v) => (v === "hepsi" ? "Tenant" : v === "Tenant" ? "Sistem" : "hepsi"))
             }
-            className={`text-xs px-3 py-2 rounded-lg border transition-colors ${
+            className={`text-xs px-3 min-h-[44px] rounded-lg border transition-colors ${
               kapsamFiltre !== "hepsi"
                 ? "border-terracotta/50 bg-terracotta/10 text-terracotta"
                 : "border-cream-300 dark:border-ink-700/60 text-clay-500 dark:text-ink-300"

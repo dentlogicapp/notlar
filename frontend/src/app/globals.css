@@ -163,3 +163,29 @@ html.dark .driver-popover {
 html.dark .driver-popover-title { color: #f5efe6; }
 html.dark .driver-popover-description { color: #d4c8ba; }
 html.dark .driver-popover-arrow { border-color: #2a2320 !important; }
+
+/* v18 Asama 20 - shimmer skeleton (1.5s loop, cream tonlari) */
+@keyframes notlar-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.notlar-shimmer {
+  background: linear-gradient(90deg, #f3ebda 25%, #faf6ef 50%, #f3ebda 75%);
+  background-size: 200% 100%;
+  animation: notlar-shimmer 1.5s ease-in-out infinite;
+}
+html.dark .notlar-shimmer {
+  background: linear-gradient(90deg, #2a2320 25%, #352d28 50%, #2a2320 75%);
+  background-size: 200% 100%;
+}
+
+/* v18 Asama 21 B3 - WCAG 2.1 AA: gorulebilir focus indicator (klavye navigasyonu) */
+*:focus-visible {
+  outline: 2px solid #c4704d;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* Mouse tiklamasinda outline gosterme (sadece klavye) - :focus-visible zaten bunu saglar */
+button, a, input, textarea, select, [role="button"], [tabindex] {
+  -webkit-tap-highlight-color: transparent;
+}
