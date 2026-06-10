@@ -77,7 +77,7 @@ export default function SemaPage() {
             className="flex items-center gap-1 text-clay-600 dark:text-ink-100 hover:text-clay-900 dark:hover:text-ink-50 transition-colors min-w-0"
           >
             <ChevronLeft className="h-5 w-5 shrink-0" />
-            <span className="truncate">Yönetim</span>
+            <span className="truncate">Sistem Şeması</span>
           </Link>
           <UserMenu />
         </div>
