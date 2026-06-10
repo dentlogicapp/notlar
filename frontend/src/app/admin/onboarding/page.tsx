@@ -66,14 +66,17 @@ function Icerik() {
   // Asama 18: tamamlama confetti burst (3sn, terracotta + cream + accent)
   useEffect(() => {
     if (!tamamlandi) return;
-    const bitis = Date.now() + 3000;
     const renkler = ["#c4704d", "#d4a661", "#f3ebda", "#ede0d0"];
-    const frame = () => {
-      confetti({ particleCount: 4, angle: 60, spread: 60, startVelocity: 45, origin: { x: 0, y: 0.7 }, colors: renkler, zIndex: 10000 });
-      confetti({ particleCount: 4, angle: 120, spread: 60, startVelocity: 45, origin: { x: 1, y: 0.7 }, colors: renkler, zIndex: 10000 });
-      if (Date.now() < bitis) requestAnimationFrame(frame);
+    // Mobilde guvenilir: guclu tek burst (merkez) + iki kose takviye, rAF yerine setTimeout (mobil rAF throttle etmez)
+    const patlat = () => {
+      confetti({ particleCount: 90, spread: 75, startVelocity: 45, origin: { y: 0.6 }, colors: renkler, zIndex: 10000 });
+      confetti({ particleCount: 50, angle: 60, spread: 60, startVelocity: 45, origin: { x: 0, y: 0.7 }, colors: renkler, zIndex: 10000 });
+      confetti({ particleCount: 50, angle: 120, spread: 60, startVelocity: 45, origin: { x: 1, y: 0.7 }, colors: renkler, zIndex: 10000 });
     };
-    frame();
+    patlat();
+    const t1 = setTimeout(patlat, 250);
+    const t2 = setTimeout(patlat, 550);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [tamamlandi]);
   const resumeYapildi = useRef(false);
 
