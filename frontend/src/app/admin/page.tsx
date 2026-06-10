@@ -100,27 +100,27 @@ function Icerik() {
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="font-display text-3xl text-clay-900 dark:text-ink-50">Kullanıcılar</h1>
-          <div className="flex gap-2">
-            <Link href="/admin/marka">
-              <Button variant="outline" size="sm">
+          <h1 className="font-display text-2xl sm:text-3xl text-clay-900 dark:text-ink-50">Kullanıcılar</h1>
+          <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:flex-wrap sm:items-center">
+            <Link href="/admin/marka" className="w-full sm:w-auto">
+              <Button variant="outline" size="sm" className="w-full h-auto min-h-[44px] py-2 whitespace-normal justify-center text-center leading-tight">
                 <Palette className="h-4 w-4 mr-1.5" /> Marka & Görünüm
               </Button>
             </Link>
-            <Link href="/admin/denetim">
-              <Button variant="outline" size="sm">
+            <Link href="/admin/denetim" className="w-full sm:w-auto">
+              <Button variant="outline" size="sm" className="w-full h-auto min-h-[44px] py-2 whitespace-normal justify-center text-center leading-tight">
                 <FileText className="h-4 w-4 mr-1.5" /> Denetim Günlüğü
               </Button>
             </Link>
             {ben?.superAdmin && (
               <>
-                <Link href="/admin/sistem/sema">
-                  <Button variant="outline" size="sm">
+                <Link href="/admin/sistem/sema" className="w-full sm:w-auto">
+                  <Button variant="outline" size="sm" className="w-full h-auto min-h-[44px] py-2 whitespace-normal justify-center text-center leading-tight">
                     <Settings className="h-4 w-4 mr-1.5" /> Sistem Şeması
                   </Button>
                 </Link>
-                <Link href="/admin/sistem/ai-ayarlari">
-                  <Button variant="outline" size="sm">
+                <Link href="/admin/sistem/ai-ayarlari" className="w-full sm:w-auto">
+                  <Button variant="outline" size="sm" className="w-full h-auto min-h-[44px] py-2 whitespace-normal justify-center text-center leading-tight">
                     <Sparkles className="h-4 w-4 mr-1.5" /> AI Ayarlari
                   </Button>
                 </Link>
