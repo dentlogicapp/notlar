@@ -213,6 +213,7 @@ export interface MetinBirlesik {
   icerik: string | null;  // tenant degeri (null = henuz girilmemis -> fallback)
   karakterLimiti: number | null;  // v18 Asama 11.8 - null = tipten gelen default
   deprecated: boolean;             // v18 Asama 17 - katalogda deprecated mi (wizard/sema filtreler)
+  kapsam: string;                  // v18 Asama 17.1 - 'Tenant' | 'Sistem'
 }
 
 export interface MetinVersiyon {

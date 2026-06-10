@@ -7,7 +7,7 @@ public static class AnahtarKatalogu
 {
     // SemVer: yeni anahtar -> minor (1.1.0); tip/limit breaking -> major (2.0.0);
     // dokumantasyon (etiket/yonlendirme/aciklama) -> patch (1.0.1).
-    public const string Version = "1.0.0";
+    public const string Version = "1.1.0";
 
     public static readonly IReadOnlyList<AnahtarTanim> Tumu = new[]
     {
@@ -54,7 +54,7 @@ public static class AnahtarKatalogu
             .Etiket("Not Ekleme Form İpucu")
             .Yonlendirme("Yeni not ekleme kutusunda kullanıcıya gösterilecek soluk ipucu. (Örn: 'Bir hatıra düşün...', 'Bir dosya notu ekle...', 'Bir menü fikri yaz...')")
             .Aciklama("Ana sayfada büyük not ekleme kutusunda görünür.")
-            .Sira(120).Build(),
+            .Sira(120).Kapsam(KapsamTipi.Sistem).Build(),
 
         // --- SAYAC ---
         AnahtarTanim.Tanim("sayac_aktif")
@@ -132,6 +132,14 @@ public static class AnahtarKatalogu
             .Aciklama("Hatırlatma zamanı geldiğinde gönderilen mail'in subject'i.")
             .Sira(340).Build(),
 
+        AnahtarTanim.Tanim("iletisim_email")
+            .Kategori(Kategori.Mail).Tip(AlanTipi.Subject)
+            .Limit(120).Kapsam(KapsamTipi.Tenant)
+            .Etiket("İletişim Email Adresi")
+            .Yonlendirme("Müşterileriniz mailinize yanıt verdiğinde size hangi adrese gelsin?")
+            .Aciklama("Mail Reply-To alanı olarak kullanılır. Boş bırakırsanız sistem varsayılanına gider.")
+            .Zorunlu().Sira(350).Build(),
+
         // --- BILDIRIM ---
         AnahtarTanim.Tanim("bildirim_yeni_not_metin")
             .Kategori(Kategori.Bildirim).Tip(AlanTipi.Metin)
@@ -139,21 +147,21 @@ public static class AnahtarKatalogu
             .Etiket("Yeni Not Bildirimi Metni")
             .Yonlendirme("Diğer kullanıcı yeni not eklediğinde in-app bildirim metni. (Örn: '{kullanici_adi} yeni bir not ekledi: {not_basligi}')")
             .Aciklama("Sağ üst köşede toast olarak görünür.")
-            .Sira(400).Deprecated().Build(),
+            .Sira(400).Deprecated().Kapsam(KapsamTipi.Sistem).Build(),
 
         AnahtarTanim.Tanim("bildirim_not_tamamlandi_metin")
             .Kategori(Kategori.Bildirim).Tip(AlanTipi.Metin)
             .Etiket("Not Tamamlandı Bildirimi")
             .Yonlendirme("Bir not tamamlandığında gösterilecek bildirim. (Örn: '✓ {not_basligi} tamamlandı', '{kullanici_adi} tamamladı: {not_basligi}')")
             .Aciklama("İlgili kullanıcılara in-app + opsiyonel mail.")
-            .Sira(410).Build(),
+            .Sira(410).Kapsam(KapsamTipi.Sistem).Build(),
 
         AnahtarTanim.Tanim("bildirim_hatirlatici_metin")
             .Kategori(Kategori.Bildirim).Tip(AlanTipi.Metin)
             .Etiket("Hatırlatıcı Bildirimi Metni")
             .Yonlendirme("Hatırlatıcı zamanı geldiğinde gösterilen bildirim. (Örn: '⏰ Hatırlatma: {not_basligi}', '{not_basligi} için bugün son gün')")
             .Aciklama("Tarih/saat geldiğinde in-app + mail.")
-            .Sira(420).Build(),
+            .Sira(420).Kapsam(KapsamTipi.Sistem).Build(),
 
         // --- FORM ---
         AnahtarTanim.Tanim("form_klasor_olustur_placeholder")
@@ -161,13 +169,13 @@ public static class AnahtarKatalogu
             .Etiket("Klasör Oluştur Formu İpucu")
             .Yonlendirme("Yeni klasör oluşturma form alanı için soluk ipucu. (Örn: 'Yeni klasör adı...', 'Konu başlığı...', 'Proje adı yaz...')")
             .Aciklama("Sol panelden 'Yeni klasör' tıklandığında açılan formda görünür.")
-            .Sira(500).Build(),
+            .Sira(500).Kapsam(KapsamTipi.Sistem).Build(),
 
         AnahtarTanim.Tanim("form_giris_email_placeholder")
             .Kategori(Kategori.Form).Tip(AlanTipi.PlaceholderKisa)
             .Etiket("Giriş Formu E-posta İpucu")
             .Yonlendirme("Login sayfasında e-posta alanı için ipucu. (Örn: 'E-posta adresin', 'E-mail address', 'ornek@firma.com')")
             .Aciklama("Login sayfasında üst form alanında görünür.")
-            .Sira(510).Build(),
+            .Sira(510).Kapsam(KapsamTipi.Sistem).Build(),
     };
 }

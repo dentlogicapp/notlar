@@ -115,7 +115,7 @@ public sealed class EmailService : IEmailService
             : "";
 
         var html = DavetiyeHtmlSablonu(aliciIlkAd, link, sayacGoster, sayacCumleHtml, girisMetni, imza, markaAdi);
-        await GonderAsync(toEmail, adSoyad, konu, html, ct);
+        await GonderAsync(toEmail, adSoyad, konu, html, ct, sozluk.GetValueOrDefault(AnahtarKodu.IletisimEmail));
     }
 
     public Task SifreSifirlamaMailGonderAsync(string toEmail, string adSoyad, string link, CancellationToken ct = default)
@@ -142,10 +142,10 @@ public sealed class EmailService : IEmailService
             $"♡ Hatırlatıcı — \"{notBaslik}\"", "hatirlatma", isletmeId, runtime, htmlEncode: false, ct);
 
         var html = HatirlaticiHtmlSablonu(aliciIlkAd, notBaslik, notIcerik, klasorAdi, kimeMetin, hatirlatmaZamani, notLink);
-        await GonderAsync(toEmail, aliciAdSoyad, konu, html, ct);
+        await GonderAsync(toEmail, aliciAdSoyad, konu, html, ct, sozluk.GetValueOrDefault(AnahtarKodu.IletisimEmail));
     }
 
-    private async Task GonderAsync(string toEmail, string toAd, string konu, string html, CancellationToken ct)
+    private async Task GonderAsync(string toEmail, string toAd, string konu, string html, CancellationToken ct, string? replyTo = null)
     {
         var host = _cfg["Smtp:Host"] ?? "localhost";
         var port = int.Parse(_cfg["Smtp:Port"] ?? "1025");
@@ -157,6 +157,8 @@ public sealed class EmailService : IEmailService
 
         var msg = new MimeMessage();
         msg.From.Add(new MailboxAddress(fromAd, from));
+        if (!string.IsNullOrWhiteSpace(replyTo) && MailboxAddress.TryParse(replyTo, out var rt))
+            msg.ReplyTo.Add(rt);  // v18 Asama 17.1 - tenant iletisim_email; bos ise system default
         msg.To.Add(new MailboxAddress(toAd, toEmail));
         msg.Subject = konu;
         msg.Body = new TextPart("html") { Text = html };

@@ -57,6 +57,7 @@ public sealed class AnahtarSyncService
                     Aciklama = tanim.Aciklama,
                     Tip = tanim.TipKodu,
                     Kategori = tanim.KategoriKodu,
+                    Kapsam = tanim.KapsamKodu,
                     Zorunlu = tanim.Zorunlu,
                     DesteklenenPlaceholderlar = placeholderJson,
                     Sira = tanim.Sira,
@@ -72,6 +73,7 @@ public sealed class AnahtarSyncService
                 var degisti = false;
                 if (satir.Tip != tanim.TipKodu) { satir.Tip = tanim.TipKodu; degisti = true; }
                 if (satir.Kategori != tanim.KategoriKodu) { satir.Kategori = tanim.KategoriKodu; degisti = true; }
+                if (satir.Kapsam != tanim.KapsamKodu) { satir.Kapsam = tanim.KapsamKodu; degisti = true; }
                 if (satir.DesteklenenPlaceholderlar != placeholderJson) { satir.DesteklenenPlaceholderlar = placeholderJson; degisti = true; }
                 if (satir.Zorunlu != tanim.Zorunlu) { satir.Zorunlu = tanim.Zorunlu; degisti = true; }
                 if (satir.Deprecated != tanim.Deprecated) { satir.Deprecated = tanim.Deprecated; degisti = true; }

@@ -175,7 +175,7 @@ public sealed record MetinKaydetIstegi(string Icerik);
 public sealed record MetinBirlesik(
     string Anahtar, string Etiket, string Yonlendirme, string Aciklama,
     string Tip, string Kategori, bool Zorunlu, int Sira,
-    IReadOnlyList<string> Placeholderlar, string? Icerik, int? KarakterLimiti = null, bool Deprecated = false);
+    IReadOnlyList<string> Placeholderlar, string? Icerik, int? KarakterLimiti = null, bool Deprecated = false, string Kapsam = "Tenant");
 
 public sealed record MetinVersiyonYaniti(Guid Id, int Versiyon, string Icerik, DateTimeOffset OlusturmaZamani);
 
@@ -183,3 +183,8 @@ public sealed record OnboardingDurum(int Toplam, int Dolu, IReadOnlyList<string>
 
 // v18 Asama 17-E - wizard sonu welcome/davetiye onizleme test maili
 public sealed record OnboardingTestMailIstegi(string Email, string? Ad = null);
+
+// v18 Asama 17.3 - app push cihaz kaydi
+public sealed record CihazKayitIstegi(string PushToken, string Platform, string? CihazAdi = null);
+public sealed record CihazYaniti(Guid Id, string Platform, string? CihazAdi, string TokenSon,
+    DateTimeOffset OlusturmaZamani, DateTimeOffset SonAktiflik);

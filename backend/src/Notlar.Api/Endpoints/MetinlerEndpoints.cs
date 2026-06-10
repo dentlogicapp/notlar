@@ -120,7 +120,7 @@ public static class MetinlerEndpoints
             var tid = uc.AktifIsletmeId.Value;
 
             var zorunlu = await db.MetinAnahtarlari
-                .Where(a => !a.Deprecated && a.Zorunlu).Select(a => a.Anahtar).ToListAsync(ct);
+                .Where(a => !a.Deprecated && a.Zorunlu && a.Kapsam == "Tenant").Select(a => a.Anahtar).ToListAsync(ct);
             var metinler = await svc.TumunuGetirAsync(tid, ct);
             var doluSet = metinler.Where(m => !string.IsNullOrWhiteSpace(m.Icerik)).Select(m => m.Anahtar).ToHashSet();
 
@@ -138,7 +138,7 @@ public static class MetinlerEndpoints
     // metin_anahtarlari (katalog) + tenant Icerik -> birlesik yanit
     private static MetinBirlesik Birlestir(Notlar.Api.Entities.MetinAnahtari a, string? icerik)
         => new(a.Anahtar, a.Etiket, a.Yonlendirme, a.Aciklama, a.Tip, a.Kategori, a.Zorunlu, a.Sira,
-               PlaceholderListesi(a.DesteklenenPlaceholderlar), icerik, a.KarakterLimiti, a.Deprecated);
+               PlaceholderListesi(a.DesteklenenPlaceholderlar), icerik, a.KarakterLimiti, a.Deprecated, a.Kapsam);
 
     private static IReadOnlyList<string> PlaceholderListesi(string jsonb)
     {

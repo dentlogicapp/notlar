@@ -45,7 +45,7 @@ public static class SemaEndpoints
                 catch { ph = new(); }
                 doluluk.TryGetValue(a.Anahtar, out var dolduran);
                 return new SemaAnahtarYaniti(
-                    a.Anahtar, a.Kategori, a.Tip,
+                    a.Anahtar, a.Kategori, a.Tip, a.Kapsam,
                     a.KarakterLimiti ?? TipDefault.KarakterLimiti(a.Tip),
                     a.KarakterLimiti,
                     a.Etiket, a.Yonlendirme, a.Aciklama,
@@ -68,6 +68,7 @@ public record SemaAnahtarYaniti(
     string Anahtar,
     string Kategori,
     string Tip,
+    string Kapsam,
     int EfektifLimit,
     int? OzelLimit,
     string Etiket,

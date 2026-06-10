@@ -53,7 +53,7 @@ export default function OnboardingPage() {
 function Icerik() {
   const router = useRouter();
   const qc = useQueryClient();
-  const { data: metinler, isLoading } = useIsletmeMetinleri();
+  const { data: metinler, isLoading } = useIsletmeMetinleri({ kapsam: "Tenant" });
 
   const [degerler, setDegerler] = useState<Record<string, string>>({});
   const [hatalar, setHatalar] = useState<Record<string, string>>({});
@@ -130,7 +130,7 @@ function Icerik() {
   const dolanAlan = (metinler ?? []).filter(
     (m) => !m.deprecated && (degerler[m.anahtar] ?? "").trim()
   ).length;
-  const ilerlemeYuzde = toplamAlan > 0 ? Math.round((dolanAlan / toplamAlan) * 100) : 0;
+  const ilerlemeYuzde = adimlar.length > 0 ? Math.round(((adimIndex + 1) / adimlar.length) * 100) : 0;
   const dakikaTahmin = Math.max(1, Math.ceil(toplamAlan * 0.4)); // E4
 
   // otoKaydet (marka pattern - sayac kosullu zorunluluk)
@@ -351,9 +351,13 @@ function Icerik() {
 
         {/* Navigasyon */}
         <div className="flex items-center justify-between gap-3 pt-2">
-          <Button variant="ghost" onClick={geri} disabled={adimIndex === 0}>
-            <ChevronLeft className="h-4 w-4 mr-1" /> Geri
-          </Button>
+          {adimIndex > 0 ? (
+            <Button variant="ghost" onClick={geri}>
+              <ChevronLeft className="h-4 w-4 mr-1" /> Geri
+            </Button>
+          ) : (
+            <span />
+          )}
           <div className="flex items-center gap-2">
             {!adimZorunluVar && !sonAdim && (
               <Button variant="ghost" onClick={atla} className="text-clay-400 dark:text-ink-300">

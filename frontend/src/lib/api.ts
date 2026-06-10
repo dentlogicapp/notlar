@@ -245,6 +245,7 @@ export interface SemaAnahtar {
   anahtar: string;
   kategori: string;
   tip: string;
+  kapsam: string;  // v18 Asama 17.1 - 'Tenant' | 'Sistem'
   efektifLimit: number;
   ozelLimit: number | null;
   etiket: string;

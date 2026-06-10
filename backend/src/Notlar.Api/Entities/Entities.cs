@@ -257,6 +257,7 @@ public sealed class MetinAnahtari
     public int Sira { get; set; } = 100;                    // UI sıralama (yükselen)
     public required string Kategori { get; set; }           // 'mail'|'dashboard'|'sayac'|'bildirim'|'form'|'marka'
     public int? KarakterLimiti { get; set; }                // v18 Asama 11.8 - null = tipten gelen default gecerli
+    public string Kapsam { get; set; } = "Tenant";          // v18 Asama 17.1 - 'Tenant' (tenant doldurur) | 'Sistem' (super admin)
     public bool Deprecated { get; set; }                    // Eski anahtar; yeni tenant'lara önerilmez
     public DateTimeOffset OlusturmaZamani { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset GuncellemeZamani { get; set; } = DateTimeOffset.UtcNow;
@@ -308,4 +309,17 @@ public sealed class IsletmeMetinVersiyonu
     public int Versiyon { get; set; }                        // 1'den artan, (IsletmeId, Anahtar) bazli
     public DateTimeOffset OlusturmaZamani { get; set; } = DateTimeOffset.UtcNow;
     public Guid? OlusturanKullaniciId { get; set; }
+}
+
+
+// v18 Asama 17.3 - App push notification cihaz kaydi (FCM/APNs token)
+public sealed class KullaniciCihaz
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid KullaniciId { get; set; }
+    public string PushToken { get; set; } = "";
+    public string Platform { get; set; } = "web";  // 'ios' | 'android' | 'web'
+    public string? CihazAdi { get; set; }
+    public DateTimeOffset OlusturmaZamani { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset SonAktiflik { get; set; } = DateTimeOffset.UtcNow;
 }

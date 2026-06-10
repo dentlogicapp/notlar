@@ -35,12 +35,14 @@ export default function SemaPage() {
 
   const [arama, setArama] = useState("");
   const [deprecatedGoster, setDeprecatedGoster] = useState(false);
+  const [kapsamFiltre, setKapsamFiltre] = useState<"hepsi" | "Tenant" | "Sistem">("hepsi");
 
   const gruplar = useMemo(() => {
     const anahtarlar = data?.anahtarlar ?? [];
     const q = arama.trim().toLowerCase();
     const filtreli = anahtarlar.filter((a) => {
       if (!deprecatedGoster && a.deprecated) return false;
+      if (kapsamFiltre !== "hepsi" && a.kapsam !== kapsamFiltre) return false;
       if (!q) return true;
       return a.anahtar.toLowerCase().includes(q) || a.etiket.toLowerCase().includes(q);
     });
@@ -53,7 +55,7 @@ export default function SemaPage() {
       kategori: k,
       anahtarlar: harita.get(k)!,
     }));
-  }, [data, arama, deprecatedGoster]);
+  }, [data, arama, deprecatedGoster, kapsamFiltre]);
 
   const toplamGorunen = gruplar.reduce((s, g) => s + g.anahtarlar.length, 0);
   const toplamAnahtar = data?.anahtarlar.length ?? 0;
@@ -124,6 +126,18 @@ export default function SemaPage() {
           >
             Deprecated {deprecatedGoster ? "gizle" : "göster"}
           </button>
+          <button
+            onClick={() =>
+              setKapsamFiltre((v) => (v === "hepsi" ? "Tenant" : v === "Tenant" ? "Sistem" : "hepsi"))
+            }
+            className={`text-xs px-3 py-2 rounded-lg border transition-colors ${
+              kapsamFiltre !== "hepsi"
+                ? "border-terracotta/50 bg-terracotta/10 text-terracotta"
+                : "border-cream-300 dark:border-ink-700/60 text-clay-500 dark:text-ink-300"
+            }`}
+          >
+            Kapsam: {kapsamFiltre === "hepsi" ? "Tümü" : kapsamFiltre}
+          </button>
         </div>
 
         {/* Liste */}
@@ -163,6 +177,9 @@ export default function SemaPage() {
                         )}
                       </div>
                       <div className="flex items-center gap-2 shrink-0 text-xs text-clay-400 dark:text-ink-300">
+                        <span className={`px-1.5 py-0.5 rounded ${a.kapsam === "Sistem" ? "bg-clay-200 text-clay-600 dark:bg-ink-600 dark:text-ink-200" : "bg-terracotta/15 text-terracotta"}`}>
+                          {a.kapsam === "Sistem" ? "SISTEM" : "TENANT"}
+                        </span>
                         <span className="px-1.5 py-0.5 rounded bg-cream-200 dark:bg-ink-700/60">
                           {TIP_ETIKET[a.tip] ?? a.tip}
                         </span>

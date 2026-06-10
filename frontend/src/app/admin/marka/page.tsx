@@ -26,7 +26,6 @@ const SEKMELER: { kod: SekmeKod; etiket: string; kategoriler: string[] }[] = [
   { kod: "karsilama", etiket: "Karşılama", kategoriler: ["dashboard"] },
   { kod: "sayac", etiket: "Sayaç", kategoriler: ["sayac"] },
   { kod: "mail", etiket: "Mail", kategoriler: ["mail"] },
-  { kod: "diger", etiket: "Diğer Metinler", kategoriler: ["bildirim", "form"] },
 ];
 
 const KATEGORI_BASLIK: Record<string, string> = {
@@ -45,7 +44,7 @@ export default function Page() {
 
 function Icerik() {
   const qc = useQueryClient();
-  const { data: metinler, isLoading, isError } = useIsletmeMetinleri();
+  const { data: metinler, isLoading, isError } = useIsletmeMetinleri({ kapsam: "Tenant" });
   const [sekme, setSekme] = useState<SekmeKod>("marka");
   const [degerler, setDegerler] = useState<Record<string, string>>({});
   const [ara, setAra] = useState("");

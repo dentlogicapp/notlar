@@ -90,7 +90,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             OnMessageReceived = ctx =>
             {
-                if (ctx.Request.Cookies.TryGetValue("auth_token", out var token))
+                // v18 Asama 17.3 - once Authorization header (app), yoksa cookie (web - mevcut davranis)
+                var headerToken = ctx.Request.Headers["Authorization"]
+                    .FirstOrDefault()?.Split(" ").LastOrDefault();
+                if (!string.IsNullOrEmpty(headerToken))
+                    ctx.Token = headerToken;
+                else if (ctx.Request.Cookies.TryGetValue("auth_token", out var token))
                     ctx.Token = token;
                 return Task.CompletedTask;
             },
@@ -471,6 +476,25 @@ using (var scope = app.Services.CreateScope())
             -- v18 Asama 11.8: anahtar bazinda karakter limiti override (mevcut DB icin; null = tipten gelen default)
             ALTER TABLE metin_anahtarlari
                 ADD COLUMN IF NOT EXISTS ""KarakterLimiti"" integer;
+            -- v18 Asama 17.1: anahtar kapsami (Tenant doldurur | Sistem super admin ortak)
+            ALTER TABLE metin_anahtarlari
+                ADD COLUMN IF NOT EXISTS ""Kapsam"" character varying(20) NOT NULL DEFAULT 'Tenant';
+            CREATE INDEX IF NOT EXISTS ""IX_metin_anahtarlari_Kapsam""
+                ON metin_anahtarlari (""Kapsam"");
+            -- v18 Asama 17.3: app push notification cihaz kaydi
+            CREATE TABLE IF NOT EXISTS kullanici_cihazlari (
+                ""Id"" uuid NOT NULL PRIMARY KEY,
+                ""KullaniciId"" uuid NOT NULL REFERENCES kullanicilar(""Id"") ON DELETE CASCADE,
+                ""PushToken"" character varying(500) NOT NULL,
+                ""Platform"" character varying(20) NOT NULL,
+                ""CihazAdi"" character varying(120),
+                ""OlusturmaZamani"" timestamp with time zone NOT NULL DEFAULT now(),
+                ""SonAktiflik"" timestamp with time zone NOT NULL DEFAULT now()
+            );
+            CREATE INDEX IF NOT EXISTS ""IX_kullanici_cihazlari_KullaniciId""
+                ON kullanici_cihazlari (""KullaniciId"");
+            CREATE UNIQUE INDEX IF NOT EXISTS ""IX_kullanici_cihazlari_PushToken""
+                ON kullanici_cihazlari (""PushToken"");
             -- 13. AI sağlayıcı ayarı (v17 — singleton, Strategy Pattern)
             CREATE TABLE IF NOT EXISTS ai_ayarlari (
                 ""Id"" uuid NOT NULL PRIMARY KEY,
@@ -664,6 +688,7 @@ app.MapExportEndpoints();
 app.MapIsletmeEndpoints();  // v15
 app.MapSistemEndpoints();   // v17 — super admin metin anahtar katalogu
 app.MapSemaEndpoints();      // v18 Asama 11.9 B2 - read-only sistem semasi
+app.MapCihazEndpoints();     // v18 Asama 17.3 - app push cihaz kaydi
 app.MapAiAyarlariEndpoints();
 app.MapMetinlerEndpoints();   // v18 - tenant icerigi   // v17 - AI saglayici ayar yonetimi + saglik
 app.MapAiAssistEndpoints();   // v18 Asama 11/12 - AI taslak oneri (saglik + taslak-oner)

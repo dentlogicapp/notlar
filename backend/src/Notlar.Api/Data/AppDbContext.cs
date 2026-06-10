@@ -19,6 +19,7 @@ public sealed class AppDbContext : DbContext
     public DbSet<IsletmeUyelik> IsletmeUyelikleri => Set<IsletmeUyelik>();
     // v17 — Sistem metin anahtar kataloğu
     public DbSet<MetinAnahtari> MetinAnahtarlari => Set<MetinAnahtari>();
+    public DbSet<KullaniciCihaz> KullaniciCihazlari => Set<KullaniciCihaz>();  // v18 Asama 17.3
     // v17 - AI saglayici ayari (singleton)
     public DbSet<AiAyari> AiAyarlari => Set<AiAyari>();
 
@@ -200,9 +201,26 @@ public sealed class AppDbContext : DbContext
              .HasColumnType("jsonb").HasDefaultValueSql("'[]'::jsonb");
             e.Property(x => x.Sira).HasDefaultValue(100);
             e.Property(x => x.KarakterLimiti);  // v18 Asama 11.8 - nullable, default yok (null = tip default)
+            e.Property(x => x.Kapsam).HasMaxLength(20).IsRequired().HasDefaultValue("Tenant");  // v18 Asama 17.1
             e.HasIndex(x => x.Anahtar).IsUnique();
             e.HasIndex(x => x.Kategori);
             e.HasIndex(x => x.Deprecated);
+            e.HasIndex(x => x.Kapsam);
+        });
+
+        // v18 Asama 17.3 - App push notification cihaz kaydi
+        m.Entity<KullaniciCihaz>(e =>
+        {
+            e.ToTable("kullanici_cihazlari");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.PushToken).HasMaxLength(500).IsRequired();
+            e.Property(x => x.Platform).HasMaxLength(20).IsRequired();
+            e.Property(x => x.CihazAdi).HasMaxLength(120);
+            e.HasIndex(x => x.KullaniciId);
+            e.HasIndex(x => x.PushToken).IsUnique();
+            e.HasOne<Kullanici>().WithMany()
+                .HasForeignKey(x => x.KullaniciId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
         // v17 — AI sağlayıcı ayarı (singleton: tek satır, index gereksiz)
         m.Entity<AiAyari>(e =>

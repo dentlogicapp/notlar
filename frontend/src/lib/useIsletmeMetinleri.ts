@@ -6,12 +6,17 @@ import type { MetinBirlesik } from "./types";
 
 // v18 - Sifir Sablon: tenant metinleri (katalog + deger birlesik) React Query cache.
 // Marka sayfasi, onboarding wizard ve live preview tek kaynaktan beslenir.
-export function useIsletmeMetinleri() {
-  return useQuery({
+export function useIsletmeMetinleri(opts?: { kapsam?: "Tenant" | "Sistem" }) {
+  const q = useQuery({
     queryKey: ["isletme-metinleri"],
     queryFn: () => metinApi.list(),
     staleTime: 30_000,
   });
+  // v18 Asama 17.1 - kapsam filtresi (client-side; cache ayni queryKey ile paylasilir)
+  if (opts?.kapsam && q.data) {
+    return { ...q, data: q.data.filter((m) => m.kapsam === opts.kapsam) };
+  }
+  return q;
 }
 
 export function useOnboardingDurum() {

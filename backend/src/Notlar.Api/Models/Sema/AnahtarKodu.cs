@@ -21,6 +21,7 @@ public static class AnahtarKodu
     public const string MailDavetiyeAltBaslik = "mail_davetiye_alt_baslik";
     public const string MailDavetiyeGirisMetni = "mail_davetiye_giris_metni";
     public const string MailHatirlatmaKonu = "mail_hatirlatma_konu";
+    public const string IletisimEmail = "iletisim_email";
     public const string BildirimYeniNotMetin = "bildirim_yeni_not_metin";
     public const string BildirimNotTamamlandiMetin = "bildirim_not_tamamlandi_metin";
     public const string BildirimHatirlaticiMetin = "bildirim_hatirlatici_metin";
@@ -34,7 +35,7 @@ public static class AnahtarKodu
         DashboardKarsilamaBasligi, DashboardKarsilamaAltMetin, NotFormPlaceholder,
         SayacAktif, SayacAktifCumle, SayacBittiCumle, SayacHedefTarihi,
         MailImza, MailTonu, MailDavetiyeKonu, MailDavetiyeAltBaslik,
-        MailDavetiyeGirisMetni, MailHatirlatmaKonu,
+        MailDavetiyeGirisMetni, MailHatirlatmaKonu, IletisimEmail,
         BildirimYeniNotMetin, BildirimNotTamamlandiMetin, BildirimHatirlaticiMetin,
         FormKlasorOlusturPlaceholder, FormGirisEmailPlaceholder,
     };
