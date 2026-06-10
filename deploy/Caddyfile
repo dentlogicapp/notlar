@@ -11,7 +11,7 @@ notlar.dentlogicapp.com {
 
     header {
         # v18 Asama 21 - CSP (connect-src api subdomain ZORUNLU; script/style unsafe-inline Next.js+Tailwind icin)
-        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: https:; connect-src 'self' https://api.dentlogicapp.com; frame-ancestors 'none'; form-action 'self'; base-uri 'self';"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: https:; connect-src 'self' https://api.dentlogicapp.com; frame-ancestors 'none'; form-action 'self'; base-uri 'self';"
         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
         X-Content-Type-Options "nosniff"
         X-Frame-Options "DENY"
