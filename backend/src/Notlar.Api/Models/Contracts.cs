@@ -188,3 +188,6 @@ public sealed record OnboardingTestMailIstegi(string Email, string? Ad = null);
 public sealed record CihazKayitIstegi(string PushToken, string Platform, string? CihazAdi = null);
 public sealed record CihazYaniti(Guid Id, string Platform, string? CihazAdi, string TokenSon,
     DateTimeOffset OlusturmaZamani, DateTimeOffset SonAktiflik);
+
+// v18 Asama 19 B2 - tur analytics
+public sealed record TurAuditIstegi(string Eylem, int AdimNo, int? KalanSureSn = null);

@@ -46,13 +46,13 @@ export function MetinAlani({
   ].join(" ");
 
   return (
-    <div className="space-y-1.5">
+    <div data-tour-step="metin-alani" className="space-y-1.5">
       <div className="flex items-center justify-between gap-2">
         <label className="flex items-center gap-2 text-sm font-medium text-clay-800 dark:text-ink-50">
           {metin.etiket}
           {metin.zorunlu && <span className="text-terracotta text-xs">zorunlu</span>}
         </label>
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div data-tour-step="versiyon-gecmisi" className="flex items-center gap-2.5 shrink-0">
           <VersiyonGecmisi anahtar={metin.anahtar} onDon={(ic) => onDegis(metin.anahtar, ic)} />
         </div>
       </div>
@@ -92,7 +92,7 @@ export function MetinAlani({
             )
           )}
         </div>
-        {!tarihMi && <KarakterSayaci mevcut={deger.length} tip={metin.tip} karakterLimiti={metin.karakterLimiti} />}
+        {!tarihMi && <span data-tour-step="karakter-sayaci"><KarakterSayaci mevcut={deger.length} tip={metin.tip} karakterLimiti={metin.karakterLimiti} /></span>}
       </div>
     </div>
   );

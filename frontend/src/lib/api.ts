@@ -303,6 +303,15 @@ export const aiAyarApi = {
 };
 
 // v18 - Sifir Sablon: tenant metin yonetimi (/api/admin/metinler)
+// v18 Asama 19 B2 - tur analytics
+export const turApi = {
+  audit: (eylem: string, adimNo: number, kalanSureSn?: number) =>
+    ist<{ kaydedildi: boolean }>("/tur-audit", {
+      method: "POST",
+      body: JSON.stringify({ eylem, adimNo, kalanSureSn }),
+    }),
+};
+
 export const metinApi = {
   list: () => ist<MetinBirlesik[]>("/api/metinler"),
   get: (anahtar: string) =>

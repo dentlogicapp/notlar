@@ -3,8 +3,11 @@
 import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, Heart, Loader2, Palette, Save, Search } from "lucide-react";
+import { ChevronLeft, Heart, HelpCircle, Loader2, Palette, Save, Search } from "lucide-react";
 import { toast } from "sonner";
+import Joyride, { CallBackProps, STATUS } from "react-joyride";
+import confetti from "canvas-confetti";
+import { useTour } from "@/hooks/useTour";
 import { AuthGuard } from "@/components/AuthGuard";
 import { CountdownWidget } from "@/components/CountdownWidget";
 import { UserMenu } from "@/components/UserMenu";
@@ -13,7 +16,7 @@ import { MetinAlani } from "@/components/MetinAlani";
 import { LivePreview } from "@/components/LivePreview";
 import { HosgeldinModal } from "@/components/HosgeldinModal";
 import { Button } from "@/components/ui/button";
-import { metinApi } from "@/lib/api";
+import { metinApi, turApi } from "@/lib/api";
 import { useIsletmeMetinleri } from "@/lib/useIsletmeMetinleri";
 import { useAutoSave } from "@/lib/useAutoSave";
 import { cn } from "@/lib/utils";
@@ -45,6 +48,41 @@ export default function Page() {
 function Icerik() {
   const qc = useQueryClient();
   const { data: metinler, isLoading, isError } = useIsletmeMetinleri({ kapsam: "Tenant" });
+  const { run: turRun, tamamla: turTamamla, atla: turAtla, tekrarBaslat: turTekrar } = useTour();
+
+  const turAdimlari = [
+    { target: "body", placement: "center" as const, disableBeacon: true, title: "Hoşgeldin!",
+      content: "İşletmenin tüm metinlerini buradan yönetirsin. Hızlı bir tura çıkalım mı?" },
+    { target: '[data-tour-step="sekmeler"]', title: "Kategoriler",
+      content: "Marka, Karşılama, Sayaç ve Mail kategorilerine ayrılmış sekmeler. Her sekme ilgili metinleri gruplar." },
+    { target: '[data-tour-step="metin-alani"]', title: "Otomatik Kayıt",
+      content: "Yazdıkların kısa süre sonra otomatik kaydedilir. Ayrıca Kaydet butonuna basmana gerek yok." },
+    { target: '[data-tour-step="mail-sekmesi"]', title: "Mail Metinleri",
+      content: "Davetiye, hatırlatma ve imza metinleri burada. Önemli: mail metinleri eksikken davetiye gönderemezsin, sistem seni korur." },
+    { target: '[data-tour-step="karakter-sayaci"]', title: "Karakter Limiti",
+      content: "Her alanın kendi limiti var, sağ altta sayaç gösterir. Mail konusu için kısa, gövde için uzun gibi." },
+    { target: '[data-tour-step="live-preview"]', title: "Anlık Önizleme",
+      content: "Sağ panelde yazdıklarının nasıl görüneceğini anlık gör. Mail içeriği, dashboard karşılaması, hepsi canlı." },
+    { target: '[data-tour-step="versiyon-gecmisi"]', title: "Eski Sürüme Dönüş",
+      content: "Her alanın geçmişi tutulur. Yanlışlıkla değiştirdiysen saat ikonundan eski sürüme dönebilirsin." },
+    { target: '[data-tour-step="user-menu"]', title: "Hazırsın!",
+      content: "Buradan workspace geçişi, ayarlar ve çıkış. Artık davetiyeni göndermeye başlayabilirsin." },
+  ];
+
+  const turCallback = (d: CallBackProps) => {
+    if (d.type === "step:after" && d.action === "next") {
+      turApi.audit("tur_adim_tamamlandi", d.index + 1).catch(() => {});
+    }
+    if (d.status === STATUS.FINISHED) {
+      turTamamla();
+      confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 }, colors: ["#c4704d", "#d4a661", "#f3ebda"] });
+      toast.success("Hazırsın! İlk davetiyeni göndermeye başla.");
+      turApi.audit("tur_tamamlandi", d.index + 1).catch(() => {});
+    } else if (d.status === STATUS.SKIPPED) {
+      turAtla();
+      turApi.audit("tur_atlandi", d.index + 1).catch(() => {});
+    }
+  };
   const [sekme, setSekme] = useState<SekmeKod>("marka");
   const [degerler, setDegerler] = useState<Record<string, string>>({});
   const [ara, setAra] = useState("");
@@ -179,7 +217,13 @@ function Icerik() {
           </Link>
           <div className="flex items-center gap-3 shrink-0">
             <Yenile />
-            <UserMenu />
+            <button type="button" onClick={turTekrar} title="Turu tekrar goster"
+              className="text-clay-400 hover:text-terracotta dark:text-ink-300 transition-colors">
+              <HelpCircle className="h-5 w-5" />
+            </button>
+            <div data-tour-step="user-menu">
+              <UserMenu />
+            </div>
           </div>
         </div>
       </header>
@@ -190,11 +234,12 @@ function Icerik() {
           <h1 className="font-display text-3xl text-clay-900 dark:text-ink-50">Marka &amp; Görünüm</h1>
         </div>
 
-        <div className="flex gap-1 border-b border-cream-300 dark:border-ink-700/60 overflow-x-auto">
+        <div data-tour-step="sekmeler" className="flex gap-1 border-b border-cream-300 dark:border-ink-700/60 overflow-x-auto">
           {SEKMELER.map((s) => (
             <button
               key={s.kod}
               type="button"
+              data-tour-step={s.kod === "mail" ? "mail-sekmesi" : undefined}
               onClick={() => sekmeSec(s.kod)}
               className={cn(
                 "px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap",
@@ -250,7 +295,7 @@ function Icerik() {
 
           <aside className="lg:sticky lg:top-24 self-start">
             <p className="text-xs italic text-clay-400 dark:text-ink-300 mb-2">Canlı Önizleme</p>
-            <div className="kart p-5">
+            <div data-tour-step="live-preview" className="kart p-5">
               <LivePreview sekme={sekme} degerler={degerler} />
             </div>
           </aside>
@@ -273,6 +318,21 @@ function Icerik() {
           </Button>
         </div>
       </div>
+
+      <Joyride
+        steps={turAdimlari}
+        run={turRun}
+        continuous
+        showProgress
+        showSkipButton
+        scrollToFirstStep
+        callback={turCallback}
+        styles={{ options: {
+          primaryColor: "#c4704d", backgroundColor: "#faf6ef", textColor: "#3d2817",
+          arrowColor: "#faf6ef", overlayColor: "rgba(61, 40, 23, 0.5)", zIndex: 10000,
+        } }}
+        locale={{ back: "Geri", close: "Kapat", last: "Bitir", next: "İleri", skip: "Atla" }}
+      />
     </main>
   );
 }

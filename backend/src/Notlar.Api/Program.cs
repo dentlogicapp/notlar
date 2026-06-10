@@ -689,6 +689,7 @@ app.MapIsletmeEndpoints();  // v15
 app.MapSistemEndpoints();   // v17 — super admin metin anahtar katalogu
 app.MapSemaEndpoints();      // v18 Asama 11.9 B2 - read-only sistem semasi
 app.MapCihazEndpoints();     // v18 Asama 17.3 - app push cihaz kaydi
+app.MapTurAuditEndpoints();  // v18 Asama 19 B2 - tur analytics
 app.MapAiAyarlariEndpoints();
 app.MapMetinlerEndpoints();   // v18 - tenant icerigi   // v17 - AI saglayici ayar yonetimi + saglik
 app.MapAiAssistEndpoints();   // v18 Asama 11/12 - AI taslak oneri (saglik + taslak-oner)
