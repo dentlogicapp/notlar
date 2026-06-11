@@ -124,7 +124,7 @@ public static class SuperAdminIsletmeEndpoints
 
         // POST olustur - yeni tenant (B1 ozet doner). Opsiyonel admin atama Asama 4'te entegre edilir.
         g.MapPost("", async (IsletmeOlusturIstegi req, AppDbContext db, IUserContext uc,
-            IAuditService audit, CancellationToken ct) =>
+            IAuditService audit, IOperasyonelBildirimGonderici bildirim, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(req.MarkaAdi))
                 return Results.BadRequest(new { hata = "MARKA_ADI_ZORUNLU", mesaj = "Marka adi zorunlu." });
@@ -156,6 +156,8 @@ public static class SuperAdminIsletmeEndpoints
                 degisenAlanlar: System.Text.Json.JsonSerializer.Serialize(
                     new { markaAdi = isletme.MarkaAdi, kullanimModu = isletme.KullanimModu }), ct: ct);
 
+            bildirim.TenantOlusturuldu(isletme.MarkaAdi, uc.Email ?? "sistem");
+
             return Results.Ok(new IsletmeOzetYaniti(
                 isletme.Id, isletme.MarkaAdi, isletme.MarkaEmoji, isletme.KullanimModu, isletme.Aktif,
                 isletme.OlusturmaZamani, 0, 0, 0));
@@ -163,7 +165,7 @@ public static class SuperAdminIsletmeEndpoints
 
         // POST /{id}/durum - aktif/pasif toggle (soft; hard delete YOK)
         g.MapPost("/{id:guid}/durum", async (Guid id, AppDbContext db, IUserContext uc,
-            IAuditService audit, CancellationToken ct) =>
+            IAuditService audit, IOperasyonelBildirimGonderici bildirim, CancellationToken ct) =>
         {
             var isletme = await db.Isletmeler.FirstOrDefaultAsync(x => x.Id == id && !x.Silindi, ct);
             if (isletme is null)
@@ -176,6 +178,9 @@ public static class SuperAdminIsletmeEndpoints
             await audit.YazAsync("tenant_durum_degisti", hedefTip: "isletme", hedefId: isletme.Id,
                 degisenAlanlar: System.Text.Json.JsonSerializer.Serialize(
                     new { eski, yeni = isletme.Aktif }), ct: ct);
+
+            if (!isletme.Aktif)
+                bildirim.TenantPasiflestirildi(isletme.MarkaAdi, uc.Email ?? "sistem");
 
             return Results.Ok(new { id = isletme.Id, aktif = isletme.Aktif });
         });

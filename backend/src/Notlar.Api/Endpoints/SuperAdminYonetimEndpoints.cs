@@ -27,7 +27,7 @@ public static class SuperAdminYonetimEndpoints
         });
 
         // POST - kullaniciya super_admin ver (email ile)
-        g.MapPost("", async (SuperAdminAtaIstegi req, AppDbContext db, IAuditService audit, CancellationToken ct) =>
+        g.MapPost("", async (SuperAdminAtaIstegi req, AppDbContext db, IAuditService audit, IUserContext uc, IOperasyonelBildirimGonderici bildirim, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(req.Email))
                 return Results.BadRequest(new { hata = "EMAIL_ZORUNLU", mesaj = "Email zorunlu." });
@@ -45,12 +45,14 @@ public static class SuperAdminYonetimEndpoints
             await audit.YazAsync("super_admin_atandi", hedefTip: "kullanici", hedefId: user.Id,
                 degisenAlanlar: System.Text.Json.JsonSerializer.Serialize(new { email = mail }), ct: ct);
 
+            bildirim.SuperAdminAtandi(mail, uc.Email ?? "sistem");
+
             // not: yetki degisen kullanici yeniden giris yapmali (JWT super_admin claim).
             return Results.Ok(new { kullaniciId = user.Id, email = mail, superAdmin = true });
         });
 
         // DELETE - super_admin geri al. Son super admin korunur (defense in depth).
-        g.MapDelete("/{kullaniciId:guid}", async (Guid kullaniciId, AppDbContext db, IAuditService audit, CancellationToken ct) =>
+        g.MapDelete("/{kullaniciId:guid}", async (Guid kullaniciId, AppDbContext db, IAuditService audit, IUserContext uc, IOperasyonelBildirimGonderici bildirim, CancellationToken ct) =>
         {
             var user = await db.Kullanicilar.FirstOrDefaultAsync(u => u.Id == kullaniciId, ct);
             if (user is null || !user.SuperAdmin)
@@ -66,6 +68,8 @@ public static class SuperAdminYonetimEndpoints
 
             await audit.YazAsync("super_admin_kaldirildi", hedefTip: "kullanici", hedefId: user.Id,
                 degisenAlanlar: System.Text.Json.JsonSerializer.Serialize(new { email = user.Email }), ct: ct);
+
+            bildirim.SuperAdminKaldirildi(user.Email, uc.Email ?? "sistem");
 
             return Results.Ok(new { kullaniciId = user.Id, superAdmin = false });
         });

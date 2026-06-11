@@ -19,6 +19,7 @@ public sealed class Kullanici
     public bool SuperAdmin { get; set; }                  // Sistem geneli yetki (tenant-bağımsız)
     public Guid? AktifIsletmeId { get; set; }             // Şu an hangi tenant'ta çalışıyor (multi-tenant geçişler için)
     public bool IkiFaktorEtkin { get; set; }              // v19 B7 — 2FA hazirligi (kolon var, aktivasyon v20+; JWT'ye girmez)
+    public bool OperasyonelBildirimAl { get; set; } = true; // v19 B8 — super admin operasyonel mail (tenant olay/inaktif) opt-out
 
     // Lockout
     public int BasarisizDeneme { get; set; }
@@ -220,6 +221,7 @@ public sealed class Isletme
     public Guid? OlusturanSuperAdminId { get; set; }        // null = ilk seed tenant'ı (Planlama Defterimiz)
     public bool Aktif { get; set; } = true;
     public bool Silindi { get; set; }
+    public DateTimeOffset? SonInaktifBildirim { get; set; }  // v19 B8 — inaktif tarayici cooldown (7 gun icinde tekrar mail atilmaz)
 
     // Navigasyon
     public ICollection<IsletmeUyelik> Uyelikler { get; set; } = new List<IsletmeUyelik>();

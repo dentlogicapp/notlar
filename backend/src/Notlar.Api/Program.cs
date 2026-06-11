@@ -31,6 +31,7 @@ builder.Services.AddScoped<IUserContext, UserContext>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddSingleton<IOperasyonelBildirimGonderici, OperasyonelBildirimGonderici>();  // v19 B8 - fire-and-forget super admin bildirim
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<AnahtarSyncService>();  // v18 Asama 11.9 - Schema-as-Code sync
 // v17 - AI API key sifreleme + DataProtection key persistence (docker volume /keys)
@@ -68,6 +69,7 @@ builder.Services.AddScoped<IDocxDonusturucu, DocxDonusturucu>();
 // Arka plan
 builder.Services.AddHostedService<CopKutusuTemizleyici>();
 builder.Services.AddHostedService<HatirlaticiKontrolcusu>();
+builder.Services.AddHostedService<InaktifTenantTarayici>();  // v19 B8 - hareketsiz tenant gunluk tarama
 
 // JWT
 var jwtSecret = builder.Configuration["Jwt:Secret"]
@@ -343,6 +345,9 @@ using (var scope = app.Services.CreateScope())
             ALTER TABLE kullanicilar ADD COLUMN IF NOT EXISTS ""AktifIsletmeId"" uuid;
             -- v19 B7: 2FA hazirligi (kolon eklenir, aktivasyon v20+)
             ALTER TABLE kullanicilar ADD COLUMN IF NOT EXISTS ""IkiFaktorEtkin"" boolean NOT NULL DEFAULT false;
+            -- v19 B8: Operasyonel bildirim altyapisi (super admin mail opt-out + inaktif tarayici cooldown)
+            ALTER TABLE kullanicilar ADD COLUMN IF NOT EXISTS ""OperasyonelBildirimAl"" boolean NOT NULL DEFAULT true;
+            ALTER TABLE isletmeler ADD COLUMN IF NOT EXISTS ""SonInaktifBildirim"" timestamp with time zone;
             CREATE INDEX IF NOT EXISTS ""IX_kullanicilar_SuperAdmin"" 
                 ON kullanicilar (""SuperAdmin"") WHERE ""SuperAdmin"" = true;
 

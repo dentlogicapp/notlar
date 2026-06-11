@@ -15,6 +15,8 @@ public interface IEmailService
     // v18 - hatirlatma konusu isletme_metinleri'nden render edilir; body (Asama 6 kapsami disi) korunur.
     Task HatirlaticiMailGonderAsync(string toEmail, string aliciAdSoyad, string notBaslik, string? notIcerik,
         string? klasorAdi, string kimeMetin, DateTimeOffset hatirlatmaZamani, Guid notId, Guid isletmeId, CancellationToken ct = default);
+    // v19 B8 - operasyonel bildirim (super admin'e; tenant context yok, kod-bound template)
+    Task OperasyonelMailGonderAsync(string toEmail, string toAd, (string Konu, string Html) icerik, CancellationToken ct = default);
 }
 
 public sealed class EmailService : IEmailService
@@ -152,6 +154,10 @@ public sealed class EmailService : IEmailService
         var html = HatirlaticiHtmlSablonu(aliciIlkAd, notBaslik, notIcerik, klasorAdi, kimeMetin, hatirlatmaZamani, notLink);
         await GonderAsync(toEmail, aliciAdSoyad, konu, html, ct, sozluk.GetValueOrDefault(AnahtarKodu.IletisimEmail));
     }
+
+    // v19 B8 - operasyonel bildirim: tenant context yok, hazir (konu,html) tuple'i dogrudan gonderir.
+    public Task OperasyonelMailGonderAsync(string toEmail, string toAd, (string Konu, string Html) icerik, CancellationToken ct = default)
+        => GonderAsync(toEmail, toAd, icerik.Konu, icerik.Html, ct);
 
     private async Task GonderAsync(string toEmail, string toAd, string konu, string html, CancellationToken ct, string? replyTo = null)
     {
