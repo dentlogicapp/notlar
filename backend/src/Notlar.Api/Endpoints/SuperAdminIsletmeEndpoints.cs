@@ -140,6 +140,14 @@ public static class SuperAdminIsletmeEndpoints
                 MarkaEmoji = string.IsNullOrWhiteSpace(req.MarkaEmoji) ? "🏢" : req.MarkaEmoji.Trim(),
                 KullanimModu = mod,
                 OlusturanSuperAdminId = uc.KullaniciId,
+                // v19 G - Notr/sektor-bagimsiz baslangic (dugun temasi DEGIL; admin onboarding'de ozellestirir)
+                IkonSeti = "klasik",
+                KarsilamaBasligi = "Hoş geldin",
+                KarsilamaAltMetni = "Eklemek istediğin bir şey mi var? Yukarıdaki kutuya yazarak başla.",
+                SayacAktif = false,
+                SayacBasligi = "",
+                MailImza = "",
+                MailTonu = "profesyonel",
             };
             db.Isletmeler.Add(isletme);
             await db.SaveChangesAsync(ct);
@@ -229,6 +237,23 @@ public static class SuperAdminIsletmeEndpoints
                 Aktif = true,
             });
             await db.SaveChangesAsync(ct);
+
+            // v19 G - Bu tenant'ta sistem klasoru (Tamamlananlar) yoksa olustur (ilk admin olusturan olarak; idempotent).
+            var sistemKlasorVar = await db.Klasorler
+                .AnyAsync(k => k.IsletmeId == id && k.SistemMi && k.Ad == "Tamamlananlar", ct);
+            if (!sistemKlasorVar)
+            {
+                db.Klasorler.Add(new Klasor
+                {
+                    IsletmeId = id,
+                    Ad = "Tamamlananlar",
+                    Aciklama = "Tamamlanan tüm notlar burada toplanır",
+                    Ikon = "check-circle",
+                    SistemMi = true,
+                    OlusturanKullaniciId = user.Id,
+                });
+                await db.SaveChangesAsync(ct);
+            }
 
             // Yeni kullanici -> davetiye/setup mail (metinler hedef tenant'in isletme_metinleri'nden render)
             if (yeniKullanici && setupToken is not null)
