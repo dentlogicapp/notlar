@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Notlar.Api.Data;
+using Notlar.Api.Entities;
 using Notlar.Api.Services;
 
 namespace Notlar.Api.Endpoints;
@@ -120,10 +121,62 @@ public static class SuperAdminIsletmeEndpoints
                 i.OlusturmaZamani, i.OlusturanSuperAdminId,
                 dolulukYuzde, saglik, uyeler));
         });
+
+        // POST olustur - yeni tenant (B1 ozet doner). Opsiyonel admin atama Asama 4'te entegre edilir.
+        g.MapPost("", async (IsletmeOlusturIstegi req, AppDbContext db, IUserContext uc,
+            IAuditService audit, CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(req.MarkaAdi))
+                return Results.BadRequest(new { hata = "MARKA_ADI_ZORUNLU", mesaj = "Marka adi zorunlu." });
+
+            var gecerliModlar = new[] { "es", "aile", "ekip", "tatil", "ozel" };
+            var mod = string.IsNullOrWhiteSpace(req.KullanimModu) ? "es" : req.KullanimModu.Trim();
+            if (!gecerliModlar.Contains(mod))
+                return Results.BadRequest(new { hata = "KULLANIM_MODU_GECERSIZ", mesaj = "Kullanim modu gecersiz." });
+
+            var isletme = new Isletme
+            {
+                MarkaAdi = req.MarkaAdi.Trim(),
+                MarkaEmoji = string.IsNullOrWhiteSpace(req.MarkaEmoji) ? "🏢" : req.MarkaEmoji.Trim(),
+                KullanimModu = mod,
+                OlusturanSuperAdminId = uc.KullaniciId,
+            };
+            db.Isletmeler.Add(isletme);
+            await db.SaveChangesAsync(ct);
+
+            await audit.YazAsync("tenant_olusturuldu", hedefTip: "isletme", hedefId: isletme.Id,
+                degisenAlanlar: System.Text.Json.JsonSerializer.Serialize(
+                    new { markaAdi = isletme.MarkaAdi, kullanimModu = isletme.KullanimModu }), ct: ct);
+
+            return Results.Ok(new IsletmeOzetYaniti(
+                isletme.Id, isletme.MarkaAdi, isletme.MarkaEmoji, isletme.KullanimModu, isletme.Aktif,
+                isletme.OlusturmaZamani, 0, 0, 0));
+        });
+
+        // POST /{id}/durum - aktif/pasif toggle (soft; hard delete YOK)
+        g.MapPost("/{id:guid}/durum", async (Guid id, AppDbContext db, IUserContext uc,
+            IAuditService audit, CancellationToken ct) =>
+        {
+            var isletme = await db.Isletmeler.FirstOrDefaultAsync(x => x.Id == id && !x.Silindi, ct);
+            if (isletme is null)
+                return Results.NotFound(new { hata = "ISLETME_BULUNAMADI", mesaj = "Isletme bulunamadi." });
+
+            var eski = isletme.Aktif;
+            isletme.Aktif = !isletme.Aktif;
+            await db.SaveChangesAsync(ct);
+
+            await audit.YazAsync("tenant_durum_degisti", hedefTip: "isletme", hedefId: isletme.Id,
+                degisenAlanlar: System.Text.Json.JsonSerializer.Serialize(
+                    new { eski, yeni = isletme.Aktif }), ct: ct);
+
+            return Results.Ok(new { id = isletme.Id, aktif = isletme.Aktif });
+        });
     }
 }
 
 // v19 Asama 2 - DTO'lar (endpoint dosyasinda, SemaEndpoints record pattern reuse)
+public record IsletmeOlusturIstegi(string MarkaAdi, string? MarkaEmoji, string KullanimModu);
+
 public record IsletmeOzetYaniti(
     Guid Id, string MarkaAdi, string MarkaEmoji, string KullanimModu, bool Aktif,
     DateTimeOffset OlusturmaZamani, int UyeSayisi, int DolulukYuzde, int SaglikSkoru);
