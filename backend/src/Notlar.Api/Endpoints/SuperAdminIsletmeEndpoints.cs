@@ -171,11 +171,86 @@ public static class SuperAdminIsletmeEndpoints
 
             return Results.Ok(new { id = isletme.Id, aktif = isletme.Aktif });
         });
+
+        // POST /{id}/admin-ata - tenant'a admin ata. AdminEndpoints CREATE pattern reuse; fark: path tenant + Rol sabit admin.
+        g.MapPost("/{id:guid}/admin-ata", async (Guid id, IsletmeAdminAtaIstegi req, AppDbContext db,
+            IEmailService email, IAuditService audit, IConfiguration cfg, CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(req.Email) || string.IsNullOrWhiteSpace(req.AdSoyad))
+                return Results.BadRequest(new { hata = "EMAIL_AD_ZORUNLU", mesaj = "Email ve ad soyad zorunlu." });
+            if (req.Cinsiyet != "kadin" && req.Cinsiyet != "erkek")
+                return Results.BadRequest(new { hata = "CINSIYET_GECERSIZ", mesaj = "Cinsiyet 'kadin' veya 'erkek' olmali." });
+
+            var isletme = await db.Isletmeler.FirstOrDefaultAsync(x => x.Id == id && !x.Silindi, ct);
+            if (isletme is null)
+                return Results.NotFound(new { hata = "ISLETME_BULUNAMADI", mesaj = "Isletme bulunamadi." });
+
+            var mail = req.Email.Trim().ToLowerInvariant();
+            var mevcut = await db.Kullanicilar.FirstOrDefaultAsync(u => u.Email == mail, ct);
+            Kullanici user;
+            string? setupToken = null;
+            bool yeniKullanici = false;
+
+            if (mevcut is not null)
+            {
+                var zatenUye = await db.IsletmeUyelikleri
+                    .AnyAsync(u => u.IsletmeId == id && u.KullaniciId == mevcut.Id, ct);
+                if (zatenUye)
+                    return Results.BadRequest(new { hata = "ZATEN_UYE", mesaj = "Bu kullanici zaten tenant'a uye." });
+                user = mevcut;
+            }
+            else
+            {
+                user = new Kullanici
+                {
+                    Email = mail,
+                    AdSoyad = req.AdSoyad.Trim(),
+                    Rol = "kullanici",   // global default; tenant scope rol IsletmeUyelik'te
+                    Cinsiyet = req.Cinsiyet,
+                    Aktif = true,
+                };
+                db.Kullanicilar.Add(user);
+                yeniKullanici = true;
+                setupToken = AuthEndpoints.TokenUret();
+                db.AuthTokenlar.Add(new AuthToken
+                {
+                    KullaniciId = user.Id,
+                    Token = setupToken,
+                    Amac = "setup",
+                    GecerlilikSonu = DateTimeOffset.UtcNow.AddHours(24)
+                });
+            }
+
+            db.IsletmeUyelikleri.Add(new IsletmeUyelik
+            {
+                IsletmeId = id,
+                KullaniciId = user.Id,
+                Rol = "admin",
+                Aktif = true,
+            });
+            await db.SaveChangesAsync(ct);
+
+            // Yeni kullanici -> davetiye/setup mail (metinler hedef tenant'in isletme_metinleri'nden render)
+            if (yeniKullanici && setupToken is not null)
+            {
+                var frontend = cfg["FrontendBaseUrl"] ?? "http://localhost:3000";
+                var link = $"{frontend}/sifre-belirle?token={setupToken}";
+                await email.SifreBelirleMailGonderAsync(user.Email, user.AdSoyad, link, id, ct);
+            }
+
+            await audit.YazAsync("tenant_admin_atandi", hedefTip: "kullanici", hedefId: user.Id,
+                degisenAlanlar: System.Text.Json.JsonSerializer.Serialize(
+                    new { tenantId = id, email = mail, yeniKullanici }), ct: ct);
+
+            return Results.Ok(new { kullaniciId = user.Id, email = mail, yeniKullanici, rol = "admin" });
+        });
     }
 }
 
 // v19 Asama 2 - DTO'lar (endpoint dosyasinda, SemaEndpoints record pattern reuse)
 public record IsletmeOlusturIstegi(string MarkaAdi, string? MarkaEmoji, string KullanimModu);
+
+public record IsletmeAdminAtaIstegi(string Email, string AdSoyad, string Cinsiyet);
 
 public record IsletmeOzetYaniti(
     Guid Id, string MarkaAdi, string MarkaEmoji, string KullanimModu, bool Aktif,
