@@ -244,6 +244,51 @@ public static class SuperAdminIsletmeEndpoints
 
             return Results.Ok(new { kullaniciId = user.Id, email = mail, yeniKullanici, rol = "admin" });
         });
+
+        // POST /{id}/goruntule - B2 read-only impersonation basla.
+        // Gecici JWT: aktif_isletme_id = hedef tenant (DB'ye YAZILMAZ, sadece token claim).
+        // Frontend banner aktifken her istekte Goruntuleme-Modu:true header gonderir -> mevcut write 403 guard devreye girer.
+        g.MapPost("/{id:guid}/goruntule", async (Guid id, AppDbContext db, IUserContext uc,
+            IJwtService jwt, IAuditService audit, HttpContext http, IConfiguration cfg, CancellationToken ct) =>
+        {
+            var isletme = await db.Isletmeler.FirstOrDefaultAsync(x => x.Id == id && !x.Silindi, ct);
+            if (isletme is null)
+                return Results.NotFound(new { hata = "ISLETME_BULUNAMADI", mesaj = "Isletme bulunamadi." });
+
+            if (uc.KullaniciId is null) return Results.Unauthorized();
+            var user = await db.Kullanicilar.FindAsync(new object[] { uc.KullaniciId.Value }, ct);
+            if (user is null) return Results.Unauthorized();
+
+            // Gecici override: aktif tenant = hedef. SaveChanges YOK -> DB degismez, sadece token claim'i etkilenir.
+            var gercekAktif = user.AktifIsletmeId;
+            user.AktifIsletmeId = id;
+            var token = jwt.TokenUret(user);
+            user.AktifIsletmeId = gercekAktif;
+
+            var gun = int.Parse(cfg["Jwt:GunOmru"] ?? "30");
+            AuthEndpoints.CookieEkle(http, token, gun, cfg, persistent: true);
+
+            await audit.YazAsync("tenant_olarak_gorus_basladi", hedefTip: "isletme", hedefId: id);
+
+            return Results.Ok(new { ok = true, tenant = new { id = isletme.Id, markaAdi = isletme.MarkaAdi, markaEmoji = isletme.MarkaEmoji } });
+        });
+
+        // POST /goruntule/bitir - impersonation sonlandir (gercek AktifIsletmeId ile normal JWT'ye don).
+        g.MapPost("/goruntule/bitir", async (AppDbContext db, IUserContext uc,
+            IJwtService jwt, IAuditService audit, HttpContext http, IConfiguration cfg, CancellationToken ct) =>
+        {
+            if (uc.KullaniciId is null) return Results.Unauthorized();
+            var user = await db.Kullanicilar.FindAsync(new object[] { uc.KullaniciId.Value }, ct);
+            if (user is null) return Results.Unauthorized();
+
+            var token = jwt.TokenUret(user);  // gercek AktifIsletmeId DB'den
+            var gun = int.Parse(cfg["Jwt:GunOmru"] ?? "30");
+            AuthEndpoints.CookieEkle(http, token, gun, cfg, persistent: true);
+
+            await audit.YazAsync("tenant_olarak_gorus_bitti");
+
+            return Results.Ok(new { ok = true });
+        });
     }
 }
 
