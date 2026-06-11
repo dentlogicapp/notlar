@@ -688,6 +688,7 @@ app.MapNotificationEndpoints();
 app.MapLockEndpoints();
 app.MapExportEndpoints();
 app.MapIsletmeEndpoints();  // v15
+app.MapSuperAdminIsletmeEndpoints();  // v19 Asama 2 - super admin tenant yonetimi
 app.MapSistemEndpoints();   // v17 — super admin metin anahtar katalogu
 app.MapSemaEndpoints();      // v18 Asama 11.9 B2 - read-only sistem semasi
 app.MapCihazEndpoints();     // v18 Asama 17.3 - app push cihaz kaydi
