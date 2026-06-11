@@ -62,7 +62,8 @@ public sealed class EmailService : IEmailService
             return _resolver.Coz(ham, birlesik, htmlEncode);
         }
 
-        // Fallback: anahtar bos -> hardcoded deger + denetim kaydi (onboarding tamamlaninca tetiklenmez)
+        // Fallback: anahtar bos -> kod-bound NOTR varsayilan (AnahtarKatalogu); placeholder'lar resolve edilir.
+        // Eski parametre fallback yalnizca katalogda Varsayilan tanimsizsa kullanilir (geriye uyumluluk).
         await _audit.YazAsync("mail_anahtar_eksik", hedefTip: "isletme_metni", hedefId: null,
             degisenAlanlar: System.Text.Json.JsonSerializer.Serialize(new
             {
@@ -71,6 +72,15 @@ public sealed class EmailService : IEmailService
                 fallback_icerik_kullanildi = true,
                 isletme_id = isletmeId
             }), ct: ct);
+
+        var katalogVarsayilan = AnahtarKatalogu.Tumu
+            .FirstOrDefault(a => a.Anahtar == anahtar)?.Varsayilan;
+        if (!string.IsNullOrEmpty(katalogVarsayilan))
+        {
+            var birlesik2 = new Dictionary<string, string>(sozluk, StringComparer.Ordinal);
+            foreach (var kv in runtime) birlesik2[kv.Key] = kv.Value;
+            return _resolver.Coz(katalogVarsayilan, birlesik2, htmlEncode);
+        }
         return fallback;
     }
 

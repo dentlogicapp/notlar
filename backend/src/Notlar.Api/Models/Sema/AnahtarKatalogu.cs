@@ -7,7 +7,7 @@ public static class AnahtarKatalogu
 {
     // SemVer: yeni anahtar -> minor (1.1.0); tip/limit breaking -> major (2.0.0);
     // dokumantasyon (etiket/yonlendirme/aciklama) -> patch (1.0.1).
-    public const string Version = "1.1.0";
+    public const string Version = "1.2.0";
 
     public static readonly IReadOnlyList<AnahtarTanim> Tumu = new[]
     {
@@ -17,21 +17,21 @@ public static class AnahtarKatalogu
             .Etiket("Marka Adı")
             .Yonlendirme("Çalışma grubu, işletme veya etkinlik için kullanılacak ismi yazınız.")
             .Aciklama("Browser sekmesi, dashboard başlığı ve mail footer'da görünür.")
-            .Zorunlu().Sira(10).Build(),
+            .Zorunlu().Sira(10).Varsayilan("Sistemim").Build(),
 
         AnahtarTanim.Tanim("marka_emoji")
             .Kategori(Kategori.Marka).Tip(AlanTipi.PlaceholderKisa)
             .Etiket("Marka Emojisi")
             .Yonlendirme("Markanı temsil eden tek bir emoji seç. (Örn: 🤍, 📚, ☕, 🏢)")
             .Aciklama("Browser sekmesi ve dashboard üst başlıkta marka adınla birlikte görünür.")
-            .Sira(20).Build(),
+            .Sira(20).Varsayilan("🔔").Build(),
 
         AnahtarTanim.Tanim("marka_ikon_seti")
             .Kategori(Kategori.Marka).Tip(AlanTipi.PlaceholderKisa)
             .Etiket("İkon Seti")
             .Yonlendirme("Dashboard ikonların tonu. (kalp / klasik / ekip / aile / tatil)")
             .Aciklama("Geri sayım ve karşılama widget'larında kullanılacak ikon stili.")
-            .Sira(30).Deprecated().Build(),
+            .Sira(30).Deprecated().Varsayilan("klasik").Build(),
 
         // --- DASHBOARD ---
         AnahtarTanim.Tanim("dashboard_karsilama_basligi")
@@ -40,14 +40,14 @@ public static class AnahtarKatalogu
             .Etiket("Dashboard Karşılama Başlığı")
             .Yonlendirme("Kullanıcılar siteye girince üstte gördüğü ana başlık. (Örn: 'Merhaba', 'Hoşgeldin', 'Selam Ekip')")
             .Aciklama("Her sayfada üst kısımda görünür.")
-            .Zorunlu().Sira(100).Build(),
+            .Zorunlu().Sira(100).Varsayilan("Hoş geldin").Build(),
 
         AnahtarTanim.Tanim("dashboard_karsilama_alt_metin")
             .Kategori(Kategori.Dashboard).Tip(AlanTipi.Metin)
             .Etiket("Dashboard Karşılama Alt Metni")
             .Yonlendirme("Başlığın altında zarif bir cümle. (Örn: 'Bugün ne planlayalım?', 'Çalışmaya hazır mıyız?')")
             .Aciklama("Dashboard üstünde italik gri olarak görünür.")
-            .Sira(110).Build(),
+            .Sira(110).Varsayilan("Bugün ne planlayalım?").Build(),
 
         AnahtarTanim.Tanim("not_form_placeholder")
             .Kategori(Kategori.Dashboard).Tip(AlanTipi.PlaceholderKisa)
@@ -62,7 +62,7 @@ public static class AnahtarKatalogu
             .Etiket("Sayaç Aktif")
             .Yonlendirme("Geri sayım widget'ı dashboard'da görünsün mü? (true / false)")
             .Aciklama("Sayaç kapalıysa hiç gösterilmez.")
-            .Sira(200).Build(),
+            .Sira(200).Varsayilan("false").Build(),
 
         AnahtarTanim.Tanim("sayac_aktif_cumle")
             .Kategori(Kategori.Sayac).Tip(AlanTipi.Metin)
@@ -70,14 +70,14 @@ public static class AnahtarKatalogu
             .Etiket("Sayaç Aktif Cümle")
             .Yonlendirme("Geri sayımda kalan süre öncesinde gösterilecek cümle. (Örn: 'Düğünümüze kaldı', 'Lansmana kaldı', 'Sınava kaldı')")
             .Aciklama("Hedef tarihe ne kadar kaldığını anlatır.")
-            .Sira(210).Build(),
+            .Sira(210).Varsayilan("Hedefe kalan süre").Build(),
 
         AnahtarTanim.Tanim("sayac_bitti_cumle")
             .Kategori(Kategori.Sayac).Tip(AlanTipi.Metin)
             .Etiket("Sayaç Bitti Cümle")
             .Yonlendirme("Hedef tarih geldikten sonra gösterilecek cümle. (Örn: 'Bugün en güzel günümüz', 'Açılışımız oldu', 'Sınava girdik')")
             .Aciklama("Sayaç 0 olduğunda görünür.")
-            .Sira(220).Build(),
+            .Sira(220).Varsayilan("Hedef tarihe ulaşıldı").Build(),
 
         AnahtarTanim.Tanim("sayac_hedef_tarihi")
             .Kategori(Kategori.Sayac).Tip(AlanTipi.PlaceholderKisa)
@@ -92,14 +92,14 @@ public static class AnahtarKatalogu
             .Etiket("Mail İmzası")
             .Yonlendirme("Mail sonunda gösterilecek ve çalışmanızı en iyi açıklayacak imzanızı yazınız. (Örn: 'Bilgi Kitap Evi Çalışma Grup Yönetimi', 'Sevgilerle, Musa & Ayşegül', 'Saygılarımızla, Yıldız Hukuk Bürosu')")
             .Aciklama("Hatırlatıcı ve davet maillerinin sonunda görünür.")
-            .Zorunlu().Sira(300).Build(),
+            .Zorunlu().Sira(300).Varsayilan("Saygılarımızla").Build(),
 
         AnahtarTanim.Tanim("mail_tonu")
             .Kategori(Kategori.Mail).Tip(AlanTipi.PlaceholderKisa)
             .Etiket("Mail Tonu")
             .Yonlendirme("Mail metinlerinin genel tarzı. (Örn: samimi / profesyonel / resmi)")
             .Aciklama("Davetiye ve hatirlatma maillerinin genel tonu - AI yardimcisi onerileri ve ton sliderinin varsayilan degeri.")
-            .Sira(305).Build(),
+            .Sira(305).Varsayilan("profesyonel").Build(),
 
         AnahtarTanim.Tanim("mail_davetiye_konu")
             .Kategori(Kategori.Mail).Tip(AlanTipi.Subject)
@@ -107,14 +107,14 @@ public static class AnahtarKatalogu
             .Etiket("Davet Maili Konusu")
             .Yonlendirme("Yeni kullanıcıya gönderilecek davet e-postasının konusu. {alici_ad} yazarsanız kullanıcının ilk adı otomatik gelir. (Örn: '{alici_ad}, planlama defterimiz seni bekliyor')")
             .Aciklama("E-posta inbox'unda subject olarak görünür. İlgi çekici ve kişisel tutun.")
-            .Zorunlu().Sira(310).Build(),
+            .Zorunlu().Sira(310).Varsayilan("{marka_adi} - Hesap davetiyeniz").Build(),
 
         AnahtarTanim.Tanim("mail_davetiye_alt_baslik")
             .Kategori(Kategori.Mail).Tip(AlanTipi.Metin)
             .Etiket("Davet Maili Alt Başlık")
             .Yonlendirme("Mail içinde isim altında italik gösterilecek kısa açıklama. (Örn: 'planlama defterimiz seni bekliyor 🤍', 'ekibe hoşgeldin', 'çalışma grubumuza katılım daveti')")
             .Aciklama("Mail içinde başlığın hemen altında küçük italik metin olarak görünür.")
-            .Sira(320).Build(),
+            .Sira(320).Varsayilan("Sisteme hoş geldiniz").Build(),
 
         AnahtarTanim.Tanim("mail_davetiye_giris_metni")
             .Kategori(Kategori.Mail).Tip(AlanTipi.Body)
@@ -122,7 +122,7 @@ public static class AnahtarKatalogu
             .Etiket("Davet Maili Giriş Metni")
             .Yonlendirme("Mail'in üst kısmında kullanıcıya hitap eden açıklama paragraf. Markanı, neden davet ettiğini ve nasıl katkıda bulunabileceğini anlat.")
             .Aciklama("Mail içinde CTA butonundan önce görünür. 2-4 cümle önerilir.")
-            .Zorunlu().Sira(330).Build(),
+            .Zorunlu().Sira(330).Varsayilan("Aşağıdaki butona tıklayarak hesabınızı oluşturabilir ve şifrenizi belirleyebilirsiniz. Hesabınız hazır olduğunda e-posta adresiniz ve şifrenizle giriş yapabilirsiniz.").Build(),
 
         AnahtarTanim.Tanim("mail_hatirlatma_konu")
             .Kategori(Kategori.Mail).Tip(AlanTipi.Subject)
@@ -130,7 +130,7 @@ public static class AnahtarKatalogu
             .Etiket("Hatırlatıcı Maili Konusu")
             .Yonlendirme("Bir not için hatırlatıcı kurulduğunda gönderilecek mail'in konusu. (Örn: '♡ Hatırlatıcı - {not_basligi}', 'Hatırlatıyoruz: {not_basligi}')")
             .Aciklama("Hatırlatma zamanı geldiğinde gönderilen mail'in subject'i.")
-            .Sira(340).Build(),
+            .Sira(340).Varsayilan("Hatırlatma: {not_basligi}").Build(),
 
         AnahtarTanim.Tanim("iletisim_email")
             .Kategori(Kategori.Mail).Tip(AlanTipi.Subject)

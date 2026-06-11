@@ -14,7 +14,8 @@ public sealed record AnahtarTanim(
     int Sira,
     bool Deprecated,
     int? KarakterLimiti,
-    KapsamTipi Kapsam)
+    KapsamTipi Kapsam,
+    string? Varsayilan = null)
 {
     // Efektif limit: ozel limit set edilmisse o, yoksa tipten gelen default.
     public int EfektifLimit => KarakterLimiti ?? TipDefault.KarakterLimiti(Tip);
@@ -43,6 +44,7 @@ public sealed class AnahtarTanimBuilder
     private bool _deprecated;
     private int? _karakterLimiti;
     private KapsamTipi _kapsam = KapsamTipi.Tenant;
+    private string? _varsayilan;
 
     public AnahtarTanimBuilder(string anahtar) => _anahtar = anahtar;
 
@@ -57,8 +59,9 @@ public sealed class AnahtarTanimBuilder
     public AnahtarTanimBuilder Deprecated(bool deger = true) { _deprecated = deger; return this; }
     public AnahtarTanimBuilder Limit(int l) { _karakterLimiti = l; return this; }
     public AnahtarTanimBuilder Kapsam(KapsamTipi k) { _kapsam = k; return this; }
+    public AnahtarTanimBuilder Varsayilan(string v) { _varsayilan = v; return this; }
 
     public AnahtarTanim Build() => new(
         _anahtar, _kategori, _tip, _etiket, _yonlendirme, _aciklama,
-        _placeholderlar, _zorunlu, _sira, _deprecated, _karakterLimiti, _kapsam);
+        _placeholderlar, _zorunlu, _sira, _deprecated, _karakterLimiti, _kapsam, _varsayilan);
 }
