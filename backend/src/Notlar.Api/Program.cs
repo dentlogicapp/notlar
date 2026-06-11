@@ -372,42 +372,11 @@ using (var scope = app.Services.CreateScope())
             )
             ON CONFLICT (""Id"") DO NOTHING;
 
-            -- 6. Mevcut tüm veriyi Planlama Defterimiz tenant'ına bağla
-            UPDATE klasorler SET ""IsletmeId"" = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' WHERE ""IsletmeId"" IS NULL;
-            UPDATE notlar SET ""IsletmeId"" = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' WHERE ""IsletmeId"" IS NULL;
-            UPDATE bildirimler SET ""IsletmeId"" = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' WHERE ""IsletmeId"" IS NULL;
-            UPDATE denetim_gunlukleri SET ""IsletmeId"" = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' WHERE ""IsletmeId"" IS NULL;
-            UPDATE not_gecmisi SET ""IsletmeId"" = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' WHERE ""IsletmeId"" IS NULL;
-
-            -- 7. Mevcut kullanıcıları Planlama Defterimiz'e üye yap (Kullanicilar.Rol'den rol al)
-            INSERT INTO isletme_uyelikleri (""Id"", ""IsletmeId"", ""KullaniciId"", ""Rol"", ""KatilmaZamani"", ""Aktif"")
-            SELECT 
-                gen_random_uuid(),
-                'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-                k.""Id"",
-                k.""Rol"",
-                k.""OlusturmaZamani"",
-                k.""Aktif""
-            FROM kullanicilar k
-            WHERE NOT EXISTS (
-                SELECT 1 FROM isletme_uyelikleri u 
-                WHERE u.""IsletmeId"" = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' 
-                  AND u.""KullaniciId"" = k.""Id""
-            );
-
-            -- 8. En eski admin'i SuperAdmin yap (yoksa hiçbir kullanıcı admin değil, atla)
-            UPDATE kullanicilar SET ""SuperAdmin"" = true
-            WHERE ""Id"" = (
-                SELECT ""Id"" FROM kullanicilar 
-                WHERE ""Rol"" = 'admin' AND ""Aktif"" = true
-                ORDER BY ""OlusturmaZamani"" ASC 
-                LIMIT 1
-            )
-            AND NOT EXISTS (SELECT 1 FROM kullanicilar WHERE ""SuperAdmin"" = true);
-
-            -- 9. AktifIsletmeId default ata
-            UPDATE kullanicilar SET ""AktifIsletmeId"" = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' 
-            WHERE ""AktifIsletmeId"" IS NULL;
+            -- NOT (v19): Tek-seferlik gecis migration'lari (eski blok 6-9) kaldirildi.
+            -- Veri tasima/uyelik/super-admin-bootstrap/AktifIsletmeId-default gorevini v18'de
+            -- tamamladi; her restart calisip yeni kullanicilari yanlislikla Planlama Defterimiz'e
+            -- cekiyordu (tenant izolasyon driftine sebep). Uyelik artik explicit endpoint'lerle
+            -- (admin-ata / Yeni Kullanici) dogru tenant'a yazilir. Idempotent seed bloklari korundu.
 
             -- 10. FK constraints (idempotent — varsa atla)
             DO $$ BEGIN
@@ -554,24 +523,13 @@ using (var scope = app.Services.CreateScope())
             (gen_random_uuid(), 'mail_tonu', 'Mail Tonu', 'Mail metinlerinin genel tarzı. (Örn: samimi / profesyonel / resmi)', 'Davetiye ve hatirlatma maillerinin genel tonu - AI yardimcisi onerileri ve ton sliderinin varsayilan degeri.', 'placeholder_kisa', false, '[]'::jsonb, 305, 'mail', false, now(), now())
             ON CONFLICT (""Anahtar"") DO NOTHING;
 
-            -- 17b. v18 mevcut tenant verisi: isletmeler kolonlari -> isletme_metinleri (idempotent)
-            INSERT INTO isletme_metinleri (""Id"", ""IsletmeId"", ""Anahtar"", ""Icerik"", ""GuncellemeZamani"")
-            SELECT gen_random_uuid(), i.""Id"", v.anahtar, v.icerik, now()
-            FROM isletmeler i
-            CROSS JOIN LATERAL (VALUES
-                ('marka_adi', i.""MarkaAdi""),
-                ('marka_emoji', i.""MarkaEmoji""),
-                ('marka_ikon_seti', i.""IkonSeti""),
-                ('dashboard_karsilama_basligi', i.""KarsilamaBasligi""),
-                ('dashboard_karsilama_alt_metin', i.""KarsilamaAltMetni""),
-                ('sayac_aktif', CASE WHEN i.""SayacAktif"" THEN 'true' ELSE 'false' END),
-                ('sayac_aktif_cumle', i.""SayacBasligi""),
-                ('sayac_hedef_tarihi', to_char(i.""SayacHedefTarihi"", 'YYYY-MM-DD')),
-                ('mail_imza', i.""MailImza""),
-                ('mail_tonu', i.""MailTonu"")
-            ) AS v(anahtar, icerik)
-            WHERE v.icerik IS NOT NULL AND v.icerik <> ''
-            ON CONFLICT (""IsletmeId"", ""Anahtar"") DO NOTHING;
+            -- NOT (v19): Tek-seferlik blok 17b (isletmeler kolonlari -> isletme_metinleri,
+            -- FROM isletmeler filtresiz) kaldirildi. Mevcut Planlama Defterimiz metinleri v18'de
+            -- tasindi (ON CONFLICT korur). Her restart yeni tenant'a deprecated kolon degerlerini
+            -- isliyor, AnahtarKatalogu.Varsayilan + Sifir Sablon mimarisini bypass ediyordu.
+            -- Artik metin tek dogruluk kaynagi: isletme_metinleri + AnahtarKatalogu.Varsayilan fallback.
+
+
 
             -- 18a. v18 (geri bildirim A+B) marka_ikon_seti kaldirildi: deprecate -> GET / filtreler, sayfada gorunmez
             UPDATE metin_anahtarlari SET ""Deprecated"" = true, ""GuncellemeZamani"" = now()

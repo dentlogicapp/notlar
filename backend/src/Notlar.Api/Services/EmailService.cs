@@ -92,25 +92,23 @@ public sealed class EmailService : IEmailService
     {
         var aliciIlkAd = adSoyad.Split(' ')[0];
 
-        // Giris metni fallback'i (tenant mail_davetiye_giris_metni bos ise) - mevcut v16 metni korunur.
+        // Giris metni fallback'i (tenant mail_davetiye_giris_metni bos VE AnahtarKatalogu.Varsayilan bos ise).
+        // Tek doğruluk: AnahtarKatalogu mail_davetiye_giris_metni Varsayilan ile birebir notr metin.
         const string girisFallback =
-            "Bu küçük sistemi, en güzel günümüze adım adım hazırlanırken " +
-            "aklımıza gelen her şeyi <em>birlikte</em> planlayalım, " +
-            "<em>birlikte</em> tamamlayalım diye hayal ettim. Bir köşesi davetiyeler, " +
-            "bir köşesi nikâh hazırlığı, bir köşesi düğün öncesi alacaklarımız… " +
-            "Senin defterin, benim defterim, ikimizin defteri.";
+            "Aşağıdaki butona tıklayarak hesabınızı oluşturabilir ve şifrenizi belirleyebilirsiniz. " +
+            "Hesabınız hazır olduğunda e-posta adresiniz ve şifrenizle giriş yapabilirsiniz.";
 
         var sozluk = SozlukYap(await _metin.TumunuGetirAsync(isletmeId, ct));
         var runtime = new Dictionary<string, string>(StringComparer.Ordinal) { ["alici_ad"] = aliciIlkAd };
 
         var konu = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailDavetiyeKonu,
-            $"{aliciIlkAd}, planlama defterimiz seni bekliyor", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
+            $"{aliciIlkAd}, hesap davetiyeniz", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
         var girisMetni = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailDavetiyeGirisMetni,
             girisFallback, "davetiye", isletmeId, runtime, htmlEncode: false, ct);
         var imza = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailImza,
             "", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
         var markaAdi = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MarkaAdi,
-            "Planlama Defterimiz", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
+            "Sistemim", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
 
         // v18 Paket2 - mail sayac cumlesi sayac field'lerinden (ileri sayim dahil); DUGUN_UTC kaldirildi.
         // Kapali veya cumle bos ise sayac blogu hic basilmaz. Tek kaynak: isletme_metinleri.
@@ -131,7 +129,7 @@ public sealed class EmailService : IEmailService
     public Task SifreSifirlamaMailGonderAsync(string toEmail, string adSoyad, string link, CancellationToken ct = default)
     {
         var ilkAd = adSoyad.Split(' ')[0];
-        var konu = "Planlama Defterimiz — Şifre Sıfırlama";
+        var konu = "Şifre Sıfırlama";
         var html = SifreSifirlamaHtmlSablonu(ilkAd, link);
         return GonderAsync(toEmail, adSoyad, konu, html, ct);
     }
@@ -149,7 +147,7 @@ public sealed class EmailService : IEmailService
         var sozluk = SozlukYap(await _metin.TumunuGetirAsync(isletmeId, ct));
         var runtime = new Dictionary<string, string>(StringComparer.Ordinal) { ["not_basligi"] = notBaslik };
         var konu = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailHatirlatmaKonu,
-            $"♡ Hatırlatıcı — \"{notBaslik}\"", "hatirlatma", isletmeId, runtime, htmlEncode: false, ct);
+            $"Hatırlatma — \"{notBaslik}\"", "hatirlatma", isletmeId, runtime, htmlEncode: false, ct);
 
         var html = HatirlaticiHtmlSablonu(aliciIlkAd, notBaslik, notIcerik, klasorAdi, kimeMetin, hatirlatmaZamani, notLink);
         await GonderAsync(toEmail, aliciAdSoyad, konu, html, ct, sozluk.GetValueOrDefault(AnahtarKodu.IletisimEmail));
@@ -163,7 +161,7 @@ public sealed class EmailService : IEmailService
         var pass = _cfg["Smtp:Pass"];
         var ssl = bool.Parse(_cfg["Smtp:Ssl"] ?? "false");
         var from = _cfg["Smtp:From"] ?? "notlar@local.test";
-        var fromAd = _cfg["Smtp:FromName"] ?? "🔒 Planlama Defterimiz 🤍";
+        var fromAd = _cfg["Smtp:FromName"] ?? "Notlar";
 
         var msg = new MimeMessage();
         msg.From.Add(new MailboxAddress(fromAd, from));
@@ -209,7 +207,7 @@ public sealed class EmailService : IEmailService
         // v18 Paket2 - sayac cumlesi field'lerden (sayac_aktif_cumle/bitti_cumle) + ileri sayim;
         // hesaplama caller'da (MailSayac). Sayac kapali/bos ise blok hic basilmaz.
         var sayacBlok = sayacGoster
-            ? $@"<p style='color:#5d4a37;font-size:15px;line-height:1.7;margin:0;text-align:center;'>{sayacCumleHtml} ✨</p>"
+            ? $@"<p style='color:#5d4a37;font-size:15px;line-height:1.7;margin:0;text-align:center;'>{sayacCumleHtml}</p>"
             : "";
 
         // Madde tasarım disiplini: rozet (28x28 terracotta) + başlık + justify açıklama + ince dashed ayraç
@@ -236,7 +234,7 @@ public sealed class EmailService : IEmailService
 <head>
 <meta charset='utf-8'>
 <meta name='viewport' content='width=device-width,initial-scale=1'>
-<title>Planlama Defterimiz</title>
+<title>{markaAdi}</title>
 </head>
 <body style='margin:0;padding:0;background:#faf6ef;font-family:-apple-system,BlinkMacSystemFont,""Segoe UI"",Roboto,sans-serif;color:#3d2817;'>
 <table role='presentation' width='100%' cellpadding='0' cellspacing='0' border='0' style='padding:32px 12px;background:#faf6ef;'>
@@ -244,7 +242,7 @@ public sealed class EmailService : IEmailService
     <table role='presentation' width='560' cellpadding='0' cellspacing='0' border='0' style='max-width:560px;background:#ffffff;border-radius:18px;border:1px solid #ebe3d4;overflow:hidden;'>
 
       <tr><td style='padding:40px 40px 8px;text-align:center;'>
-        <div style='font-size:36px;color:#c4704d;line-height:1;'>♡</div>
+        <div style='font-size:18px;color:#c4704d;line-height:1;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;'>{markaAdi}</div>
       </td></tr>
 
       <tr><td style='padding:8px 40px 0;text-align:center;'>
@@ -252,7 +250,7 @@ public sealed class EmailService : IEmailService
           {aliciIlkAd},
         </h1>
         <p style='color:#c4704d;font-size:14px;margin:0;font-style:italic;letter-spacing:0.04em;'>
-          planlama defterimiz seni bekliyor 🤍
+          hesabınız hazır
         </p>
       </td></tr>
 
@@ -277,7 +275,7 @@ public sealed class EmailService : IEmailService
         <table role='presentation' width='100%' cellpadding='0' cellspacing='0' border='0'>
           <tr>
             <td style='border-top:1px solid #ebe3d4;'></td>
-            <td style='padding:0 14px;color:#c4704d;font-size:16px;'>♡</td>
+            <td style='padding:0 14px;color:#c4704d;font-size:16px;'>·</td>
             <td style='border-top:1px solid #ebe3d4;'></td>
           </tr>
         </table>
@@ -317,7 +315,7 @@ public sealed class EmailService : IEmailService
         <table role='presentation' width='100%' cellpadding='0' cellspacing='0' border='0'>
           <tr>
             <td style='border-top:1px solid #ebe3d4;'></td>
-            <td style='padding:0 14px;color:#c4704d;font-size:16px;'>♡</td>
+            <td style='padding:0 14px;color:#c4704d;font-size:16px;'>·</td>
             <td style='border-top:1px solid #ebe3d4;'></td>
           </tr>
         </table>
@@ -361,7 +359,7 @@ public sealed class EmailService : IEmailService
   <tr><td align='center'>
     <table role='presentation' width='560' cellpadding='0' cellspacing='0' border='0' style='max-width:560px;background:#ffffff;border-radius:16px;padding:48px 40px;border:1px solid #ebe3d4;'>
       <tr><td>
-        <div style='text-align:center;font-size:32px;color:#c4704d;margin-bottom:20px;line-height:1;'>♡</div>
+        <div style='text-align:center;font-size:32px;color:#c4704d;margin-bottom:20px;line-height:1;'></div>
         <h1 style='font-family:Georgia,""Times New Roman"",serif;font-size:26px;color:#3d2817;margin:0 0 14px;text-align:center;font-weight:600;'>
           Şifre sıfırlama isteği
         </h1>
@@ -380,7 +378,7 @@ public sealed class EmailService : IEmailService
         </p>
         <hr style='border:none;border-top:1px solid #ebe3d4;margin:32px 0 16px;'>
         <p style='color:#9c8a73;font-size:11px;text-align:center;margin:0;'>
-          Planlama Defterimiz · <a href='https://notlar.dentlogicapp.com' style='color:#9c8a73;text-decoration:none;'>notlar.dentlogicapp.com</a>
+          <a href='https://notlar.dentlogicapp.com' style='color:#9c8a73;text-decoration:none;'>notlar.dentlogicapp.com</a>
         </p>
       </td></tr>
     </table>
@@ -437,7 +435,7 @@ public sealed class EmailService : IEmailService
 
       <!-- Üst kalp -->
       <tr><td style='padding:40px 40px 12px;text-align:center;'>
-        <div style='font-size:36px;color:#c4704d;line-height:1;'>♡</div>
+        <div style='font-size:36px;color:#c4704d;line-height:1;'></div>
       </td></tr>
 
       <!-- Başlık -->
@@ -482,24 +480,16 @@ public sealed class EmailService : IEmailService
         <table role='presentation' width='100%' cellpadding='0' cellspacing='0' border='0'>
           <tr>
             <td style='border-top:1px solid #ebe3d4;'></td>
-            <td style='padding:0 14px;color:#c4704d;font-size:16px;'>♡</td>
+            <td style='padding:0 14px;color:#c4704d;font-size:16px;'>·</td>
             <td style='border-top:1px solid #ebe3d4;'></td>
           </tr>
         </table>
       </td></tr>
 
-      <!-- İmza -->
-      <tr><td style='padding:20px 40px 0;text-align:center;'>
-        <p style='color:#3d2817;font-size:14px;margin:0;'>
-          Sevgilerle,<br>
-          <strong style='font-family:Georgia,""Times New Roman"",serif;color:#c4704d;font-size:16px;'>Aşkın</strong> 🤍
-        </p>
-      </td></tr>
-
       <!-- Footer -->
       <tr><td style='padding:32px 40px 32px;text-align:center;'>
         <p style='color:#9c8a73;font-size:11px;margin:0;line-height:1.6;'>
-          Planlama Defterimiz · <a href='https://notlar.dentlogicapp.com' style='color:#9c8a73;text-decoration:none;'>notlar.dentlogicapp.com</a>
+          <a href='https://notlar.dentlogicapp.com' style='color:#9c8a73;text-decoration:none;'>notlar.dentlogicapp.com</a>
         </p>
       </td></tr>
 
