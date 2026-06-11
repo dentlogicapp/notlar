@@ -18,6 +18,7 @@ public sealed class Kullanici
     // v15 — Multi-tenant kararları
     public bool SuperAdmin { get; set; }                  // Sistem geneli yetki (tenant-bağımsız)
     public Guid? AktifIsletmeId { get; set; }             // Şu an hangi tenant'ta çalışıyor (multi-tenant geçişler için)
+    public bool IkiFaktorEtkin { get; set; }              // v19 B7 — 2FA hazirligi (kolon var, aktivasyon v20+; JWT'ye girmez)
 
     // Lockout
     public int BasarisizDeneme { get; set; }

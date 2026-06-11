@@ -341,6 +341,8 @@ using (var scope = app.Services.CreateScope())
             -- 3. Kullanıcılar tablosuna yeni kolonlar
             ALTER TABLE kullanicilar ADD COLUMN IF NOT EXISTS ""SuperAdmin"" boolean NOT NULL DEFAULT false;
             ALTER TABLE kullanicilar ADD COLUMN IF NOT EXISTS ""AktifIsletmeId"" uuid;
+            -- v19 B7: 2FA hazirligi (kolon eklenir, aktivasyon v20+)
+            ALTER TABLE kullanicilar ADD COLUMN IF NOT EXISTS ""IkiFaktorEtkin"" boolean NOT NULL DEFAULT false;
             CREATE INDEX IF NOT EXISTS ""IX_kullanicilar_SuperAdmin"" 
                 ON kullanicilar (""SuperAdmin"") WHERE ""SuperAdmin"" = true;
 
