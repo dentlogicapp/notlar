@@ -120,16 +120,20 @@ public sealed class EmailService : IEmailService
         var sozluk = SozlukYap(await _metin.TumunuGetirAsync(isletmeId, ct));
         var runtime = new Dictionary<string, string>(StringComparer.Ordinal) { ["alici_ad"] = aliciIlkAd };
 
+        // marka_adi'yi once coz (override > tenant metni > notr fallback) ve runtime'a ekle:
+        // boylece konu + giris metni icindeki {marka_adi} placeholder'i da cozulur (defense in depth).
+        var markaAdi = !string.IsNullOrWhiteSpace(markaAdiOverride)
+            ? markaAdiOverride!
+            : await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MarkaAdi,
+                "Markanız", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
+        runtime["marka_adi"] = markaAdi;
+
         var konu = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailDavetiyeKonu,
             $"{aliciIlkAd}, hesap davetiyeniz", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
         var girisMetni = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailDavetiyeGirisMetni,
             girisFallback, "davetiye", isletmeId, runtime, htmlEncode: false, ct);
         var imza = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailImza,
             "", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
-        var markaAdi = !string.IsNullOrWhiteSpace(markaAdiOverride)
-            ? markaAdiOverride!
-            : await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MarkaAdi,
-                "Sistemim", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
 
         var sayacAktif = sozluk.TryGetValue(AnahtarKodu.SayacAktif, out var saDeger) && saDeger == "true";
         var (sayacGecti, sayacGun) = MailSayac(sozluk.GetValueOrDefault(AnahtarKodu.SayacHedefTarihi));
@@ -347,8 +351,7 @@ public sealed class EmailService : IEmailService
 
       <tr><td style='padding:20px 40px 0;'>
         <p style='color:#5d4a37;font-size:15px;line-height:1.7;margin:0;text-align:center;font-style:italic;'>
-          Hadi başlayalım. Mutlu olacağımız günlerde yazacağımız
-          her satır için sabırsızım.
+          Hadi başlayalım. İhtiyacın olan her şey içeride seni bekliyor.
         </p>
       </td></tr>
 

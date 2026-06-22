@@ -17,7 +17,7 @@ public static class AnahtarKatalogu
             .Etiket("Marka Adı")
             .Yonlendirme("Çalışma grubu, işletme veya etkinlik için kullanılacak ismi yazınız.")
             .Aciklama("Browser sekmesi, dashboard başlığı ve mail footer'da görünür.")
-            .Zorunlu().Sira(10).Varsayilan("Sistemim").Build(),
+            .Zorunlu().Sira(10).Varsayilan("Markanız").Build(),
 
         AnahtarTanim.Tanim("marka_emoji")
             .Kategori(Kategori.Marka).Tip(AlanTipi.PlaceholderKisa)

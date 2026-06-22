@@ -150,6 +150,16 @@ public static class SuperAdminIsletmeEndpoints
                 MailTonu = "profesyonel",
             };
             db.Isletmeler.Add(isletme);
+            // v19 G.2 - marka_adi tenant kimligi: isletme_metinleri'ne seed et.
+            // Mail + marka sayfasi bu tablodan okur (TumunuGetirAsync), Isletme.MarkaAdi entity'sinden DEGIL.
+            // Seed edilmezse mail/konu marka_adi'yi katalog varsayilani ile cozer ("Markaniz") -> yanlis marka.
+            db.IsletmeMetinleri.Add(new IsletmeMetni
+            {
+                IsletmeId = isletme.Id,
+                Anahtar = "marka_adi",
+                Icerik = isletme.MarkaAdi,
+                GuncelleyenKullaniciId = uc.KullaniciId,
+            });
             await db.SaveChangesAsync(ct);
 
             await audit.YazAsync("tenant_olusturuldu", hedefTip: "isletme", hedefId: isletme.Id,
