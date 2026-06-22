@@ -364,14 +364,14 @@ function Icerik() {
             // v19 6c - Mail 3 alt-sekme: anahtarlari prefix grubuna gore filtrele
             <>
               <div className="flex items-center justify-between border-b border-cream-300 dark:border-ink-700/60 -mt-1 mb-1 gap-2">
-                <div className="flex gap-1">
+                <div className="flex gap-1 min-w-0 overflow-x-auto">
                   {MAIL_ALT_SEKMELER.map((as) => (
                     <button
                       key={as.kod}
                       type="button"
                       onClick={() => setMailAltSekme(as.kod)}
                       className={cn(
-                        "px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors",
+                        "px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap",
                         mailAltSekme === as.kod
                           ? "border-terracotta text-terracotta"
                           : "border-transparent text-clay-500 dark:text-ink-300 hover:text-clay-700 dark:hover:text-ink-100"
@@ -389,7 +389,7 @@ function Icerik() {
                   className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-clay-500 dark:text-ink-300 hover:text-terracotta disabled:opacity-50 transition-colors shrink-0"
                 >
                   {testGonderiliyor ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
-                  Test maili gönder
+                  <span className="hidden sm:inline">Test maili gönder</span>
                 </button>
               </div>
               {(() => {

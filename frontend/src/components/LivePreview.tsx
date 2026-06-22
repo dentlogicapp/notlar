@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { Heart } from "lucide-react";
+import { Clock } from "lucide-react";
 import { cozMetin } from "@/lib/useIsletmeMetinleri";
 import { sayacHesapla, hedefMsCoz, type SayacDurum } from "@/lib/sayac";
 
@@ -64,9 +64,12 @@ export function LivePreview({ sekme, degerler, mailAltSekme = "davetiye" }: { se
     const baslik = sk.gecti
       ? (c("sayac_bitti_cumle") || "Sayaç bitti cümlesi")
       : (c("sayac_aktif_cumle") || "Sayaç aktif cümlesi");
+    const sayacEmoji = degerler["marka_emoji"] || "";
     return (
       <div className={kutu + " flex items-center gap-3"}>
-        <Heart className="h-7 w-7 text-terracotta shrink-0 animate-heart-beat" fill="currentColor" strokeWidth={1.5} />
+        {sayacEmoji
+          ? <span className="text-2xl shrink-0 leading-none">{sayacEmoji}</span>
+          : <Clock className="h-7 w-7 text-terracotta shrink-0" strokeWidth={1.5} />}
         <div className="flex flex-col min-w-0">
           <span className="text-[13px] tracking-[0.02em] text-clay-500 dark:text-ink-200 leading-none font-medium truncate">{baslik}</span>
           <div className="flex items-baseline gap-1.5 mt-1.5 tabular-nums font-display">
