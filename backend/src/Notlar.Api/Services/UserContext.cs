@@ -16,8 +16,9 @@ public interface IUserContext
     string? Ip { get; }
     string? KullaniciAjan { get; }
     /// <summary>
-    /// v15 — Salt-okunur görüntüleme modu (süper admin başka tenant'ı incelerken).
-    /// Frontend "Goruntuleme-Modu: true" header gönderir, backend POST/PATCH/DELETE'lerde 403 döner.
+    /// Salt-okunur goruntuleme modu (super admin baska tenant'i incelerken).
+    /// v19 - Server-authoritative: JWT goruntuleme_modu claim'inden okunur (frontend header'a guvenmez).
+    /// Global write-guard middleware POST/PATCH/PUT/DELETE'lerde 403 doner.
     /// </summary>
     bool GoruntumeModu { get; }
 }
@@ -54,9 +55,8 @@ public sealed class UserContext : IUserContext
     }
     public bool SuperAdmin => P?.FindFirst("super_admin")?.Value == "true";
 
-    public bool GoruntumeModu =>
-        _a.HttpContext?.Request.Headers["Goruntuleme-Modu"].ToString()
-            ?.Equals("true", StringComparison.OrdinalIgnoreCase) == true;
+    // v19 - server-authoritative: JWT claim (frontend Goruntuleme-Modu header'i artik okunmaz)
+    public bool GoruntumeModu => P?.FindFirst("goruntuleme_modu")?.Value == "true";
 
     public string? Ip => _a.HttpContext?.Connection.RemoteIpAddress?.ToString();
     public string? KullaniciAjan => _a.HttpContext?.Request.Headers.UserAgent.ToString();

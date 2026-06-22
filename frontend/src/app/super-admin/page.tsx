@@ -51,7 +51,9 @@ export default function SuperAdminPage() {
   const gorMut = useMutation({
     mutationFn: (id: string) => superAdminIsletmeApi.goruntule(id),
     onMutate: (id) => setIslemId(id),
-    onSuccess: () => {
+    onSuccess: (r) => {
+      // B3 - impersonation bitis zamani countdown icin (reload sonrasi banner sessionStorage'dan okur)
+      try { sessionStorage.setItem("imp_bitis", r.gecerlilikBitis); } catch {}
       // Impersonation JWT cookie set edildi -> tam yenileme ile yeni tenant baglamina gec
       window.location.href = "/";
     },

@@ -369,7 +369,7 @@ export const superAdminIsletmeApi = {
   adminAta: (id: string, data: { email: string; adSoyad: string; cinsiyet: string }) =>
     ist<{ kullaniciId: string; email: string }>(`/api/super-admin/isletmeler/${id}/admin-ata`, { method: "POST", body: JSON.stringify(data) }),
   goruntule: (id: string) =>
-    ist<void>(`/api/super-admin/isletmeler/${id}/goruntule`, { method: "POST" }),
+    ist<{ ok: boolean; gecerlilikBitis: string }>(`/api/super-admin/isletmeler/${id}/goruntule`, { method: "POST" }),
   goruntuleBitir: () =>
     ist<void>("/api/super-admin/isletmeler/goruntule/bitir", { method: "POST" }),
 };

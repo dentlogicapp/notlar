@@ -8,7 +8,7 @@ namespace Notlar.Api.Services;
 
 public interface IJwtService
 {
-    string TokenUret(Kullanici k);
+    string TokenUret(Kullanici k, bool goruntulemeModu = false, int? sureSaat = null);
 }
 
 /// <summary>
@@ -20,7 +20,7 @@ public sealed class JwtService : IJwtService
     private readonly IConfiguration _cfg;
     public JwtService(IConfiguration cfg) { _cfg = cfg; }
 
-    public string TokenUret(Kullanici k)
+    public string TokenUret(Kullanici k, bool goruntulemeModu = false, int? sureSaat = null)
     {
         var secret = _cfg["Jwt:Secret"] ?? throw new InvalidOperationException("Jwt:Secret yok");
         var issuer = _cfg["Jwt:Issuer"] ?? "notlar";
@@ -41,9 +41,16 @@ public sealed class JwtService : IJwtService
         };
         if (k.AktifIsletmeId.HasValue)
             claims.Add(new Claim("aktif_isletme_id", k.AktifIsletmeId.Value.ToString()));
+        // v19 - server-authoritative impersonation: salt-okunur claim (frontend header'a guvenmez)
+        if (goruntulemeModu)
+            claims.Add(new Claim("goruntuleme_modu", "true"));
 
+        // B2 - impersonation kisa omurlu (sureSaat), normal token gun bazli
+        var sure = sureSaat.HasValue
+            ? DateTime.UtcNow.AddHours(sureSaat.Value)
+            : DateTime.UtcNow.AddDays(gun);
         var token = new JwtSecurityToken(issuer, audience, claims,
-            expires: DateTime.UtcNow.AddDays(gun), signingCredentials: creds);
+            expires: sure, signingCredentials: creds);
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }

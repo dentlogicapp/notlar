@@ -643,6 +643,46 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// v19 PRIORITY 0 (OWASP A01 Broken Access Control) - Server-authoritative impersonation write-guard.
+// goruntuleme_modu JWT claim'i + write metodu + tenant yolu (super-admin disi) -> 403 + audit (B1 forensic).
+// Defense in depth katman 1: genis kapsam middleware (tum tenant write'lari). Otorite: JWT claim.
+app.Use(async (ctx, next) =>
+{
+    if (ctx.User?.FindFirst("goruntuleme_modu")?.Value == "true")
+    {
+        var metod = ctx.Request.Method;
+        var yazma = HttpMethods.IsPost(metod) || HttpMethods.IsPut(metod)
+                 || HttpMethods.IsPatch(metod) || HttpMethods.IsDelete(metod);
+        var path = ctx.Request.Path.Value ?? "";
+        // /api/super-admin/* istisna: goruntule/bitir cikis + super admin islemleri serbest
+        var superAdminYolu = path.StartsWith("/api/super-admin", StringComparison.OrdinalIgnoreCase);
+        if (yazma && !superAdminYolu)
+        {
+            // B1 - audit trail (atomik: audit yazimi + 403 response ayni istek scope'unda)
+            using var scope = ctx.RequestServices.CreateScope();
+            var audit = scope.ServiceProvider.GetRequiredService<IAuditService>();
+            await audit.YazAsync(
+                "goruntuleme_modu_write_engellendi",
+                hedefTip: "tenant",
+                degisenAlanlar: System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    metod,
+                    path,
+                    ip = ctx.Connection.RemoteIpAddress?.ToString(),
+                    user_agent = ctx.Request.Headers.UserAgent.ToString()
+                }));
+            ctx.Response.StatusCode = 403;
+            await ctx.Response.WriteAsJsonAsync(new
+            {
+                hata = "GORUNTULEME_MODU",
+                mesaj = "Goruntuleme modunda yazma islemi yapilamaz."
+            });
+            return;
+        }
+    }
+    await next();
+});
+
 app.MapGet("/health", () => Results.Ok(new { status = "ok", time = DateTimeOffset.UtcNow }));
 app.MapAuthEndpoints();
 app.MapAdminEndpoints();

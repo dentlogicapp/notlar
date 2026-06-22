@@ -277,7 +277,8 @@ public static class SuperAdminIsletmeEndpoints
 
         // POST /{id}/goruntule - B2 read-only impersonation basla.
         // Gecici JWT: aktif_isletme_id = hedef tenant (DB'ye YAZILMAZ, sadece token claim).
-        // Frontend banner aktifken her istekte Goruntuleme-Modu:true header gonderir -> mevcut write 403 guard devreye girer.
+        // Server-authoritative: gecici JWT'de goruntuleme_modu claim + aktif_isletme_id=hedef.
+        // Global write-guard middleware bu claim'i gorur -> tenant write 403 (frontend header'a guvenmez).
         g.MapPost("/{id:guid}/goruntule", async (Guid id, AppDbContext db, IUserContext uc,
             IJwtService jwt, IAuditService audit, HttpContext http, IConfiguration cfg, CancellationToken ct) =>
         {
@@ -292,7 +293,7 @@ public static class SuperAdminIsletmeEndpoints
             // Gecici override: aktif tenant = hedef. SaveChanges YOK -> DB degismez, sadece token claim'i etkilenir.
             var gercekAktif = user.AktifIsletmeId;
             user.AktifIsletmeId = id;
-            var token = jwt.TokenUret(user);
+            var token = jwt.TokenUret(user, goruntulemeModu: true, sureSaat: 1);  // B2 - 1 saat salt-okunur impersonation
             user.AktifIsletmeId = gercekAktif;
 
             var gun = int.Parse(cfg["Jwt:GunOmru"] ?? "30");
@@ -300,7 +301,12 @@ public static class SuperAdminIsletmeEndpoints
 
             await audit.YazAsync("tenant_olarak_gorus_basladi", hedefTip: "isletme", hedefId: id);
 
-            return Results.Ok(new { ok = true, tenant = new { id = isletme.Id, markaAdi = isletme.MarkaAdi, markaEmoji = isletme.MarkaEmoji } });
+            return Results.Ok(new
+            {
+                ok = true,
+                tenant = new { id = isletme.Id, markaAdi = isletme.MarkaAdi, markaEmoji = isletme.MarkaEmoji },
+                gecerlilikBitis = DateTimeOffset.UtcNow.AddHours(1)  // B3 - frontend countdown (token 1 saat)
+            });
         });
 
         // POST /goruntule/bitir - impersonation sonlandir (gercek AktifIsletmeId ile normal JWT'ye don).
