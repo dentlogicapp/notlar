@@ -372,4 +372,6 @@ export const superAdminIsletmeApi = {
     ist<{ ok: boolean; gecerlilikBitis: string }>(`/api/super-admin/isletmeler/${id}/goruntule`, { method: "POST" }),
   goruntuleBitir: () =>
     ist<void>("/api/super-admin/isletmeler/goruntule/bitir", { method: "POST" }),
+  davetOnizle: (data: { markaAdi?: string; adminAd?: string }) =>
+    ist<{ html: string }>("/api/super-admin/isletmeler/davet-onizle", { method: "POST", body: JSON.stringify(data) }),
 };

@@ -163,6 +163,14 @@ public static class SuperAdminIsletmeEndpoints
                 isletme.OlusturmaZamani, 0, 0, 0));
         });
 
+        // v19 B5 - davet maili onizleme (yeni tenant icin varsayilan sablon + girilen marka/admin, gonderme yok)
+        g.MapPost("/davet-onizle", async (DavetOnizleIstegi req, IEmailService email, CancellationToken ct) =>
+        {
+            var ad = string.IsNullOrWhiteSpace(req.AdminAd) ? "Yeni Yonetici" : req.AdminAd.Trim();
+            var html = await email.DavetMailOnizleHtmlAsync(Guid.Empty, ad, req.MarkaAdi, ct);
+            return Results.Ok(new { html });
+        });
+
         // POST /{id}/durum - aktif/pasif toggle (soft; hard delete YOK)
         g.MapPost("/{id:guid}/durum", async (Guid id, AppDbContext db, IUserContext uc,
             IAuditService audit, IOperasyonelBildirimGonderici bildirim, CancellationToken ct) =>
@@ -330,6 +338,7 @@ public static class SuperAdminIsletmeEndpoints
 
 // v19 Asama 2 - DTO'lar (endpoint dosyasinda, SemaEndpoints record pattern reuse)
 public record IsletmeOlusturIstegi(string MarkaAdi, string? MarkaEmoji, string KullanimModu);
+public record DavetOnizleIstegi(string? MarkaAdi, string? AdminAd);  // v19 B5
 
 public record IsletmeAdminAtaIstegi(string Email, string AdSoyad, string Cinsiyet);
 

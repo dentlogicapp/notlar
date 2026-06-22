@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { UserMenu } from "@/components/UserMenu";
 import { Button } from "@/components/ui/button";
 import { superAdminIsletmeApi } from "@/lib/api";
+import { TenantOlusturModal } from "@/components/TenantOlusturModal";
 import type { IsletmeOzet } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -36,6 +37,7 @@ export default function SuperAdminPage() {
   });
 
   const [islemId, setIslemId] = useState<string | null>(null);
+  const [modalAcik, setModalAcik] = useState(false);
 
   const durumMut = useMutation({
     mutationFn: (id: string) => superAdminIsletmeApi.durum(id),
@@ -61,6 +63,7 @@ export default function SuperAdminPage() {
   });
 
   return (
+    <>
     <main className="min-h-screen bg-cream-100 dark:bg-ink-900 pb-16">
       <header className="max-w-5xl mx-auto px-4 sm:px-6 pt-6 pb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
@@ -76,8 +79,8 @@ export default function SuperAdminPage() {
       </header>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-5">
-        <Button type="button" className="w-full" disabled title="Aşama 9'da gelecek">
-          <Plus className="h-4 w-4 mr-1.5" /> Yeni Tenant (yakında)
+        <Button type="button" className="w-full" onClick={() => setModalAcik(true)}>
+          <Plus className="h-4 w-4 mr-1.5" /> Yeni Tenant
         </Button>
 
         {isLoading ? (
@@ -108,6 +111,8 @@ export default function SuperAdminPage() {
         )}
       </div>
     </main>
+    <TenantOlusturModal open={modalAcik} onClose={() => setModalAcik(false)} />
+    </>
   );
 }
 

@@ -11,6 +11,8 @@ public interface IEmailService
 {
     // v18 - davetiye metinleri (konu/giris/imza/marka) artik isletme_metinleri'nden render edilir (G.23-b).
     Task SifreBelirleMailGonderAsync(string toEmail, string adSoyad, string link, Guid isletmeId, CancellationToken ct = default);
+    // v19 B5 - davet maili onizleme (gonderme yok, HTML render doner). markaAdi override (yeni tenant henuz yoksa).
+    Task<string> DavetMailOnizleHtmlAsync(Guid isletmeId, string aliciAd, string? markaAdi, CancellationToken ct = default);
     Task SifreSifirlamaMailGonderAsync(string toEmail, string adSoyad, string link, CancellationToken ct = default);
     // v18 - hatirlatma konusu isletme_metinleri'nden render edilir; body (Asama 6 kapsami disi) korunur.
     Task HatirlaticiMailGonderAsync(string toEmail, string aliciAdSoyad, string notBaslik, string? notIcerik,
@@ -92,10 +94,25 @@ public sealed class EmailService : IEmailService
     /// </summary>
     public async Task SifreBelirleMailGonderAsync(string toEmail, string adSoyad, string link, Guid isletmeId, CancellationToken ct = default)
     {
+        var (konu, html, replyTo) = await DavetMailRenderAsync(adSoyad, link, isletmeId, ct);
+        await GonderAsync(toEmail, adSoyad, konu, html, ct, replyTo);
+    }
+
+    // v19 B5 - davet maili onizleme: render mantigini reuse eder, gondermez. Yeni tenant icin
+    // isletmeId=Guid.Empty (varsayilan metinler) + markaAdi override (kullanicinin girdigi marka).
+    public async Task<string> DavetMailOnizleHtmlAsync(Guid isletmeId, string aliciAd, string? markaAdi, CancellationToken ct = default)
+    {
+        var (_, html, _) = await DavetMailRenderAsync(aliciAd, "#onizleme", isletmeId, ct, markaAdi);
+        return html;
+    }
+
+    // Ortak davet maili render mantigi (gonder + onizleme paylasir; paralel yapi yok).
+    private async Task<(string konu, string html, string? replyTo)> DavetMailRenderAsync(
+        string adSoyad, string link, Guid isletmeId, CancellationToken ct, string? markaAdiOverride = null)
+    {
         var aliciIlkAd = adSoyad.Split(' ')[0];
 
         // Giris metni fallback'i (tenant mail_davetiye_giris_metni bos VE AnahtarKatalogu.Varsayilan bos ise).
-        // Tek doğruluk: AnahtarKatalogu mail_davetiye_giris_metni Varsayilan ile birebir notr metin.
         const string girisFallback =
             "Aşağıdaki butona tıklayarak hesabınızı oluşturabilir ve şifrenizi belirleyebilirsiniz. " +
             "Hesabınız hazır olduğunda e-posta adresiniz ve şifrenizle giriş yapabilirsiniz.";
@@ -109,11 +126,11 @@ public sealed class EmailService : IEmailService
             girisFallback, "davetiye", isletmeId, runtime, htmlEncode: false, ct);
         var imza = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailImza,
             "", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
-        var markaAdi = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MarkaAdi,
-            "Sistemim", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
+        var markaAdi = !string.IsNullOrWhiteSpace(markaAdiOverride)
+            ? markaAdiOverride!
+            : await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MarkaAdi,
+                "Sistemim", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
 
-        // v18 Paket2 - mail sayac cumlesi sayac field'lerinden (ileri sayim dahil); DUGUN_UTC kaldirildi.
-        // Kapali veya cumle bos ise sayac blogu hic basilmaz. Tek kaynak: isletme_metinleri.
         var sayacAktif = sozluk.TryGetValue(AnahtarKodu.SayacAktif, out var saDeger) && saDeger == "true";
         var (sayacGecti, sayacGun) = MailSayac(sozluk.GetValueOrDefault(AnahtarKodu.SayacHedefTarihi));
         var sayacBaslik = sayacGecti
@@ -125,7 +142,7 @@ public sealed class EmailService : IEmailService
             : "";
 
         var html = DavetiyeHtmlSablonu(aliciIlkAd, link, sayacGoster, sayacCumleHtml, girisMetni, imza, markaAdi);
-        await GonderAsync(toEmail, adSoyad, konu, html, ct, sozluk.GetValueOrDefault(AnahtarKodu.IletisimEmail));
+        return (konu, html, sozluk.GetValueOrDefault(AnahtarKodu.IletisimEmail));
     }
 
     public Task SifreSifirlamaMailGonderAsync(string toEmail, string adSoyad, string link, CancellationToken ct = default)
