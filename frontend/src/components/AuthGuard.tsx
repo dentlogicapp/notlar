@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { useBen } from "@/lib/useBen";
+import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 
 export function AuthGuard({ children, requireAdmin = false, requireSuperAdmin = false }: { children: React.ReactNode; requireAdmin?: boolean; requireSuperAdmin?: boolean }) {
   const { data: ben, isLoading, isError } = useBen();
@@ -43,6 +44,7 @@ export function AuthGuard({ children, requireAdmin = false, requireSuperAdmin = 
           }}
         />
       )}
+      <ImpersonationBanner />
       {children}
     </>
   );

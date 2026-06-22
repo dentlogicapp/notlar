@@ -23,7 +23,9 @@ public sealed record BenYaniti(
     Guid Id, string Email, string AdSoyad, string Rol, string? Cinsiyet,
     bool SuperAdmin,
     Guid? AktifIsletmeId,
-    IReadOnlyList<UyelikYaniti> Uyelikler);
+    IReadOnlyList<UyelikYaniti> Uyelikler,
+    bool GoruntulemeModu,
+    string? GoruntulenenMarka);
 
 public sealed record UyelikYaniti(
     Guid IsletmeId,

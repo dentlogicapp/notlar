@@ -123,7 +123,8 @@ public static class AuthEndpoints
 
             return Results.Ok(new BenYaniti(
                 user.Id, user.Email, user.AdSoyad, user.Rol, user.Cinsiyet,
-                user.SuperAdmin, user.AktifIsletmeId, uyelikYanitlari));
+                user.SuperAdmin, user.AktifIsletmeId, uyelikYanitlari,
+                false, null));  // v19 - login'de impersonation olmaz
         });
 
         // 2. Token doğrula (frontend setup/reset sayfasında preflight)
@@ -221,9 +222,25 @@ public static class AuthEndpoints
                     x.Isletme.KullanimModu, x.Rol, x.Aktif))
                 .ToListAsync(ct);
 
+            // v19 Asama 9 - impersonation algilama: goruntule endpoint gecici JWT'de aktif_isletme_id=hedef
+            // set eder; DB user.AktifIsletmeId degismez. JWT (u) ile DB (user) ayrismissa goruntuleme modu.
+            var goruntulemeModu = user.SuperAdmin && u.AktifIsletmeId.HasValue
+                && u.AktifIsletmeId != user.AktifIsletmeId;
+            string? goruntulenenMarka = null;
+            if (goruntulemeModu)
+            {
+                goruntulenenMarka = await db.Isletmeler
+                    .Where(i => i.Id == u.AktifIsletmeId!.Value)
+                    .Select(i => i.MarkaAdi)
+                    .FirstOrDefaultAsync(ct);
+            }
+            // Etkin aktif tenant: impersonation'da hedef (JWT), normalde DB (95-109 duzeltmesi dahil)
+            var etkinAktif = goruntulemeModu ? u.AktifIsletmeId : user.AktifIsletmeId;
+
             return Results.Ok(new BenYaniti(
                 user.Id, user.Email, user.AdSoyad, user.Rol, user.Cinsiyet,
-                user.SuperAdmin, user.AktifIsletmeId, uyelikler));
+                user.SuperAdmin, etkinAktif, uyelikler,
+                goruntulemeModu, goruntulenenMarka));
         }).RequireAuthorization();
 
         // 6. Çıkış

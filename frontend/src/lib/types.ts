@@ -38,6 +38,8 @@ export interface Ben {
   superAdmin: boolean;
   aktifIsletmeId: string | null;  // null = super_admin + 0 tenant
   uyelikler: Uyelik[];
+  goruntulemeModu: boolean;          // v19 - impersonation aktif mi (super admin baska tenant'i goruyor)
+  goruntulenenMarka: string | null;  // impersonation hedef tenant marka adi
 }
 
 export interface Kullanici {
