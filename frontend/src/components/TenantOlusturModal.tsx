@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { superAdminIsletmeApi } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 const MODLAR = [
   { kod: "es", etiket: "Eş" },
@@ -27,6 +28,7 @@ export function TenantOlusturModal({ open, onClose }: { open: boolean; onClose: 
   const [adminEkle, setAdminEkle] = useState(false);
   const [adminEmail, setAdminEmail] = useState("");
   const [adminAd, setAdminAd] = useState("");
+  const [adminCinsiyet, setAdminCinsiyet] = useState<"kadin" | "erkek">("kadin");
   const [onizlemeHtml, setOnizlemeHtml] = useState<string | null>(null);
 
   const onizleMut = useMutation({
@@ -46,7 +48,7 @@ export function TenantOlusturModal({ open, onClose }: { open: boolean; onClose: 
         await superAdminIsletmeApi.adminAta(t.id, {
           email: adminEmail.trim(),
           adSoyad: adminAd.trim() || adminEmail.trim(),
-          cinsiyet: "belirtilmemis",
+          cinsiyet: adminCinsiyet,
         });
       }
       return t;
@@ -102,6 +104,25 @@ export function TenantOlusturModal({ open, onClose }: { open: boolean; onClose: 
               </Alan>
               <Alan etiket="Yönetici ad soyad">
                 <input value={adminAd} onChange={(e) => setAdminAd(e.target.value)} placeholder="Ad Soyad" className={inputCls} />
+              </Alan>
+              <Alan etiket="Cinsiyet (mail hitabı için)">
+                <div className="flex gap-2">
+                  {(["kadin", "erkek"] as const).map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setAdminCinsiyet(c)}
+                      className={cn(
+                        "flex-1 px-3 py-1.5 rounded-lg text-sm border transition-colors",
+                        adminCinsiyet === c
+                          ? "border-terracotta bg-terracotta/10 text-terracotta font-medium"
+                          : "border-cream-300 dark:border-ink-700 text-clay-500 dark:text-ink-300 hover:border-clay-400"
+                      )}
+                    >
+                      {c === "kadin" ? "Kadın" : "Erkek"}
+                    </button>
+                  ))}
+                </div>
               </Alan>
 
               <button

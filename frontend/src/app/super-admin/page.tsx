@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, Loader2, Plus, Eye, Power, ChevronRight, Building2, Trash2 } from "lucide-react";
+import { ChevronLeft, Loader2, Plus, Eye, Power, ChevronRight, Building2, Trash2, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { UserMenu } from "@/components/UserMenu";
 import { Button } from "@/components/ui/button";
@@ -86,7 +86,12 @@ export default function SuperAdminPage() {
             <p className="text-xs text-clay-400 dark:text-ink-300">Sistemdeki tüm işletmeler</p>
           </div>
         </div>
-        <UserMenu />
+        <div className="flex items-center gap-2 shrink-0">
+          <Link href="/super-admin/yoneticiler" title="Süper Adminler" className="text-clay-400 hover:text-terracotta dark:text-ink-300 dark:hover:text-terracotta transition-colors">
+            <Shield className="h-5 w-5" />
+          </Link>
+          <UserMenu />
+        </div>
       </header>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-5">

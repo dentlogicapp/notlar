@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, Loader2, Mail, Clock } from "lucide-react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ChevronLeft, Loader2, Mail, Clock, UserPlus } from "lucide-react";
+import { toast } from "sonner";
 import { superAdminIsletmeApi } from "@/lib/api";
 import type { IsletmeUye } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -89,7 +91,10 @@ export default function TenantDetayPage() {
               )}
             </div>
 
-            <p className="text-[11px] text-clay-400 dark:text-ink-300 text-center italic">Salt-okunur görünüm. Düzenleme için "Gör" ile tenant'a geçin.</p>
+            {/* Yonetici atama (super admin yonetim islemi) */}
+            <AdminAtaBolum id={id} />
+
+            <p className="text-[11px] text-clay-400 dark:text-ink-300 text-center italic">Tenant içeriği salt-okunur. Yönetici atama dışındaki düzenlemeler için "Gör" ile tenant'a geçin.</p>
           </div>
         )}
       </div>
@@ -126,6 +131,92 @@ function UyeSatiri({ u }: { u: IsletmeUye }) {
         <p className="text-[10px] text-clay-400 dark:text-ink-300 mt-1 flex items-center gap-1 justify-end">
           <Clock className="h-2.5 w-2.5" /> {u.sonGiris ? tarih(u.sonGiris) : "hiç girmedi"}
         </p>
+      </div>
+    </div>
+  );
+}
+
+function AdminAtaBolum({ id }: { id: string }) {
+  const qc = useQueryClient();
+  const [acik, setAcik] = useState(false);
+  const [email, setEmail] = useState("");
+  const [ad, setAd] = useState("");
+  const [cinsiyet, setCinsiyet] = useState<"kadin" | "erkek">("kadin");
+
+  const ataMut = useMutation({
+    mutationFn: () => superAdminIsletmeApi.adminAta(id, { email: email.trim(), adSoyad: ad.trim() || email.trim(), cinsiyet }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["super-admin-isletme", id] });
+      toast.success("Yönetici atandı, davet maili gönderildi");
+      setEmail(""); setAd(""); setAcik(false);
+    },
+    onError: () => toast.error("Yönetici atanamadı (e-posta zaten kayıtlı olabilir)"),
+  });
+
+  if (!acik) {
+    return (
+      <button
+        type="button"
+        onClick={() => setAcik(true)}
+        className="w-full kart p-4 flex items-center justify-center gap-2 text-sm font-medium text-terracotta hover:bg-terracotta/5 transition-colors"
+      >
+        <UserPlus className="h-4 w-4" /> Yönetici Ata
+      </button>
+    );
+  }
+
+  const inputCls = "w-full rounded-lg border border-cream-300 dark:border-ink-700 bg-cream-50 dark:bg-ink-800 px-3 py-2 text-sm text-clay-900 dark:text-ink-50 placeholder:text-clay-300 dark:placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-terracotta/40";
+  const gecerli = email.trim().length > 0;
+
+  return (
+    <div className="kart p-5 space-y-3">
+      <h2 className="text-sm font-semibold text-clay-800 dark:text-ink-50">Yönetici Ata</h2>
+      <div className="space-y-3">
+        <div>
+          <label className="text-[11px] uppercase tracking-wider text-clay-400 dark:text-ink-300 mb-1 block">E-posta *</label>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@ornek.com" className={inputCls} />
+        </div>
+        <div>
+          <label className="text-[11px] uppercase tracking-wider text-clay-400 dark:text-ink-300 mb-1 block">Ad Soyad</label>
+          <input value={ad} onChange={(e) => setAd(e.target.value)} placeholder="Ad Soyad" className={inputCls} />
+        </div>
+        <div>
+          <label className="text-[11px] uppercase tracking-wider text-clay-400 dark:text-ink-300 mb-1 block">Cinsiyet (mail hitabı için)</label>
+          <div className="flex gap-2">
+            {(["kadin", "erkek"] as const).map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCinsiyet(c)}
+                className={cn(
+                  "flex-1 px-3 py-1.5 rounded-lg text-sm border transition-colors",
+                  cinsiyet === c
+                    ? "border-terracotta bg-terracotta/10 text-terracotta font-medium"
+                    : "border-cream-300 dark:border-ink-700 text-clay-500 dark:text-ink-300 hover:border-clay-400"
+                )}
+              >
+                {c === "kadin" ? "Kadın" : "Erkek"}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="flex gap-2 pt-1">
+        <button
+          type="button"
+          onClick={() => ataMut.mutate()}
+          disabled={!gecerli || ataMut.isPending}
+          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-terracotta px-4 py-2 text-sm font-medium text-white hover:bg-terracotta/90 disabled:opacity-50 transition-colors"
+        >
+          {ataMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />} Davet Gönder
+        </button>
+        <button
+          type="button"
+          onClick={() => setAcik(false)}
+          className="px-4 py-2 text-sm text-clay-500 dark:text-ink-300 hover:text-clay-800 dark:hover:text-ink-100 transition-colors"
+        >
+          Vazgeç
+        </button>
       </div>
     </div>
   );
