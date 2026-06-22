@@ -32,6 +32,7 @@ builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddSingleton<IOperasyonelBildirimGonderici, OperasyonelBildirimGonderici>();  // v19 B8 - fire-and-forget super admin bildirim
+builder.Services.AddSingleton<IAkisYayinci, AkisYayinci>();  // v19 Asama 7 - SSE in-memory event broker
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<AnahtarSyncService>();  // v18 Asama 11.9 - Schema-as-Code sync
 // v17 - AI API key sifreleme + DataProtection key persistence (docker volume /keys)
@@ -653,6 +654,7 @@ app.MapExportEndpoints();
 app.MapIsletmeEndpoints();  // v15
 app.MapSuperAdminIsletmeEndpoints();  // v19 Asama 2 - super admin tenant yonetimi
 app.MapSuperAdminYonetimEndpoints();   // v19 Asama 5 - multi super admin
+app.MapAkisEndpoints();                 // v19 Asama 7 - SSE real-time olay akisi
 app.MapSistemEndpoints();   // v17 — super admin metin anahtar katalogu
 app.MapSemaEndpoints();      // v18 Asama 11.9 B2 - read-only sistem semasi
 app.MapCihazEndpoints();     // v18 Asama 17.3 - app push cihaz kaydi
