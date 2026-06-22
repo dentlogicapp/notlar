@@ -94,20 +94,20 @@ public sealed class EmailService : IEmailService
     /// </summary>
     public async Task SifreBelirleMailGonderAsync(string toEmail, string adSoyad, string link, Guid isletmeId, CancellationToken ct = default)
     {
-        var (konu, html, replyTo) = await DavetMailRenderAsync(adSoyad, link, isletmeId, ct);
-        await GonderAsync(toEmail, adSoyad, konu, html, ct, replyTo);
+        var (konu, html, replyTo, markaAdi) = await DavetMailRenderAsync(adSoyad, link, isletmeId, ct);
+        await GonderAsync(toEmail, adSoyad, konu, html, ct, replyTo, fromAdOverride: markaAdi);
     }
 
     // v19 B5 - davet maili onizleme: render mantigini reuse eder, gondermez. Yeni tenant icin
     // isletmeId=Guid.Empty (varsayilan metinler) + markaAdi override (kullanicinin girdigi marka).
     public async Task<string> DavetMailOnizleHtmlAsync(Guid isletmeId, string aliciAd, string? markaAdi, CancellationToken ct = default)
     {
-        var (_, html, _) = await DavetMailRenderAsync(aliciAd, "#onizleme", isletmeId, ct, markaAdi);
+        var (_, html, _, _) = await DavetMailRenderAsync(aliciAd, "#onizleme", isletmeId, ct, markaAdi);
         return html;
     }
 
     // Ortak davet maili render mantigi (gonder + onizleme paylasir; paralel yapi yok).
-    private async Task<(string konu, string html, string? replyTo)> DavetMailRenderAsync(
+    private async Task<(string konu, string html, string? replyTo, string markaAdi)> DavetMailRenderAsync(
         string adSoyad, string link, Guid isletmeId, CancellationToken ct, string? markaAdiOverride = null)
     {
         var aliciIlkAd = adSoyad.Split(' ')[0];
@@ -142,7 +142,7 @@ public sealed class EmailService : IEmailService
             : "";
 
         var html = DavetiyeHtmlSablonu(aliciIlkAd, link, sayacGoster, sayacCumleHtml, girisMetni, imza, markaAdi);
-        return (konu, html, sozluk.GetValueOrDefault(AnahtarKodu.IletisimEmail));
+        return (konu, html, sozluk.GetValueOrDefault(AnahtarKodu.IletisimEmail), markaAdi);
     }
 
     public Task SifreSifirlamaMailGonderAsync(string toEmail, string adSoyad, string link, CancellationToken ct = default)
@@ -176,7 +176,7 @@ public sealed class EmailService : IEmailService
     public Task OperasyonelMailGonderAsync(string toEmail, string toAd, (string Konu, string Html) icerik, CancellationToken ct = default)
         => GonderAsync(toEmail, toAd, icerik.Konu, icerik.Html, ct);
 
-    private async Task GonderAsync(string toEmail, string toAd, string konu, string html, CancellationToken ct, string? replyTo = null)
+    private async Task GonderAsync(string toEmail, string toAd, string konu, string html, CancellationToken ct, string? replyTo = null, string? fromAdOverride = null)
     {
         var host = _cfg["Smtp:Host"] ?? "localhost";
         var port = int.Parse(_cfg["Smtp:Port"] ?? "1025");
@@ -184,7 +184,8 @@ public sealed class EmailService : IEmailService
         var pass = _cfg["Smtp:Pass"];
         var ssl = bool.Parse(_cfg["Smtp:Ssl"] ?? "false");
         var from = _cfg["Smtp:From"] ?? "notlar@local.test";
-        var fromAd = _cfg["Smtp:FromName"] ?? "Notlar";
+        // v19 - multitenant: davet/tenant maili tenant markasiyla gider (fromAdOverride); sistem maili config/Notlar
+        var fromAd = !string.IsNullOrWhiteSpace(fromAdOverride) ? fromAdOverride! : (_cfg["Smtp:FromName"] ?? "Notlar");
 
         var msg = new MimeMessage();
         msg.From.Add(new MailboxAddress(fromAd, from));
@@ -309,7 +310,7 @@ public sealed class EmailService : IEmailService
           İçeride seni neler bekliyor?
         </h2>
         <p style='color:#9c8a73;font-size:13px;margin:0;text-align:center;font-style:italic;'>
-          Küçük rehberin
+          Hızlı başlangıç rehberi
         </p>
       </td></tr>
 
@@ -317,22 +318,22 @@ public sealed class EmailService : IEmailService
         "Yukarıdaki butona tıklayıp kendi şifreni belirleyince hesabın hazır. Bir dahaki sefere sadece e-posta adresin ve şifrenle giriş yaparsın. Giriş ekranındaki <strong>“Beni hatırla”</strong> kutusunu işaretli bırakırsan her seferinde tekrar girmek zorunda kalmazsın.")}
 
       {Madde("02", "Aklına bir şey geldiğinde",
-        "Ana sayfada <em>“Bir not düşün…”</em> yazan kutuyu göreceksin. Aklındakini yaz, sağdaki <strong>Ekle</strong> butonuna dokun, oldu. İstersen sadece bir başlık, istersen detaylı bir açıklama — paylaşacağın her şey kıymetli.")}
+        "Ana sayfada <em>“Bir not düşün…”</em> yazan kutuyu göreceksin. Aklındakini yaz, sağdaki <strong>Ekle</strong> butonuna dokun, oldu. İstersen sadece bir başlık, istersen detaylı bir açıklama ekleyebilirsin.")}
 
-      {Madde("03", "Bir şeyi tamamladığımızda",
-        "Her notun yanında küçük bir kutucuk var. Ona tıkladığında <em>“Nasıl tamamlandı?”</em> diye sorulacak. Birkaç kelime yaz (örneğin: <em>“Davetiye baskısı bitti, cuma kargolanıyor”</em>) ki sonradan dönüp ne yaptığımızı hatırlayabilelim. Bu küçük detaylar ileride tatlı anılar olacak.")}
+      {Madde("03", "Bir işi tamamladığında",
+        "Her notun yanında küçük bir kutucuk var. Ona tıkladığında <em>“Nasıl tamamlandı?”</em> diye sorulacak. Birkaç kelime yaz (örneğin: <em>“Rapor gönderildi, onay bekleniyor”</em>) ki sonradan dönüp ne yapıldığını hatırlayabilesin. Bu küçük detaylar ileride işine yarayacak.")}
 
       {Madde("04", "Bir notu güncellemek",
         "Her notun altında küçük ikonlar göreceksin: <strong>göz</strong> (detaylar), <strong>kalem</strong> (düzenle), <strong>çöp kutusu</strong> (sil). Kalem ikonuna tıklayıp başlığı, içeriği veya hangi klasöre ait olduğunu istediğin gibi değiştirebilirsin.")}
 
       {Madde("05", "Hatırlatıcı kurmak",
-        "Bir notu unutmayalım istersen kalem ikonuyla düzenle penceresini aç, en altta <strong>“Hatırlatıcı kur”</strong> seçeneğini göreceksin. Tarih ve saati seç, kime hatırlatılacağını (sana, bana veya ikimize) ve nasıl bildirim alacağımızı (uygulama içinde, e-postayla veya her ikisi) belirle. Zamanı geldiğinde hatırlatma gönderilecek.")}
+        "Bir işi unutmamak istersen kalem ikonuyla düzenle penceresini aç, en altta <strong>“Hatırlatıcı kur”</strong> seçeneğini göreceksin. Tarih ve saati seç, kime hatırlatılacağını ve nasıl bildirim alınacağını (uygulama içinde, e-postayla veya her ikisi) belirle. Zamanı geldiğinde hatırlatma gönderilir.")}
 
       {Madde("06", "Bir notun geçmişini görmek",
-        "Aynı satırdaki <strong>göz</strong> ikonu, notun bütün geçmişini gösteriyor: ne zaman oluşturuldu, ne zaman ne değişti, kim ne yazdı, ne zaman tamamlandı… Hiçbir şey kaybolmuyor; ikimiz de birbirimizin dokunuşlarını görebiliyoruz.")}
+        "Aynı satırdaki <strong>göz</strong> ikonu, notun bütün geçmişini gösterir: ne zaman oluşturuldu, ne zaman ne değişti, kim ne yazdı, ne zaman tamamlandı… Hiçbir şey kaybolmaz; ekipteki herkes değişiklikleri görebilir.")}
 
       {Madde("07", "Konuları ayırmak için — klasörler",
-        "Sol panelden <strong>“Yeni klasör”</strong> diyerek konuları gruplayabilirsin: <em>“Davetiye”, “Nikâh”, “Düğün Sonrası Tatil”</em> gibi. Notu eklerken veya düzenlerken hangi klasöre ait olduğunu seçebilirsin. İstersen bir klasörü sonradan silebilirsin — içindeki notlar kaybolmaz, sadece klasörsüz hâle gelir.", sonMu: true)}
+        "Sol panelden <strong>“Yeni klasör”</strong> diyerek konuları gruplayabilirsin: <em>“Projeler”, “Toplantılar”, “Arşiv”</em> gibi. Notu eklerken veya düzenlerken hangi klasöre ait olduğunu seçebilirsin. İstersen bir klasörü sonradan silebilirsin — içindeki notlar kaybolmaz, sadece klasörsüz hâle gelir.", sonMu: true)}
 
       <tr><td style='padding:32px 40px 8px;'>
         <table role='presentation' width='100%' cellpadding='0' cellspacing='0' border='0'>
