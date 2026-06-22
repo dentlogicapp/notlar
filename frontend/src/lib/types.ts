@@ -237,3 +237,42 @@ export interface TaslakSonucu {
   modelId: string;
   yanitSuresiMs: number;
 }
+
+// v19 Asama 8 - Super admin tenant yonetimi
+export interface IsletmeOzet {
+  id: string;
+  markaAdi: string;
+  markaEmoji: string;
+  kullanimModu: string;
+  aktif: boolean;
+  olusturmaZamani: string;
+  uyeSayisi: number;
+  dolulukYuzde: number;
+  saglikSkoru: number;
+}
+
+export interface IsletmeUye {
+  kullaniciId: string;
+  email: string;
+  adSoyad: string;
+  rol: string;
+  aktif: boolean;
+  sonGiris: string | null;
+}
+
+export interface IsletmeDetay {
+  id: string;
+  markaAdi: string;
+  markaEmoji: string;
+  kullanimModu: string;
+  aktif: boolean;
+  karsilamaBasligi: string;
+  sayacAktif: boolean;
+  sayacBasligi: string;
+  sayacHedefTarihi: string | null;
+  olusturmaZamani: string;
+  olusturanSuperAdminId: string | null;
+  dolulukYuzde: number;
+  saglikSkoru: number;
+  uyeler: IsletmeUye[];
+}

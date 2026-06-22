@@ -6,6 +6,7 @@ import type {
   Uyelik, Isletme, MetinAnahtari, AiAyari, AiModel, AiTestSonucu,
   MetinBirlesik, MetinVersiyon, OnboardingDurum,
   TaslakSonucu,
+  IsletmeOzet, IsletmeDetay,
 } from "./types";
 
 const API = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:5000";
@@ -355,4 +356,20 @@ export const aiApi = {
       method: "POST",
       body: JSON.stringify(govde),
     }),
+};
+
+// v19 Asama 8 - Super admin tenant yonetimi (/api/super-admin/isletmeler)
+export const superAdminIsletmeApi = {
+  list: () => ist<IsletmeOzet[]>("/api/super-admin/isletmeler"),
+  get: (id: string) => ist<IsletmeDetay>(`/api/super-admin/isletmeler/${id}`),
+  olustur: (data: { markaAdi: string; markaEmoji?: string; kullanimModu: string }) =>
+    ist<IsletmeOzet>("/api/super-admin/isletmeler", { method: "POST", body: JSON.stringify(data) }),
+  durum: (id: string) =>
+    ist<{ id: string; aktif: boolean }>(`/api/super-admin/isletmeler/${id}/durum`, { method: "POST" }),
+  adminAta: (id: string, data: { email: string; adSoyad: string; cinsiyet: string }) =>
+    ist<{ kullaniciId: string; email: string }>(`/api/super-admin/isletmeler/${id}/admin-ata`, { method: "POST", body: JSON.stringify(data) }),
+  goruntule: (id: string) =>
+    ist<void>(`/api/super-admin/isletmeler/${id}/goruntule`, { method: "POST" }),
+  goruntuleBitir: () =>
+    ist<void>("/api/super-admin/isletmeler/goruntule/bitir", { method: "POST" }),
 };
