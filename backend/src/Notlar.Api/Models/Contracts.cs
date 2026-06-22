@@ -175,7 +175,7 @@ public sealed record MetinKaydetIstegi(string Icerik);
 public sealed record MetinBirlesik(
     string Anahtar, string Etiket, string Yonlendirme, string Aciklama,
     string Tip, string Kategori, bool Zorunlu, int Sira,
-    IReadOnlyList<string> Placeholderlar, string? Icerik, int? KarakterLimiti = null, bool Deprecated = false, string Kapsam = "Tenant");
+    IReadOnlyList<string> Placeholderlar, string? Icerik, int? KarakterLimiti = null, bool Deprecated = false, string Kapsam = "Tenant", string? Varsayilan = null);
 
 public sealed record MetinVersiyonYaniti(Guid Id, int Versiyon, string Icerik, DateTimeOffset OlusturmaZamani);
 

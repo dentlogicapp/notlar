@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Notlar.Api.Data;
 using Notlar.Api.Models;
+using Notlar.Api.Models.Sema;
 using Notlar.Api.Services;
 
 namespace Notlar.Api.Endpoints;
@@ -152,7 +153,8 @@ public static class MetinlerEndpoints
     // metin_anahtarlari (katalog) + tenant Icerik -> birlesik yanit
     private static MetinBirlesik Birlestir(Notlar.Api.Entities.MetinAnahtari a, string? icerik)
         => new(a.Anahtar, a.Etiket, a.Yonlendirme, a.Aciklama, a.Tip, a.Kategori, a.Zorunlu, a.Sira,
-               PlaceholderListesi(a.DesteklenenPlaceholderlar), icerik, a.KarakterLimiti, a.Deprecated, a.Kapsam);
+               PlaceholderListesi(a.DesteklenenPlaceholderlar), icerik, a.KarakterLimiti, a.Deprecated, a.Kapsam,
+               AnahtarKatalogu.Tumu.FirstOrDefault(x => x.Anahtar == a.Anahtar)?.Varsayilan);
 
     private static IReadOnlyList<string> PlaceholderListesi(string jsonb)
     {

@@ -100,9 +100,16 @@ export function MetinAlani({
           {hata ? (
             <p className="text-xs text-red-600 dark:text-red-400 leading-relaxed">{hata}</p>
           ) : (
-            metin.aciklama && (
-              <p className="text-xs text-clay-400 dark:text-ink-300 leading-relaxed">{metin.aciklama}</p>
-            )
+            <>
+              {metin.aciklama && (
+                <p className="text-xs text-clay-400 dark:text-ink-300 leading-relaxed">{metin.aciklama}</p>
+              )}
+              {metin.varsayilan && metin.tip !== "body" && (
+                <p className="text-[11px] text-clay-400 dark:text-ink-300 italic mt-0.5 truncate">
+                  Varsayılan: "{metin.varsayilan}"
+                </p>
+              )}
+            </>
           )}
         </div>
         {!tarihMi && <span data-tour-step="karakter-sayaci"><KarakterSayaci mevcut={deger.length} tip={metin.tip} karakterLimiti={metin.karakterLimiti} /></span>}
