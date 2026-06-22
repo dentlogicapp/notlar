@@ -91,6 +91,20 @@ public static class MetinlerEndpoints
             return Results.NoContent();
         });
 
+        // POST /test-mail -> v19 6c: admin kendi adresine ornek davetiye alir (gercek token/kullanici OLUSTURMAZ).
+        // Mevcut davetiye render'i (SifreBelirleMailGonderAsync) reuse; link dummy (sadece gorsel onizleme).
+        g.MapPost("/test-mail", async (HttpContext http, IUserContext uc, IEmailService email,
+            IAuditService audit, CancellationToken ct) =>
+        {
+            if (uc.AktifIsletmeId is null || string.IsNullOrWhiteSpace(uc.Email)) return Results.Unauthorized();
+            if (GoruntulemeYazmaYok(http) is { } engel) return engel;
+
+            var dummyLink = "https://notlar.dentlogicapp.com/giris?onizleme=1";
+            await email.SifreBelirleMailGonderAsync(uc.Email, "Test", dummyLink, uc.AktifIsletmeId.Value, ct);
+            await audit.YazAsync("test_mail_gonderildi", "isletme", uc.AktifIsletmeId, detay: uc.Email, ct: ct);
+            return Results.Ok(new { gonderildi = true, email = uc.Email });
+        });
+
         // GET /{anahtar}/versiyonlar -> son 10 versiyon
         g.MapGet("/{anahtar}/versiyonlar", async (string anahtar, IUserContext uc, IIsletmeMetinService svc, CancellationToken ct) =>
         {

@@ -2,6 +2,7 @@
 
 import { useRef, useEffect } from "react";
 import type { MetinBirlesik } from "@/lib/types";
+import { RotateCcw } from "lucide-react";
 import { RichTextInput } from "./RichTextInput";
 import { KarakterSayaci } from "./KarakterSayaci";
 import { VersiyonGecmisi } from "./VersiyonGecmisi";
@@ -15,11 +16,13 @@ export function MetinAlani({
   deger,
   onDegis,
   hata,
+  onSifirla,
 }: {
   metin: MetinBirlesik;
   deger: string;
   onDegis: (anahtar: string, yeni: string) => void;
   hata?: string;
+  onSifirla?: (anahtar: string) => void; // v19 6c - varsayilana dondur (parent: sifirla + refetch + form reset)
 }) {
   const taRef = useRef<HTMLTextAreaElement>(null);
   const tarihMi = metin.anahtar === "sayac_hedef_tarihi";
@@ -53,6 +56,16 @@ export function MetinAlani({
           {metin.zorunlu && <span className="text-terracotta text-xs">zorunlu</span>}
         </label>
         <div data-tour-step="versiyon-gecmisi" className="flex items-center gap-2.5 shrink-0">
+          {onSifirla && metin.icerik != null && metin.icerik !== "" && (
+            <button
+              type="button"
+              onClick={() => onSifirla(metin.anahtar)}
+              title="Bu metni sistem varsayılanına döndür"
+              className="flex items-center gap-1 text-xs text-clay-400 dark:text-ink-300 hover:text-terracotta transition-colors"
+            >
+              <RotateCcw className="h-3 w-3" /> Varsayılana döndür
+            </button>
+          )}
           <VersiyonGecmisi anahtar={metin.anahtar} onDon={(ic) => onDegis(metin.anahtar, ic)} />
         </div>
       </div>

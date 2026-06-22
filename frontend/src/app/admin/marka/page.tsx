@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, HelpCircle, Loader2, Palette, Save, Search } from "lucide-react";
+import { ChevronLeft, HelpCircle, Loader2, Mail, Palette, Save, Search } from "lucide-react";
 import { toast } from "sonner";
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
@@ -37,6 +37,20 @@ const KATEGORI_BASLIK: Record<string, string> = {
   bildirim: "Bildirim Metinleri",
   form: "Form Metinleri",
 };
+
+// v19 6c - Mail sekmesi alt-gruplari. Anahtar prefix ile eslesir (Sifir Sablon:
+// yeni mail_davetiye_* / mail_hatirlatma_* anahtari otomatik dogru gruba duser).
+type MailAltGrup = "davetiye" | "hatirlatma" | "imza";
+const MAIL_ALT_SEKMELER: { kod: MailAltGrup; etiket: string }[] = [
+  { kod: "davetiye", etiket: "Davetiye" },
+  { kod: "hatirlatma", etiket: "Hatırlatma" },
+  { kod: "imza", etiket: "İmza & Genel" },
+];
+function mailAltGrup(anahtar: string): MailAltGrup {
+  if (anahtar.startsWith("mail_davetiye")) return "davetiye";
+  if (anahtar.startsWith("mail_hatirlatma")) return "hatirlatma";
+  return "imza"; // mail_imza, mail_tonu, iletisim_email ve diger mail anahtarlari
+}
 
 export default function Page() {
   return (
@@ -95,6 +109,7 @@ function Icerik() {
     return () => { d.destroy(); };
   }, [turRun]);
   const [sekme, setSekme] = useState<SekmeKod>("marka");
+  const [mailAltSekme, setMailAltSekme] = useState<MailAltGrup>("davetiye"); // v19 6c
   const [degerler, setDegerler] = useState<Record<string, string>>({});
   const [ara, setAra] = useState("");
   const [hatalar, setHatalar] = useState<Record<string, string>>({});
@@ -147,6 +162,32 @@ function Icerik() {
   );
 
   const onDegis = (anahtar: string, yeni: string) => setDegerler((p) => ({ ...p, [anahtar]: yeni }));
+
+  // v19 6c - Varsayilana dondur: metni sil (DELETE /api/admin/metinler/{anahtar})
+  // -> isletme_metinleri kaydi silinir, AnahtarKatalogu.Varsayilan fallback'ine doner.
+  const sifirla = async (anahtar: string) => {
+    try {
+      await metinApi.sifirla(anahtar);
+      await qc.invalidateQueries({ queryKey: ["isletme-metinleri"] });
+      toast.success("Varsayılana döndürüldü", { duration: 1500 });
+    } catch {
+      toast.error("İşlem başarısız, tekrar deneyin");
+    }
+  };
+
+  // v19 6c - Test maili: admin kendi adresine ornek davetiye alir
+  const [testGonderiliyor, setTestGonderiliyor] = useState(false);
+  const testMailGonder = async () => {
+    setTestGonderiliyor(true);
+    try {
+      const r = await metinApi.testMail();
+      toast.success(`Örnek davetiye gönderildi: ${r.email}`, { duration: 2500 });
+    } catch {
+      toast.error("Test maili gönderilemedi, tekrar deneyin");
+    } finally {
+      setTestGonderiliyor(false);
+    }
+  };
 
   const [sonKayit, setSonKayit] = useState<number | null>(null);
 
@@ -314,14 +355,57 @@ function Icerik() {
                     {KATEGORI_BASLIK[kat] ?? kat}
                   </h2>
                   {grup.map((m) => (
-                    <MetinAlani key={m.anahtar} metin={m} deger={degerler[m.anahtar] ?? ""} onDegis={onDegis} hata={hatalar[m.anahtar]} />
+                    <MetinAlani key={m.anahtar} metin={m} deger={degerler[m.anahtar] ?? ""} onDegis={onDegis} hata={hatalar[m.anahtar]} onSifirla={sifirla} />
                   ))}
                 </div>
               );
             })
+          ) : sekme === "mail" ? (
+            // v19 6c - Mail 3 alt-sekme: anahtarlari prefix grubuna gore filtrele
+            <>
+              <div className="flex items-center justify-between border-b border-cream-300 dark:border-ink-700/60 -mt-1 mb-1 gap-2">
+                <div className="flex gap-1">
+                  {MAIL_ALT_SEKMELER.map((as) => (
+                    <button
+                      key={as.kod}
+                      type="button"
+                      onClick={() => setMailAltSekme(as.kod)}
+                      className={cn(
+                        "px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors",
+                        mailAltSekme === as.kod
+                          ? "border-terracotta text-terracotta"
+                          : "border-transparent text-clay-500 dark:text-ink-300 hover:text-clay-700 dark:hover:text-ink-100"
+                      )}
+                    >
+                      {as.etiket}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={testMailGonder}
+                  disabled={testGonderiliyor}
+                  title="Davetiye mailini kendi adresine ornek gonder"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-clay-500 dark:text-ink-300 hover:text-terracotta disabled:opacity-50 transition-colors shrink-0"
+                >
+                  {testGonderiliyor ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+                  Test maili gönder
+                </button>
+              </div>
+              {(() => {
+                const grup = sekmeMetinleri.filter((m) => mailAltGrup(m.anahtar) === mailAltSekme);
+                return grup.length === 0 ? (
+                  <p className="text-sm text-clay-400 dark:text-ink-300 italic">Bu grupta metin bulunmuyor.</p>
+                ) : (
+                  grup.map((m) => (
+                    <MetinAlani key={m.anahtar} metin={m} deger={degerler[m.anahtar] ?? ""} onDegis={onDegis} hata={hatalar[m.anahtar]} onSifirla={sifirla} />
+                  ))
+                );
+              })()}
+            </>
           ) : (
             sekmeMetinleri.map((m) => (
-              <MetinAlani key={m.anahtar} metin={m} deger={degerler[m.anahtar] ?? ""} onDegis={onDegis} hata={hatalar[m.anahtar]} />
+              <MetinAlani key={m.anahtar} metin={m} deger={degerler[m.anahtar] ?? ""} onDegis={onDegis} hata={hatalar[m.anahtar]} onSifirla={sifirla} />
             ))
           )}
           </div>
@@ -329,7 +413,7 @@ function Icerik() {
           <aside className="lg:sticky lg:top-24 self-start">
             <p className="text-xs italic text-clay-400 dark:text-ink-300 mb-2">Canlı Önizleme</p>
             <div data-tour-step="live-preview" className="kart p-5">
-              <LivePreview sekme={sekme} degerler={degerler} />
+              <LivePreview sekme={sekme} degerler={degerler} mailAltSekme={mailAltSekme} />
             </div>
           </aside>
         </div>

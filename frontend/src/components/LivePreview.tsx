@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Heart } from "lucide-react";
 import { cozMetin } from "@/lib/useIsletmeMetinleri";
 import { sayacHesapla, hedefMsCoz, type SayacDurum } from "@/lib/sayac";
 
 // v18 - Live Preview: marka sayfasinda field duzenlenirken anlik dinamik onizleme.
 // Tek kutu standardi, canli sayac (geri+ileri), karsilama + not ipucu. Mail onizleme Asama D.
-export function LivePreview({ sekme, degerler }: { sekme: string; degerler: Record<string, string> }) {
+export function LivePreview({ sekme, degerler, mailAltSekme = "davetiye" }: { sekme: string; degerler: Record<string, string>; mailAltSekme?: string }) {
   const [sk, setSk] = useState<SayacDurum>({ gecti: false, gun: 0, sa: 0, dk: 0, sn: 0 });
   const hedefMs = hedefMsCoz(degerler["sayac_hedef_tarihi"] ?? "");
 
@@ -85,42 +85,97 @@ export function LivePreview({ sekme, degerler }: { sekme: string; degerler: Reco
   }
 
   if (sekme === "mail") {
-    // D - davetiye maili onizleme. Alicinin gordugu gercek mail temasi (sabit renkler),
-    // icerik field'lerden (cozMetin). Sayac cumlesi mail sablonunda kalanGun bazli sabit (ornek 89 gun).
-    const konu = c("mail_davetiye_konu") || "(mail konusu girilmedi)";
-    const giris = c("mail_davetiye_giris_metni") || "Davetiye giriş metni burada görünür.";
+    // v19 6c - Gmail/Outlook zarfli onizleme. mailAltSekme: davetiye | hatirlatma | imza.
+    // Notr tema (sektor-bagimsiz, EmailService 6a ile tutarli: kalp/diamond/sparkle YOK, marka adi logo).
+    const markaAdi = c("marka_adi") || "Sistemim";
+    const emoji = degerler["marka_emoji"] || "🔔";
     const imza = c("mail_imza");
-    // sayac cumlesi mailde de field'lerden (backend MailSayac ile ayni mantik)
     const mailSayacAktif = (degerler["sayac_aktif"] ?? "") === "true";
     const mailSayacBaslik = sk.gecti ? c("sayac_bitti_cumle") : c("sayac_aktif_cumle");
     const mailSayacGoster = mailSayacAktif && hedefMs !== null && mailSayacBaslik.length > 0;
+
+    const markaLogo = (
+      <div style={{ textAlign: "center", color: "#c4704d", fontSize: 14, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>{markaAdi}</div>
+    );
+
+    let konu: string;
+    let govde: ReactNode;
+    let altNot: string;
+
+    if (mailAltSekme === "hatirlatma") {
+      konu = c("mail_hatirlatma_konu") || "Hatırlatma: örnek not";
+      altNot = "Hatırlatma maili önizleme";
+      govde = (
+        <>
+          {markaLogo}
+          <h3 style={{ fontFamily: "Georgia, serif", fontSize: 18, color: "#3d2817", margin: "6px 0 10px", textAlign: "center", fontWeight: 600 }}>Hatırlatma</h3>
+          <p style={{ color: "#5d4a37", fontSize: 12.5, lineHeight: 1.7, textAlign: "center", margin: 0 }}>
+            "<strong>Çiçekçiyi ara</strong>" notunun zamanı geldi.
+          </p>
+          {imza && <p style={{ color: "#9c8a73", fontSize: 12, textAlign: "center", margin: "16px 0 0", fontStyle: "italic", whiteSpace: "pre-wrap" }}>{imza}</p>}
+        </>
+      );
+    } else if (mailAltSekme === "imza") {
+      konu = "İmza önizleme";
+      altNot = "İmza & genel — mail altında görünen imza";
+      govde = (
+        <>
+          {markaLogo}
+          <p style={{ color: "#5d4a37", fontSize: 12.5, lineHeight: 1.7, textAlign: "center", margin: "6px 0 12px" }}>Mail metinlerinin altında görünecek imza:</p>
+          {imza
+            ? <p style={{ color: "#9c8a73", fontSize: 13, textAlign: "center", margin: 0, fontStyle: "italic", whiteSpace: "pre-wrap" }}>{imza}</p>
+            : <p style={{ color: "#b8a890", fontSize: 12, textAlign: "center", margin: 0, fontStyle: "italic" }}>(imza girilmedi — varsayılan kullanılır)</p>}
+        </>
+      );
+    } else {
+      konu = c("mail_davetiye_konu") || "(mail konusu girilmedi)";
+      altNot = "Davetiye maili — alıcının göreceği görünüm";
+      const giris = c("mail_davetiye_giris_metni") || "Davetiye giriş metni burada görünür.";
+      govde = (
+        <>
+          {markaLogo}
+          <h3 style={{ fontFamily: "Georgia, serif", fontSize: 20, color: "#3d2817", margin: "6px 0 8px", textAlign: "center", fontWeight: 600 }}>Davetli,</h3>
+          <div style={{ color: "#5d4a37", fontSize: 12.5, lineHeight: 1.7, textAlign: "justify", margin: "10px 0 0" }} dangerouslySetInnerHTML={{ __html: giris }} />
+          {mailSayacGoster && (
+            <p style={{ color: "#5d4a37", fontSize: 12.5, textAlign: "center", margin: "10px 0 0" }}>
+              {mailSayacBaslik} <strong>{sk.gun} gün</strong>
+            </p>
+          )}
+          <div style={{ textAlign: "center", margin: "18px 0 4px" }}>
+            <span style={{ display: "inline-block", background: "#3d2817", color: "#faf6ef", padding: "10px 22px", borderRadius: 8, fontSize: 12.5, fontWeight: 500 }}>
+              Hesabımı Aç ve Şifre Belirle
+            </span>
+          </div>
+          {imza && <p style={{ color: "#9c8a73", fontSize: 12, textAlign: "center", margin: "16px 0 0", fontStyle: "italic", whiteSpace: "pre-wrap" }}>{imza}</p>}
+        </>
+      );
+    }
+
     return (
       <div className="space-y-2">
-        <p className="text-[11px] text-clay-400 dark:text-ink-300">
-          <span className="uppercase tracking-wider">Konu</span> · {konu}
-        </p>
-        <div className="rounded-xl overflow-hidden" style={{ background: "#faf6ef", border: "1px solid #ebe3d4" }}>
-          <div style={{ background: "#ffffff", borderRadius: 14, margin: 10, padding: "22px 18px", border: "1px solid #ebe3d4" }}>
-            <div style={{ textAlign: "center", color: "#c4704d", fontSize: 30, lineHeight: 1 }}>♡</div>
-            <h3 style={{ fontFamily: "Georgia, serif", fontSize: 20, color: "#3d2817", margin: "8px 0 2px", textAlign: "center", fontWeight: 600 }}>Ayşegül,</h3>
-            <p style={{ color: "#c4704d", fontSize: 12, fontStyle: "italic", textAlign: "center", margin: 0 }}>planlama defterimiz seni bekliyor 🤍</p>
-            <div style={{ color: "#5d4a37", fontSize: 12.5, lineHeight: 1.7, textAlign: "justify", margin: "14px 0 0" }} dangerouslySetInnerHTML={{ __html: giris }} />
-            {mailSayacGoster && (
-              <p style={{ color: "#5d4a37", fontSize: 12.5, textAlign: "center", margin: "10px 0 0" }}>
-                {mailSayacBaslik} <strong>{sk.gun} gün</strong> ✨
-              </p>
-            )}
-            <div style={{ textAlign: "center", margin: "18px 0 4px" }}>
-              <span style={{ display: "inline-block", background: "#3d2817", color: "#faf6ef", padding: "10px 22px", borderRadius: 8, fontSize: 12.5, fontWeight: 500 }}>
-                Hesabımı Aç ve Şifre Belirle
-              </span>
+        {/* Gmail/Outlook zarfi */}
+        <div className="rounded-xl overflow-hidden border border-cream-300 dark:border-ink-700 bg-white dark:bg-ink-900">
+          {/* gonderen bari */}
+          <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-cream-200 dark:border-ink-700/60">
+            <div className="h-8 w-8 rounded-full flex items-center justify-center text-sm shrink-0" style={{ background: "#f0e9dd" }}>{emoji}</div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-clay-800 dark:text-ink-50 truncate">{markaAdi}</p>
+              <p className="text-[10px] text-clay-400 dark:text-ink-300 truncate">sistem@dentlogicapp.com · bana</p>
             </div>
-            {imza && (
-              <p style={{ color: "#9c8a73", fontSize: 12, textAlign: "center", margin: "16px 0 0", fontStyle: "italic", whiteSpace: "pre-wrap" }}>{imza}</p>
-            )}
+            <span className="text-[10px] text-clay-400 dark:text-ink-300 shrink-0">şimdi</span>
+          </div>
+          {/* konu */}
+          <div className="px-3 py-2 border-b border-cream-200 dark:border-ink-700/60">
+            <p className="text-sm font-semibold text-clay-900 dark:text-ink-50 leading-snug">{konu}</p>
+          </div>
+          {/* govde - notr mail temasi */}
+          <div style={{ background: "#faf6ef", padding: 10 }}>
+            <div style={{ background: "#ffffff", borderRadius: 12, padding: "20px 16px", border: "1px solid #ebe3d4" }}>
+              {govde}
+            </div>
           </div>
         </div>
-        <p className="text-[10px] italic text-clay-400 dark:text-ink-300">Alıcının göreceği davetiye maili (örnek alıcı: Ayşegül).</p>
+        <p className="text-[10px] italic text-clay-400 dark:text-ink-300">{altNot}</p>
       </div>
     );
   }
