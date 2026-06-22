@@ -1,6 +1,6 @@
 "use client";
 
-import { Heart, Minus, Users, Home, Palmtree, type LucideIcon } from "lucide-react";
+import { Heart, Minus, Users, Home, Palmtree, Clock, type LucideIcon } from "lucide-react";
 
 const IKON_MAP: Record<string, LucideIcon> = {
   kalp: Heart, klasik: Minus, ekip: Users, aile: Home, tatil: Palmtree,
@@ -27,7 +27,7 @@ export function MarkaOnizleme({ markaAdi, markaEmoji, ikonSeti }: {
       {/* Ikon seti gostergesi */}
       <div className="flex items-center gap-2 text-clay-500 dark:text-ink-200">
         <Ikon className="h-4 w-4 text-terracotta" />
-        <span className="text-xs italic">İkon seti: {ikonSeti || "kalp"}</span>
+        <span className="text-xs italic">İkon seti: {ikonSeti || "klasik"}</span>
       </div>
     </div>
   );
@@ -85,7 +85,7 @@ export function SayacOnizleme({ sayacAktif, sayacBasligi, sayacHedefTarihi }: {
   const k = geriSayim(sayacHedefTarihi);
   return (
     <div className="rounded-xl border border-cream-300 dark:border-ink-700 px-4 py-4 flex items-center gap-3">
-      <Ikon className="h-7 w-7 text-terracotta shrink-0" strokeWidth={1.5} />
+      <Clock className="h-7 w-7 text-terracotta shrink-0" strokeWidth={1.5} />
       <div className="flex flex-col min-w-0">
         <span className="uppercase tracking-[0.2em] text-[10px] text-clay-500 dark:text-ink-200 leading-none font-medium">
           {sayacBasligi || "Sayaç başlığı"}
