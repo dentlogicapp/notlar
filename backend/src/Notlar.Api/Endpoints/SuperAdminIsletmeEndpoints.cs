@@ -193,6 +193,26 @@ public static class SuperAdminIsletmeEndpoints
             return Results.Ok(new { id = isletme.Id, aktif = isletme.Aktif });
         });
 
+        // DELETE /{id} - tenant soft delete (Silindi=true; veri korunur, liste'den gizlenir, geri alinabilir).
+        // Hard delete YOK (veri guvenligi); kalici temizlik ayri deploy script'iyle yapilir.
+        g.MapDelete("/{id:guid}", async (Guid id, AppDbContext db, IUserContext uc,
+            IAuditService audit, IOperasyonelBildirimGonderici bildirim, CancellationToken ct) =>
+        {
+            var isletme = await db.Isletmeler.FirstOrDefaultAsync(x => x.Id == id && !x.Silindi, ct);
+            if (isletme is null)
+                return Results.NotFound(new { hata = "ISLETME_BULUNAMADI", mesaj = "Isletme bulunamadi." });
+
+            isletme.Silindi = true;
+            isletme.Aktif = false;
+            await db.SaveChangesAsync(ct);
+
+            await audit.YazAsync("tenant_silindi", hedefTip: "isletme", hedefId: id,
+                degisenAlanlar: System.Text.Json.JsonSerializer.Serialize(new { markaAdi = isletme.MarkaAdi }), ct: ct);
+            bildirim.TenantPasiflestirildi(isletme.MarkaAdi, uc.Email ?? "sistem");
+
+            return Results.Ok(new { ok = true });
+        });
+
         // POST /{id}/admin-ata - tenant'a admin ata. AdminEndpoints CREATE pattern reuse; fark: path tenant + Rol sabit admin.
         g.MapPost("/{id:guid}/admin-ata", async (Guid id, IsletmeAdminAtaIstegi req, AppDbContext db,
             IEmailService email, IAuditService audit, IConfiguration cfg, CancellationToken ct) =>

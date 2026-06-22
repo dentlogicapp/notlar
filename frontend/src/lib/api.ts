@@ -6,7 +6,7 @@ import type {
   Uyelik, Isletme, MetinAnahtari, AiAyari, AiModel, AiTestSonucu,
   MetinBirlesik, MetinVersiyon, OnboardingDurum,
   TaslakSonucu,
-  IsletmeOzet, IsletmeDetay,
+  IsletmeOzet, IsletmeDetay, SuperAdminOzet,
 } from "./types";
 
 const API = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:5000";
@@ -374,4 +374,15 @@ export const superAdminIsletmeApi = {
     ist<void>("/api/super-admin/isletmeler/goruntule/bitir", { method: "POST" }),
   davetOnizle: (data: { markaAdi?: string; adminAd?: string }) =>
     ist<{ html: string }>("/api/super-admin/isletmeler/davet-onizle", { method: "POST", body: JSON.stringify(data) }),
+  sil: (id: string) =>
+    ist<{ ok: boolean }>(`/api/super-admin/isletmeler/${id}`, { method: "DELETE" }),
+};
+
+// v19 P4 - super admin yonetimi (/api/super-admin/yoneticiler)
+export const superAdminYoneticiApi = {
+  list: () => ist<SuperAdminOzet[]>("/api/super-admin/yoneticiler"),
+  ata: (email: string) =>
+    ist<SuperAdminOzet>("/api/super-admin/yoneticiler", { method: "POST", body: JSON.stringify({ email }) }),
+  kaldir: (kullaniciId: string) =>
+    ist<void>(`/api/super-admin/yoneticiler/${kullaniciId}`, { method: "DELETE" }),
 };

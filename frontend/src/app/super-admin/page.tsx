@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, Loader2, Plus, Eye, Power, ChevronRight, Building2 } from "lucide-react";
+import { ChevronLeft, Loader2, Plus, Eye, Power, ChevronRight, Building2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { UserMenu } from "@/components/UserMenu";
 import { Button } from "@/components/ui/button";
@@ -62,6 +62,17 @@ export default function SuperAdminPage() {
     onError: () => { toast.error("Görüntüleme başlatılamadı"); setIslemId(null); },
   });
 
+  const silMut = useMutation({
+    mutationFn: (id: string) => superAdminIsletmeApi.sil(id),
+    onMutate: (id) => setIslemId(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["super-admin-isletmeler"] });
+      toast.success("Tenant silindi (veriler korundu)");
+    },
+    onError: () => toast.error("Tenant silinemedi"),
+    onSettled: () => setIslemId(null),
+  });
+
   return (
     <>
     <main className="min-h-screen bg-cream-100 dark:bg-ink-900 pb-16">
@@ -105,6 +116,7 @@ export default function SuperAdminPage() {
                 mesgul={islemId === t.id}
                 onGor={() => gorMut.mutate(t.id)}
                 onDurum={() => durumMut.mutate(t.id)}
+                onSil={() => { if (confirm(`"${t.markaAdi}" tenant'ini silmek istediginize emin misiniz?\n\nVeriler korunur, liste'den gizlenir (geri alinabilir).`)) silMut.mutate(t.id); }}
               />
             ))}
           </div>
@@ -116,11 +128,12 @@ export default function SuperAdminPage() {
   );
 }
 
-function TenantKart({ t, mesgul, onGor, onDurum }: {
+function TenantKart({ t, mesgul, onGor, onDurum, onSil }: {
   t: IsletmeOzet;
   mesgul: boolean;
   onGor: () => void;
   onDurum: () => void;
+  onSil: () => void;
 }) {
   return (
     <div className={cn("kart p-5 group relative transition-opacity", !t.aktif && "opacity-60")}>
@@ -181,6 +194,15 @@ function TenantKart({ t, mesgul, onGor, onDurum }: {
           className="flex items-center gap-1 px-2 py-1 text-xs text-clay-500 dark:text-ink-300 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-50 transition-colors"
         >
           <Power className="h-3 w-3" /> {t.aktif ? "Pasifleştir" : "Aktifleştir"}
+        </button>
+        <button
+          type="button"
+          disabled={mesgul}
+          onClick={onSil}
+          title="Sil"
+          className="flex items-center gap-1 px-2 py-1 text-xs text-clay-400 dark:text-ink-400 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-50 transition-colors"
+        >
+          <Trash2 className="h-3 w-3" /> Sil
         </button>
       </div>
     </div>

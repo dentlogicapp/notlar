@@ -262,6 +262,14 @@ export interface IsletmeUye {
   sonGiris: string | null;
 }
 
+// v19 P4 - super admin yonetimi (ata/kaldir)
+export interface SuperAdminOzet {
+  id: string;
+  email: string;
+  adSoyad: string;
+  sonGiris: string | null;
+}
+
 export interface IsletmeDetay {
   id: string;
   markaAdi: string;
