@@ -10,8 +10,8 @@ export function MarkaOnizleme({ markaAdi, markaEmoji, ikonSeti }: {
   markaAdi?: string; markaEmoji?: string; ikonSeti?: string;
 }) {
   const ad = markaAdi || "Marka Adı";
-  const emoji = markaEmoji || "🤍";
-  const Ikon = IKON_MAP[ikonSeti ?? "kalp"] ?? Heart;
+  const emoji = markaEmoji || "🏢";
+  const Ikon = IKON_MAP[ikonSeti ?? "klasik"] ?? Minus;
   return (
     <div className="space-y-3">
       {/* Tarayici sekmesi mock */}
@@ -85,7 +85,7 @@ export function SayacOnizleme({ sayacAktif, sayacBasligi, sayacHedefTarihi }: {
   const k = geriSayim(sayacHedefTarihi);
   return (
     <div className="rounded-xl border border-cream-300 dark:border-ink-700 px-4 py-4 flex items-center gap-3">
-      <Heart className="h-7 w-7 text-terracotta shrink-0" fill="currentColor" strokeWidth={1.5} />
+      <Ikon className="h-7 w-7 text-terracotta shrink-0" strokeWidth={1.5} />
       <div className="flex flex-col min-w-0">
         <span className="uppercase tracking-[0.2em] text-[10px] text-clay-500 dark:text-ink-200 leading-none font-medium">
           {sayacBasligi || "Sayaç başlığı"}

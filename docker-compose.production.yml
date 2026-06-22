@@ -47,7 +47,7 @@ services:
       Smtp__Pass: ${SMTP_PASS}
       Smtp__Ssl: "true"
       Smtp__From: ${SMTP_FROM}
-      Smtp__FromName: "🔒 Planlama Defterimiz 🤍"
+      Smtp__FromName: "Planlama Defteri"
       FrontendBaseUrl: "https://notlar.dentlogicapp.com"
       IlkAdmin__Email: ${ILK_ADMIN_EMAIL}
       IlkAdmin__AdSoyad: ${ILK_ADMIN_AD}

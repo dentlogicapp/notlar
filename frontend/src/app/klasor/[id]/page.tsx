@@ -3,7 +3,7 @@
 import { use } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, Heart } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { AuthGuard } from "@/components/AuthGuard";
 import { CountdownWidget } from "@/components/CountdownWidget";
 import { UserMenu } from "@/components/UserMenu";
@@ -38,8 +38,7 @@ function Icerik({ params }: { params: Promise<{ id: string }> }) {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
           <Link href="/" className="flex items-center gap-1.5 text-clay-600 dark:text-ink-100 hover:text-clay-900 dark:hover:text-ink-50 transition-colors min-w-0">
             <ChevronLeft className="h-5 w-5 shrink-0" />
-            <Heart className="h-5 w-5 text-terracotta animate-heart-beat hidden sm:inline" fill="currentColor" strokeWidth={1.5} />
-            <span className="font-display text-base sm:text-lg truncate">Planlama Defterimiz</span>
+            <span className="font-display text-base sm:text-lg truncate">Ana sayfa</span>
           </Link>
           <UserMenu />
         </div>

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Heart, Loader2 } from "lucide-react";
+import { BookOpen, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { authApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -53,12 +53,11 @@ export default function GirisSayfasi() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8 animate-fade-in">
           <div className="inline-flex items-center justify-center h-14 w-14 rounded-full bg-terracotta/15 mb-4">
-            <Heart className="h-6 w-6 text-terracotta animate-heart-beat" fill="currentColor" />
+            <BookOpen className="h-6 w-6 text-terracotta" />
           </div>
-          <h1 className="font-display text-3xl text-clay-900 dark:text-ink-50">Planlama Defterimiz</h1>
-          <p className="text-clay-500 dark:text-ink-200 mt-1.5 italic text-sm inline-flex items-center justify-center gap-1.5 flex-wrap">
-            <span>AŞK&apos;la planlanıp, AŞK&apos;la tamamlanacaklar</span>
-            <Heart className="h-3.5 w-3.5 text-terracotta inline-block" fill="currentColor" strokeWidth={0} />
+          <h1 className="font-display text-3xl text-clay-900 dark:text-ink-50">Planlama Defteri</h1>
+          <p className="text-clay-500 dark:text-ink-200 mt-1.5 italic text-sm">
+            Ekibini Kur, Birlikte Not Al, Planla, Tamamla
           </p>
         </div>
 

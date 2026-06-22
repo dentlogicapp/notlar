@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ChevronLeft, Heart, Loader2, RotateCcw, Trash2 } from "lucide-react";
+import { ChevronLeft, Loader2, RotateCcw, Trash2 } from "lucide-react";
 import { AuthGuard } from "@/components/AuthGuard";
 import { CountdownWidget } from "@/components/CountdownWidget";
 import { UserMenu } from "@/components/UserMenu";
@@ -44,7 +44,6 @@ function Icerik() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
           <Link href="/" className="flex items-center gap-1 text-clay-600 dark:text-ink-100 hover:text-clay-900 dark:hover:text-ink-50 transition-colors min-w-0">
             <ChevronLeft className="h-5 w-5 shrink-0" />
-            <Heart className="h-4 w-4 text-terracotta hidden sm:inline" fill="currentColor" />
             <span className="font-display text-base truncate">Çöp Kutusu</span>
           </Link>
           <UserMenu />

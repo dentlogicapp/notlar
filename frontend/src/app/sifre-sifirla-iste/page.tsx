@@ -4,7 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Heart, Loader2, Mail } from "lucide-react";
+import { BookOpen, Loader2, Mail } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useState } from "react";
@@ -30,7 +30,7 @@ export default function Page() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center h-14 w-14 rounded-full bg-terracotta/15 mb-4">
-            <Heart className="h-6 w-6 text-terracotta" fill="currentColor" />
+            <BookOpen className="h-6 w-6 text-terracotta" />
           </div>
           <h1 className="font-display text-3xl text-clay-900 dark:text-ink-50">Şifremi Unuttum</h1>
         </div>
