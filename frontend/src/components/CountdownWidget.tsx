@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Clock } from "lucide-react";
+import { Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsletmeMetinleri, metinDeger } from "@/lib/useIsletmeMetinleri";
 import { sayacHesapla, hedefMsCoz, type SayacDurum } from "@/lib/sayac";
@@ -36,9 +36,11 @@ export function CountdownWidget() {
 
   const SayacIcerik = ({ kompakt }: { kompakt?: boolean }) => (
     <>
-      {markaEmoji
-        ? <span className={cn("shrink-0 leading-none", kompakt ? "text-2xl" : "text-3xl")}>{markaEmoji}</span>
-        : <Clock className={cn("text-terracotta shrink-0", kompakt ? "h-6 w-6" : "h-9 w-9")} strokeWidth={1.5} />}
+      {/* madde 5 - sayac onu: hardcoded atan kalp (heartbeat) + marka emoji; tum tenantlar icin gecerli */}
+      <span className={cn("shrink-0 leading-none inline-flex items-center gap-1 animate-heartbeat origin-center", kompakt ? "text-2xl" : "text-3xl")}>
+        <Heart className={cn("text-terracotta fill-terracotta", kompakt ? "h-5 w-5" : "h-7 w-7")} strokeWidth={1.5} />
+        {markaEmoji && <span aria-hidden>{markaEmoji}</span>}
+      </span>
       <div className="flex flex-col min-w-0">
         {/* madde 3 - buyuk/kucuk harfe duyarli (uppercase CSS kaldirildi) */}
         <span className={cn("tracking-[0.02em] text-clay-500 dark:text-ink-200 leading-none font-medium truncate", kompakt ? "text-[11px]" : "text-[13px]")}>

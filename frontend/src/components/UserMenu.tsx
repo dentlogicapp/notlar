@@ -384,7 +384,7 @@ function DefteriIndirDialog({
     setYuklenenFormat(format);
     try {
       await defteriIndir(format);
-      toast.success(`Defterin indirildi 🤍`);
+      toast.success(`Defterin indirildi`);
       onOpenChange(false);
     } catch (e) {
       toast.error((e as Error).message);
@@ -397,7 +397,7 @@ function DefteriIndirDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Defteri İndir 🤍</DialogTitle>
+          <DialogTitle>Defteri İndir</DialogTitle>
           <DialogDescription>
             Sevdiğin formatı seç — tüm klasör ve notlarımız özenle hazırlanıp indirilecek.
           </DialogDescription>
