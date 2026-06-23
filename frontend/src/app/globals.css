@@ -190,17 +190,4 @@ button, a, input, textarea, select, [role="button"], [tabindex] {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* madde 5 - sayac kalp ritmi (heartbeat): marka emoji + kalp ikonu senkron atar */
-@keyframes heartbeat {
-  0%, 100% { transform: scale(1); }
-  14% { transform: scale(1.18); }
-  28% { transform: scale(1); }
-  42% { transform: scale(1.18); }
-  70% { transform: scale(1); }
-}
-.animate-heartbeat {
-  animation: heartbeat 1.6s ease-in-out infinite;
-}
-@media (prefers-reduced-motion: reduce) {
-  .animate-heartbeat { animation: none; }
-}
+/* madde 5 - sayac onu atan kalp: tailwind.config'teki animate-heart-beat kullanilir (marka emoji ritmiyle ayni) */

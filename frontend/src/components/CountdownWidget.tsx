@@ -32,15 +32,11 @@ export function CountdownWidget() {
   const baslik = k.gecti
     ? metinDeger(metinler, "sayac_bitti_cumle", "")
     : metinDeger(metinler, "sayac_aktif_cumle", "");
-  const markaEmoji = metinDeger(metinler, "marka_emoji", "");
 
   const SayacIcerik = ({ kompakt }: { kompakt?: boolean }) => (
     <>
-      {/* madde 5 - sayac onu: hardcoded atan kalp (heartbeat) + marka emoji; tum tenantlar icin gecerli */}
-      <span className={cn("shrink-0 leading-none inline-flex items-center gap-1 animate-heartbeat origin-center", kompakt ? "text-2xl" : "text-3xl")}>
-        <Heart className={cn("text-terracotta fill-terracotta", kompakt ? "h-5 w-5" : "h-7 w-7")} strokeWidth={1.5} />
-        {markaEmoji && <span aria-hidden>{markaEmoji}</span>}
-      </span>
+      {/* madde 5 - sayac onu: SADECE atan kalp (marka emoji degil); marka adi ritmiyle ayni (animate-heart-beat) */}
+      <Heart className={cn("text-terracotta fill-terracotta shrink-0 animate-heart-beat", kompakt ? "h-6 w-6" : "h-8 w-8")} strokeWidth={1.5} />
       <div className="flex flex-col min-w-0">
         {/* madde 3 - buyuk/kucuk harfe duyarli (uppercase CSS kaldirildi) */}
         <span className={cn("tracking-[0.02em] text-clay-500 dark:text-ink-200 leading-none font-medium truncate", kompakt ? "text-[11px]" : "text-[13px]")}>
