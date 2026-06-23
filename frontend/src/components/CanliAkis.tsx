@@ -15,7 +15,8 @@ const OLAY_STIL: Record<string, { renk: string; etiket: string }> = {
   goruntuleme_modu_write_engellendi: { renk: "bg-orange-500", etiket: "Görüntüleme modunda yazma engellendi" },
 };
 
-function olayStili(olay: string) {
+function olayStili(olay?: string) {
+  if (!olay) return { renk: "bg-clay-400", etiket: "Bilinmeyen olay" };
   return OLAY_STIL[olay] ?? { renk: "bg-clay-400", etiket: olay.replace(/_/g, " ") };
 }
 

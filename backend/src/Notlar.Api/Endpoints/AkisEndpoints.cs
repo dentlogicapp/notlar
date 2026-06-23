@@ -17,6 +17,10 @@ namespace Notlar.Api.Endpoints;
 /// </summary>
 public static class AkisEndpoints
 {
+    // v19 Asama 10 fix - SSE JSON camelCase olmali (frontend o.olay/o.aktorEmail bekliyor).
+    // Direct JsonSerializer.Serialize global web-options'i kullanmaz -> PascalCase verir; bu options sart.
+    private static readonly JsonSerializerOptions JsonAyar = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
     public static void MapAkisEndpoints(this IEndpointRouteBuilder app)
     {
         app.MapGet("/api/super-admin/akis", async (HttpContext http, IAkisYayinci yayinci, CancellationToken ct) =>
@@ -53,7 +57,7 @@ public static class AkisEndpoints
                         break;
                     }
 
-                    var json = JsonSerializer.Serialize(olay);
+                    var json = JsonSerializer.Serialize(olay, JsonAyar);
                     // v19 Asama 10 - isimsiz "message" event (event: satiri yok): frontend onmessage generic
                     // yakalar; olay tipi json icindeki "olay" alanindan okunur (named event yerine).
                     await http.Response.WriteAsync($"data: {json}\n\n", ct);
