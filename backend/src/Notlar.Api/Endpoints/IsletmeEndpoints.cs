@@ -57,8 +57,8 @@ public static class IsletmeEndpoints
             user.AktifIsletmeId = id;
             await db.SaveChangesAsync(ct);
 
-            // JWT yenile
-            var token = jwt.TokenUret(user);
+            // JWT yenile - v19 G.4: yeni tenant'in uyelik rolu (multi-tenant rol tenant-scope)
+            var token = jwt.TokenUret(user, aktifRol: uyelik.Rol);
             var gun = int.Parse(cfg["Jwt:GunOmru"] ?? "30");
             AuthEndpoints.CookieEkle(http, token, gun, cfg, persistent: true);
 

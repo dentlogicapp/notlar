@@ -8,7 +8,7 @@ namespace Notlar.Api.Services;
 
 public interface IJwtService
 {
-    string TokenUret(Kullanici k, bool goruntulemeModu = false, int? sureSaat = null);
+    string TokenUret(Kullanici k, bool goruntulemeModu = false, int? sureSaat = null, string? aktifRol = null);
 }
 
 /// <summary>
@@ -20,7 +20,7 @@ public sealed class JwtService : IJwtService
     private readonly IConfiguration _cfg;
     public JwtService(IConfiguration cfg) { _cfg = cfg; }
 
-    public string TokenUret(Kullanici k, bool goruntulemeModu = false, int? sureSaat = null)
+    public string TokenUret(Kullanici k, bool goruntulemeModu = false, int? sureSaat = null, string? aktifRol = null)
     {
         var secret = _cfg["Jwt:Secret"] ?? throw new InvalidOperationException("Jwt:Secret yok");
         var issuer = _cfg["Jwt:Issuer"] ?? "notlar";
@@ -35,7 +35,9 @@ public sealed class JwtService : IJwtService
             new(JwtRegisteredClaimNames.Sub, k.Id.ToString()),
             new(JwtRegisteredClaimNames.Email, k.Email),
             new("ad_soyad", k.AdSoyad),
-            new(ClaimTypes.Role, k.Rol),
+            // v19 G.4 - rol multi-tenant'ta tenant-scope (IsletmeUyelik.Rol). Aktif tenant rolu varsa onu kullan,
+            // yoksa global Kullanici.Rol'e dus (super admin / 0 tenant durumu). Admin guard bu claim'e bakar.
+            new(ClaimTypes.Role, aktifRol ?? k.Rol),
             // v15 — Multi-tenant claim'ler
             new("super_admin", k.SuperAdmin ? "true" : "false"),
         };

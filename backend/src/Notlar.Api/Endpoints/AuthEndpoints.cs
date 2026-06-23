@@ -111,7 +111,10 @@ public static class AuthEndpoints
 
             await db.SaveChangesAsync(ct);
 
-            var token = jwt.TokenUret(user);
+            // v19 G.4 - JWT Role'u aktif tenant uyelik rolunden uret (multi-tenant: rol tenant-scope IsletmeUyelik'te).
+            // admin-ata kullaniciyi global Rol="kullanici" + tenant Rol="admin" yapar; global-rol guard'i 403 veriyordu.
+            var aktifUyelik = uyelikler.FirstOrDefault(u => u.IsletmeId == user.AktifIsletmeId);
+            var token = jwt.TokenUret(user, aktifRol: aktifUyelik?.Rol);
             var gun = int.Parse(cfg["Jwt:GunOmru"] ?? "30");
             var persistent = req.BeniHatirla ?? true;
             CookieEkle(http, token, gun, cfg, persistent);
