@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   LogOut, Shield, Trash2, ListTodo, Bell, Download,
   FileText, FileSpreadsheet, FileType, FileCode, Loader2, X,
-  Moon, Sun, Plus
+  Moon, Sun, Plus, Crown
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -174,6 +174,15 @@ export function UserMenu() {
                 <Link href="/admin" className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-cream-200 dark:hover:bg-ink-800 cursor-pointer outline-none text-clay-700 dark:text-ink-100">
                   <Shield className="h-4 w-4 text-clay-500 dark:text-ink-300" />
                   Yönetim
+                </Link>
+              </DM.Item>
+            )}
+
+            {ben.superAdmin && (
+              <DM.Item asChild>
+                <Link href="/super-admin" className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-cream-200 dark:hover:bg-ink-800 cursor-pointer outline-none text-gold font-medium">
+                  <Crown className="h-4 w-4 text-gold" />
+                  Süper Panel
                 </Link>
               </DM.Item>
             )}

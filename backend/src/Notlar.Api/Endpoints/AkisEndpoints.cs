@@ -54,7 +54,9 @@ public static class AkisEndpoints
                     }
 
                     var json = JsonSerializer.Serialize(olay);
-                    await http.Response.WriteAsync($"event: {olay.Olay}\ndata: {json}\n\n", ct);
+                    // v19 Asama 10 - isimsiz "message" event (event: satiri yok): frontend onmessage generic
+                    // yakalar; olay tipi json icindeki "olay" alanindan okunur (named event yerine).
+                    await http.Response.WriteAsync($"data: {json}\n\n", ct);
                     await http.Response.Body.FlushAsync(ct);
                 }
             }

@@ -9,6 +9,7 @@ import { UserMenu } from "@/components/UserMenu";
 import { Button } from "@/components/ui/button";
 import { superAdminIsletmeApi } from "@/lib/api";
 import { TenantOlusturModal } from "@/components/TenantOlusturModal";
+import { CanliAkis } from "@/components/CanliAkis";
 import type { IsletmeOzet } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -126,6 +127,8 @@ export default function SuperAdminPage() {
             ))}
           </div>
         )}
+
+        <CanliAkis />
       </div>
     </main>
     <TenantOlusturModal open={modalAcik} onClose={() => setModalAcik(false)} />
