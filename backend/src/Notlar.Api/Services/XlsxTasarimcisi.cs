@@ -41,7 +41,7 @@ public static class XlsxTasarimcisi
     public static byte[] Uret(
         List<(string Ad, bool SistemMi, List<Not> Notlar)> gruplar,
         string markaAdi,
-        DateTime dugunTarihi)
+        SayacBilgi sayac)
     {
         using var wb = new XLWorkbook();
         var baslik = string.IsNullOrWhiteSpace(markaAdi) ? "Defter" : markaAdi;
@@ -63,7 +63,7 @@ public static class XlsxTasarimcisi
         }
 
         // Şimdi Genel Bakış'ı doldur (sheet adları belli oldu, hyperlink kurabiliriz)
-        GenelBakisYaz(genelBakis, baslik, sheetAdlari, dugunTarihi);
+        GenelBakisYaz(genelBakis, baslik, sheetAdlari, sayac);
 
         // İlk sheet seçili açılsın
         genelBakis.SetTabActive();
@@ -89,11 +89,10 @@ public static class XlsxTasarimcisi
     /// </summary>
     private static void GenelBakisYaz(IXLWorksheet ws, string baslik,
         List<(string Orijinal, string Sheet, bool SistemMi, int NotSayisi, int Tamamlanan)> klasorler,
-        DateTime dugunTarihi)
+        SayacBilgi sayac)
     {
         var bugun = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, IstanbulTz)
             .ToString("d MMMM yyyy", new CultureInfo("tr-TR"));
-        var kalanGun = Math.Max(0, (dugunTarihi - DateTime.UtcNow.Date).Days);
         var toplamNot = klasorler.Sum(k => k.NotSayisi);
         var toplamTamamlanan = klasorler.Sum(k => k.Tamamlanan);
 
@@ -123,7 +122,8 @@ public static class XlsxTasarimcisi
         var istBaslangic = 5;
         IstatistikKart(ws, $"B{istBaslangic}", "TOPLAM NOT", toplamNot);
         IstatistikKart(ws, $"D{istBaslangic}", "TAMAMLANAN", toplamTamamlanan);
-        IstatistikKart(ws, $"F{istBaslangic}", "GÜN KALDI", kalanGun);
+        if (sayac.Aktif)
+            IstatistikKart(ws, $"F{istBaslangic}", sayac.Gecti ? "GÜN OLDU" : "GÜN KALDI", sayac.Gun);
 
         ws.Cell($"B{istBaslangic + 3}").Value = bugun;
         ws.Range($"B{istBaslangic + 3}:F{istBaslangic + 3}").Merge();

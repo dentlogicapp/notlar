@@ -17,7 +17,7 @@ public interface IDocxDonusturucu
         List<(string Ad, bool SistemMi, List<Not> Notlar)> gruplar,
         string markaAdi,
         string ciftIsmi,
-        DateTime dugunTarihi,
+        SayacBilgi sayac,
         CancellationToken ct = default);
 }
 
@@ -52,7 +52,7 @@ public sealed class DocxDonusturucu : IDocxDonusturucu
         List<(string Ad, bool SistemMi, List<Not> Notlar)> gruplar,
         string markaAdi,
         string ciftIsmi,
-        DateTime dugunTarihi,
+        SayacBilgi sayac,
         CancellationToken ct = default)
     {
         return Task.Run(() =>
@@ -65,7 +65,7 @@ public sealed class DocxDonusturucu : IDocxDonusturucu
                 var body = new Body();
                 main.Document.Append(body);
 
-                IcerikYaz(body, markaAdi, gruplar, ciftIsmi, dugunTarihi);
+                IcerikYaz(body, markaAdi, gruplar, ciftIsmi, sayac);
 
                 // Sayfa boyutu A4 + kenar boşlukları (en sonra)
                 body.Append(SayfaAyari());
@@ -78,11 +78,10 @@ public sealed class DocxDonusturucu : IDocxDonusturucu
 
     private void IcerikYaz(Body body, string markaAdi,
         List<(string Ad, bool SistemMi, List<Not> Notlar)> gruplar,
-        string ciftIsmi, DateTime dugunTarihi)
+        string ciftIsmi, SayacBilgi sayac)
     {
         var bugun = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, IstanbulTz)
             .ToString("d MMMM yyyy", new CultureInfo("tr-TR"));
-        var kalanGun = Math.Max(0, (dugunTarihi - DateTime.UtcNow.Date).Days);
         var toplamNot = gruplar.Sum(g => g.Notlar.Count);
         var toplamTamamlanan = gruplar.Sum(g => g.Notlar.Count(n => n.Tamamlandi));
 
@@ -94,8 +93,16 @@ public sealed class DocxDonusturucu : IDocxDonusturucu
             "Georgia", 13, Clay700, italik: true, ortala: true));
         body.Append(BosSatir(2));
 
-        // İstatistik kartları (tek tablo, 3 hücre)
-        body.Append(IstatistikTablosu(toplamNot, toplamTamamlanan, kalanGun));
+        // İstatistik kartları (not, tamamlandı)
+        body.Append(IstatistikTablosu(toplamNot, toplamTamamlanan));
+        // v19 - Sayac SADECE aktifse: "{Cumle} {Gun} gun kaldi/oldu"
+        if (sayac.Aktif)
+        {
+            var yon = sayac.Gecti ? "gün oldu" : "gün kaldı";
+            var metin = (string.IsNullOrWhiteSpace(sayac.Cumle) ? "" : sayac.Cumle + " ") + $"{sayac.Gun} {yon}";
+            body.Append(BosSatir(1));
+            body.Append(MetinSatiri(metin, "Georgia", 14, Terracotta, italik: true, ortala: true));
+        }
         body.Append(BosSatir(2));
 
         body.Append(MetinSatiri(bugun, "Georgia", 12, Clay500, italik: true, ortala: true));
@@ -246,7 +253,7 @@ public sealed class DocxDonusturucu : IDocxDonusturucu
         return p;
     }
 
-    private static Table IstatistikTablosu(int notSayisi, int tamamlanan, int kalanGun)
+    private static Table IstatistikTablosu(int notSayisi, int tamamlanan)
     {
         var tbl = new Table();
         var tblProps = new TableProperties(
@@ -266,7 +273,6 @@ public sealed class DocxDonusturucu : IDocxDonusturucu
         var tr = new TableRow();
         tr.Append(IstatistikHucresi(notSayisi.ToString(), "not"));
         tr.Append(IstatistikHucresi(tamamlanan.ToString(), "tamamlandı"));
-        tr.Append(IstatistikHucresi(kalanGun.ToString(), "gün kaldı"));
         tbl.Append(tr);
 
         return tbl;

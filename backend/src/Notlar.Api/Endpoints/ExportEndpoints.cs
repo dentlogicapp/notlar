@@ -31,12 +31,19 @@ public static class ExportEndpoints
             if (uc.AktifIsletmeId is null) return Results.Unauthorized();
             var tenantId = uc.AktifIsletmeId.Value;
 
-            // v15 — Tenant ayarlarından düğün tarihi (sayac_hedef_tarihi); fallback default
+            // v19 — Marka adi entity'den (senkron cache); SAYAC bilgisi isletme_metinleri'nden (tek kaynak).
             var isletme = await db.Isletmeler
                 .Where(i => i.Id == tenantId)
-                .Select(i => new { i.SayacHedefTarihi, i.MarkaAdi })
+                .Select(i => new { i.MarkaAdi })
                 .FirstOrDefaultAsync(ct);
-            var dugunTarihi = isletme?.SayacHedefTarihi ?? new DateTime(2026, 9, 1);
+
+            // Sayac: sayac_aktif / sayac_hedef_tarihi / sayac_aktif_cumle / sayac_bitti_cumle (CountdownWidget mantigi)
+            var sayacMetinleri = await db.IsletmeMetinleri
+                .Where(m => m.IsletmeId == tenantId &&
+                    (m.Anahtar == "sayac_aktif" || m.Anahtar == "sayac_hedef_tarihi" ||
+                     m.Anahtar == "sayac_aktif_cumle" || m.Anahtar == "sayac_bitti_cumle"))
+                .ToDictionaryAsync(m => m.Anahtar, m => m.Icerik, ct);
+            var sayacBilgi = SayacBilgiHesapla(sayacMetinleri);
 
             // v14/v15 — Dinamik: bu tenant'taki aktif üyelerin adlarından çift ismi
             var adlar = await db.IsletmeUyelikleri
@@ -78,14 +85,14 @@ public static class ExportEndpoints
 
             var tarih = DateTimeOffset.Now.ToString("yyyy-MM-dd_HH-mm");
             var markaAdi = isletme?.MarkaAdi ?? "Defter";
-            var html = HtmlTasarimcisi.Uret(gruplar, markaAdi, ciftIsmi, dugunTarihi);  // TEK KAYNAK
+            var html = HtmlTasarimcisi.Uret(gruplar, markaAdi, ciftIsmi, sayacBilgi);  // TEK KAYNAK
 
             return format?.ToLowerInvariant() switch
             {
                 "html" => HtmlVer(html, tarih),
                 "pdf"  => await PdfVer(html, tarih, pdfRender, ct),
-                "docx" => await DocxVer(gruplar, markaAdi, ciftIsmi, dugunTarihi, tarih, docxDonusturucu, ct),
-                "xlsx" => XlsxVer(gruplar, markaAdi, tarih, dugunTarihi),
+                "docx" => await DocxVer(gruplar, markaAdi, ciftIsmi, sayacBilgi, tarih, docxDonusturucu, ct),
+                "xlsx" => XlsxVer(gruplar, markaAdi, tarih, sayacBilgi),
                 _ => Results.BadRequest(new { hata = "format parametresi: html | pdf | docx | xlsx" })
             };
         });
@@ -107,21 +114,39 @@ public static class ExportEndpoints
 
     private static async Task<IResult> DocxVer(
         List<(string Ad, bool SistemMi, List<Not> Notlar)> gruplar,
-        string markaAdi, string ciftIsmi, DateTime dugunTarihi, string tarih,
+        string markaAdi, string ciftIsmi, SayacBilgi sayac, string tarih,
         IDocxDonusturucu donusturucu, CancellationToken ct)
     {
-        var docx = await donusturucu.UretAsync(gruplar, markaAdi, ciftIsmi, dugunTarihi, ct);
+        var docx = await donusturucu.UretAsync(gruplar, markaAdi, ciftIsmi, sayac, ct);
         return Results.File(docx,
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             $"defter-{tarih}.docx");
     }
 
     private static IResult XlsxVer(
-        List<(string Ad, bool SistemMi, List<Not> Notlar)> gruplar, string markaAdi, string tarih, DateTime dugunTarihi)
+        List<(string Ad, bool SistemMi, List<Not> Notlar)> gruplar, string markaAdi, string tarih, SayacBilgi sayac)
     {
-        var xlsx = XlsxTasarimcisi.Uret(gruplar, markaAdi, dugunTarihi);
+        var xlsx = XlsxTasarimcisi.Uret(gruplar, markaAdi, sayac);
         return Results.File(xlsx,
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             $"defter-{tarih}.xlsx");
+    }
+
+    // v19 - Sayac bilgisini isletme_metinleri'nden hesaplar (CountdownWidget ile ayni mantik).
+    // Aktif degilse / tarih yoksa Aktif=false -> defterde sayac satiri gizlenir.
+    private static SayacBilgi SayacBilgiHesapla(Dictionary<string, string> m)
+    {
+        var aktif = m.GetValueOrDefault("sayac_aktif") == "true";
+        if (!aktif) return new SayacBilgi(false, 0, false, "");
+        if (!DateTime.TryParse(m.GetValueOrDefault("sayac_hedef_tarihi"), out var hedef))
+            return new SayacBilgi(false, 0, false, "");
+
+        var bugun = DateTime.UtcNow.Date;
+        var gecti = hedef.Date < bugun;
+        var gun = Math.Abs((hedef.Date - bugun).Days);
+        var cumle = gecti
+            ? (m.GetValueOrDefault("sayac_bitti_cumle") ?? "")
+            : (m.GetValueOrDefault("sayac_aktif_cumle") ?? "");
+        return new SayacBilgi(true, gun, gecti, cumle);
     }
 }

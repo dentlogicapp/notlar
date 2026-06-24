@@ -6,6 +6,12 @@ using Notlar.Api.Entities;
 namespace Notlar.Api.Services;
 
 /// <summary>
+/// v19 - Defter sayac bilgisi (isletme_metinleri'nden hesaplanir; CountdownWidget ile ayni mantik).
+/// Aktif=false ise defterde sayac satiri gizlenir. Gecti=true: "Cumle X gun oldu"; false: "Cumle X gun kaldi".
+/// </summary>
+public record SayacBilgi(bool Aktif, int Gun, bool Gecti, string Cumle);
+
+/// <summary>
 /// v14 — Defteri İndir için TEK KAYNAK HTML şablonu.
 /// Kurumsal defter stili (Fraunces + terracotta + cream + clay paleti, sade cizgisel ayraclar).
 /// Bu HTML hem doğrudan tarayıcıya verilir (HTML format), hem de PDF (Chromium print)
@@ -47,17 +53,16 @@ public static class HtmlTasarimcisi
         List<(string Ad, bool SistemMi, List<Not> Notlar)> gruplar,
         string markaAdi,
         string ciftIsmi,
-        DateTime hedefTarihi)
+        SayacBilgi sayac)
     {
         var bugun = Tr(DateTimeOffset.UtcNow);
-        var kalanGun = Math.Max(0, (hedefTarihi - DateTime.UtcNow.Date).Days);
         var toplamNot = gruplar.Sum(g => g.Notlar.Count);
         var toplamTamamlanan = gruplar.Sum(g => g.Notlar.Count(n => n.Tamamlandi));
 
         var sb = new StringBuilder(64_000);
         BasligiYaz(sb, markaAdi);
         AcKapaksizSayfayi(sb);
-        KapakYaz(sb, bugun, kalanGun, toplamNot, toplamTamamlanan, markaAdi, ciftIsmi);
+        KapakYaz(sb, bugun, sayac, toplamNot, toplamTamamlanan, markaAdi, ciftIsmi);
         IcindekilerYaz(sb, gruplar);
         foreach (var (ad, sistemMi, notlar) in gruplar)
         {
@@ -102,7 +107,7 @@ public static class HtmlTasarimcisi
 
     // ─────────────────── KAPAK ───────────────────
 
-    private static void KapakYaz(StringBuilder sb, string bugun, int kalanGun,
+    private static void KapakYaz(StringBuilder sb, string bugun, SayacBilgi sayac,
         int toplamNot, int toplamTamamlanan, string markaAdi, string ciftIsmi)
     {
         var baslik = string.IsNullOrWhiteSpace(markaAdi) ? "Defter" : markaAdi;
@@ -114,8 +119,14 @@ public static class HtmlTasarimcisi
         sb.AppendLine("    <div class=\"kapak-istatistik\">");
         sb.AppendLine($"      <div class=\"istatistik-kart\"><span class=\"istatistik-sayi\">{toplamNot}</span><span class=\"istatistik-etiket\">not</span></div>");
         sb.AppendLine($"      <div class=\"istatistik-kart\"><span class=\"istatistik-sayi\">{toplamTamamlanan}</span><span class=\"istatistik-etiket\">tamamlandı</span></div>");
-        sb.AppendLine($"      <div class=\"istatistik-kart\"><span class=\"istatistik-sayi\">{kalanGun}</span><span class=\"istatistik-etiket\">gün kaldı</span></div>");
         sb.AppendLine("    </div>");
+        // v19 - Sayac SADECE aktifse: "{Cumle} {Gun} gun kaldi/oldu". Kapaliysa hic gosterilmez.
+        if (sayac.Aktif)
+        {
+            var yon = sayac.Gecti ? "gün oldu" : "gün kaldı";
+            var cumle = string.IsNullOrWhiteSpace(sayac.Cumle) ? "" : Esc(sayac.Cumle) + " ";
+            sb.AppendLine($"    <p class=\"kapak-altyazi kapak-sayac\">{cumle}<strong>{sayac.Gun}</strong> {yon}</p>");
+        }
         sb.AppendLine($"    <p class=\"kapak-tarih\">{Esc(bugun)}</p>");
         sb.AppendLine($"    <p class=\"kapak-isim\">{Esc(ciftIsmi)}</p>");
         sb.AppendLine("  </div>");
