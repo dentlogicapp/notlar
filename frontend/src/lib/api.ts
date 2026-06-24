@@ -176,7 +176,7 @@ export async function defteriIndir(format: DefteriIndirFormat): Promise<void> {
   // Content-Disposition'dan filename çek
   const cd = r.headers.get("content-disposition") || "";
   const match = cd.match(/filename\*?=(?:UTF-8'')?["']?([^"';]+)["']?/i);
-  const filename = match ? decodeURIComponent(match[1]) : `planlama-defterimiz.${format}`;
+  const filename = match ? decodeURIComponent(match[1]) : `defter.${format}`;
 
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

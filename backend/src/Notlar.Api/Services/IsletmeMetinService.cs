@@ -57,6 +57,7 @@ public sealed class IsletmeMetinService : IIsletmeMetinService
             };
             _db.IsletmeMetinleri.Add(yeni);
             await _db.SaveChangesAsync(ct);
+            await MarkaSenkronlaAsync(isletmeId, anahtar, icerik, ct);
             return yeni;
         }
 
@@ -83,7 +84,21 @@ public sealed class IsletmeMetinService : IIsletmeMetinService
 
         await BudaAsync(isletmeId, anahtar, ct);
         await _db.SaveChangesAsync(ct);   // budama (yeni versiyon artik DB'de, son 10 dogru sayilir)
+        await MarkaSenkronlaAsync(isletmeId, anahtar, icerik, ct);
         return mevcut;
+    }
+
+    // v19 - Marka metni (marka_adi/marka_emoji) yazilinca Isletme entity kolonunu senkronla.
+    // Kaynak isletme_metinleri'dir; entity senkron cache (export + super admin liste gibi entity
+    // okuyan yerler guncel kalsin diye). Marka disi anahtarlarda no-op.
+    private async Task MarkaSenkronlaAsync(Guid isletmeId, string anahtar, string icerik, CancellationToken ct)
+    {
+        if (anahtar is not ("marka_adi" or "marka_emoji")) return;
+        var isletme = await _db.Isletmeler.FirstOrDefaultAsync(i => i.Id == isletmeId, ct);
+        if (isletme is null) return;
+        if (anahtar == "marka_adi") isletme.MarkaAdi = icerik;
+        else isletme.MarkaEmoji = icerik;
+        await _db.SaveChangesAsync(ct);
     }
 
     public async Task<bool> SifirlaAsync(Guid isletmeId, string anahtar, Guid? kullaniciId, CancellationToken ct = default)

@@ -170,6 +170,7 @@ builder.Services.AddCors(opt =>
         .WithOrigins(corsOrigins)
         .AllowAnyHeader()
         .AllowAnyMethod()
+        .WithExposedHeaders("Content-Disposition")  // v19 - defter indir dosya adini frontend okuyabilsin
         .AllowCredentials());
 });
 
