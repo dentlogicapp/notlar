@@ -11,6 +11,8 @@ public interface IEmailService
 {
     // v18 - davetiye metinleri (konu/giris/imza/marka) artik isletme_metinleri'nden render edilir (G.23-b).
     Task SifreBelirleMailGonderAsync(string toEmail, string adSoyad, string link, Guid isletmeId, CancellationToken ct = default);
+    // v19 bonus - mevcut (sifresi olan) kullanici yeni tenant'a eklenince: "markaya eklendiniz, mevcut hesabinizla giris yapin" bilgilendirme maili.
+    Task MarkayaEklendiMailGonderAsync(string toEmail, string adSoyad, string girisLink, Guid isletmeId, CancellationToken ct = default);
     // v19 B5 - davet maili onizleme (gonderme yok, HTML render doner). markaAdi override (yeni tenant henuz yoksa).
     Task<string> DavetMailOnizleHtmlAsync(Guid isletmeId, string aliciAd, string? markaAdi, CancellationToken ct = default);
     Task SifreSifirlamaMailGonderAsync(string toEmail, string adSoyad, string link, CancellationToken ct = default);
@@ -95,6 +97,27 @@ public sealed class EmailService : IEmailService
     public async Task SifreBelirleMailGonderAsync(string toEmail, string adSoyad, string link, Guid isletmeId, CancellationToken ct = default)
     {
         var (konu, html, replyTo, markaAdi) = await DavetMailRenderAsync(adSoyad, link, isletmeId, ct);
+        await GonderAsync(toEmail, adSoyad, konu, html, ct, replyTo, fromAdOverride: markaAdi);
+    }
+
+    // v19 bonus - mevcut (sifresi olan) kullanici yeni tenant'a eklendiginde bilgilendirme maili.
+    // Davet maili (sifre belirle) yerine: zaten hesabi var -> "ekibe eklendiniz, mevcut hesabinizla giris yapin".
+    // marka_adi + imza + iletisim_email (replyTo) davet maili ile ayni kaynaktan (isletme_metinleri) cozulur.
+    public async Task MarkayaEklendiMailGonderAsync(string toEmail, string adSoyad, string girisLink, Guid isletmeId, CancellationToken ct = default)
+    {
+        var aliciIlkAd = adSoyad.Split(' ')[0];
+        var sozluk = SozlukYap(await _metin.TumunuGetirAsync(isletmeId, ct));
+        var runtime = new Dictionary<string, string>(StringComparer.Ordinal) { ["alici_ad"] = aliciIlkAd };
+
+        var markaAdi = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MarkaAdi,
+            "Markanız", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
+        runtime["marka_adi"] = markaAdi;
+        var imza = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailImza,
+            "", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
+
+        var konu = $"{markaAdi} ekibine eklendiniz";
+        var html = MarkayaEklendiHtmlSablonu(aliciIlkAd, girisLink, imza, markaAdi);
+        var replyTo = sozluk.GetValueOrDefault(AnahtarKodu.IletisimEmail);
         await GonderAsync(toEmail, adSoyad, konu, html, ct, replyTo, fromAdOverride: markaAdi);
     }
 
@@ -363,6 +386,69 @@ public sealed class EmailService : IEmailService
       </td></tr>
 
       <!-- Footer (v16 — tenant MarkaAdi) -->
+      <tr><td style='padding:32px 40px 32px;text-align:center;'>
+        <p style='color:#9c8a73;font-size:11px;margin:0;line-height:1.6;'>
+          {WebUtility.HtmlEncode(markaAdi)} · <a href='https://notlar.dentlogicapp.com' style='color:#9c8a73;text-decoration:none;'>notlar.dentlogicapp.com</a>
+        </p>
+      </td></tr>
+
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>";
+    }
+
+    // v19 bonus - mevcut kullanici bilgilendirme maili sablonu. Davetiye paletiyle tutarli (#faf6ef/#3d2817/#c4704d),
+    // ama "sifre belirle" yerine "mevcut hesabinizla giris yapin" temasi (buton -> giris ekrani).
+    private static string MarkayaEklendiHtmlSablonu(string aliciIlkAd, string girisLink, string mailImza, string markaAdi)
+    {
+        var imzaBlok = string.IsNullOrWhiteSpace(mailImza) ? "" : $@"
+      <tr><td style='padding:20px 40px 0;text-align:center;'>
+        <p style='color:#3d2817;font-size:14px;margin:0;'>
+          <strong style='font-family:Georgia,""Times New Roman"",serif;color:#c4704d;font-size:16px;'>{WebUtility.HtmlEncode(mailImza)}</strong>
+        </p>
+      </td></tr>";
+
+        return $@"<!DOCTYPE html>
+<html lang='tr'>
+<head>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width,initial-scale=1'>
+<title>{markaAdi}</title>
+</head>
+<body style='margin:0;padding:0;background:#faf6ef;font-family:-apple-system,BlinkMacSystemFont,""Segoe UI"",Roboto,sans-serif;color:#3d2817;'>
+<table role='presentation' width='100%' cellpadding='0' cellspacing='0' border='0' style='padding:32px 12px;background:#faf6ef;'>
+  <tr><td align='center'>
+    <table role='presentation' width='560' cellpadding='0' cellspacing='0' border='0' style='max-width:560px;background:#ffffff;border-radius:18px;border:1px solid #ebe3d4;overflow:hidden;'>
+
+      <tr><td style='padding:40px 40px 8px;text-align:center;'>
+        <div style='font-size:18px;color:#c4704d;line-height:1;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;'>{markaAdi}</div>
+      </td></tr>
+
+      <tr><td style='padding:8px 40px 0;text-align:center;'>
+        <h1 style='font-family:Georgia,""Times New Roman"",serif;font-size:30px;color:#3d2817;margin:0 0 6px;font-weight:600;letter-spacing:-0.02em;'>
+          {aliciIlkAd},
+        </h1>
+        <p style='color:#c4704d;font-size:14px;margin:0;font-style:italic;letter-spacing:0.04em;'>
+          ekibe eklendiniz
+        </p>
+      </td></tr>
+
+      <tr><td style='padding:28px 40px 0;'>
+        <div style='color:#5d4a37;font-size:15px;line-height:1.7;margin:0;text-align:justify;hyphens:auto;'>
+          <strong>{markaAdi}</strong> çalışma alanına eklendiniz. Zaten bir hesabınız olduğu için yeni bir şifre belirlemenize gerek yok. Mevcut e-posta adresiniz ve şifrenizle giriş yaparak bu çalışma alanına erişebilirsiniz.
+        </div>
+      </td></tr>
+
+      <tr><td style='padding:32px 40px 12px;text-align:center;'>
+        <a href='{girisLink}'
+           style='display:inline-block;background:#3d2817;color:#faf6ef;padding:16px 36px;border-radius:10px;text-decoration:none;font-weight:500;font-size:15px;letter-spacing:0.01em;'>
+          Giriş Yap
+        </a>
+      </td></tr>
+      {imzaBlok}
+
       <tr><td style='padding:32px 40px 32px;text-align:center;'>
         <p style='color:#9c8a73;font-size:11px;margin:0;line-height:1.6;'>
           {WebUtility.HtmlEncode(markaAdi)} · <a href='https://notlar.dentlogicapp.com' style='color:#9c8a73;text-decoration:none;'>notlar.dentlogicapp.com</a>

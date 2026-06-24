@@ -119,16 +119,20 @@ public static class AdminEndpoints
 
                 user = mevcut;
 
-                // v19 - mevcut kullanici yeni tenant'a eklendi: yeni tenant erisimi/daveti icin de mail gitmeli.
-                // (Eski davranis: mevcut kullaniciya mail YOK -> ikinci tenant daveti dusmiyordu - tenant'a gore mail tutarsizdi.)
-                setupToken = AuthEndpoints.TokenUret();
-                db.AuthTokenlar.Add(new AuthToken
+                // v19 bonus - mevcut kullanici yeni tenant'a eklendi:
+                //  sifre belirlememisse -> setup token + "sifre belirle" daveti (asagida).
+                //  sifre belirlemisse  -> token uretilmez; "markaya eklendiniz, mevcut hesabinizla giris yapin" bilgilendirme maili (asagida).
+                if (mevcut.SifreBelirlenmeZamani is null)
                 {
-                    KullaniciId = user.Id,
-                    Token = setupToken,
-                    Amac = "setup",
-                    GecerlilikSonu = DateTimeOffset.UtcNow.AddHours(24)
-                });
+                    setupToken = AuthEndpoints.TokenUret();
+                    db.AuthTokenlar.Add(new AuthToken
+                    {
+                        KullaniciId = user.Id,
+                        Token = setupToken,
+                        Amac = "setup",
+                        GecerlilikSonu = DateTimeOffset.UtcNow.AddHours(24)
+                    });
+                }
             }
             else
             {
@@ -165,13 +169,20 @@ public static class AdminEndpoints
 
             await db.SaveChangesAsync(ct);
 
-            // v19 - Hem yeni hem mevcut kullaniciya setup/davet maili gider (yeni tenant erisimi icin); tum tenantlarda tutarli
+            // v19 - mail her durumda gider (tum tenantlarda tutarli).
+            var frontend = cfg["FrontendBaseUrl"] ?? "http://localhost:3000";
             if (setupToken is not null)
             {
+                // Yeni kullanici VEYA sifresi henuz olmayan mevcut kullanici -> sifre belirle daveti.
                 // v18 - davetiye metinleri (konu/giris/imza/marka) EmailService icinde isletme_metinleri'nden render edilir (G.23-b)
-                var frontend = cfg["FrontendBaseUrl"] ?? "http://localhost:3000";
                 var link = $"{frontend}/sifre-belirle?token={setupToken}";
                 await email.SifreBelirleMailGonderAsync(user.Email, user.AdSoyad, link, tenantId, ct);
+            }
+            else
+            {
+                // v19 bonus - sifresi olan mevcut kullanici -> "markaya eklendiniz, mevcut hesabinizla giris yapin"
+                var girisLink = $"{frontend}/giris";
+                await email.MarkayaEklendiMailGonderAsync(user.Email, user.AdSoyad, girisLink, tenantId, ct);
             }
 
             await audit.YazAsync("kullanici_olusturuldu", "kullanici", user.Id,
