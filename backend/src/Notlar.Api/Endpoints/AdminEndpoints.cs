@@ -118,6 +118,17 @@ public static class AdminEndpoints
                     return Results.BadRequest(new { hata = "Bu kullanıcı zaten markaya üye." });
 
                 user = mevcut;
+
+                // v19 - mevcut kullanici yeni tenant'a eklendi: yeni tenant erisimi/daveti icin de mail gitmeli.
+                // (Eski davranis: mevcut kullaniciya mail YOK -> ikinci tenant daveti dusmiyordu - tenant'a gore mail tutarsizdi.)
+                setupToken = AuthEndpoints.TokenUret();
+                db.AuthTokenlar.Add(new AuthToken
+                {
+                    KullaniciId = user.Id,
+                    Token = setupToken,
+                    Amac = "setup",
+                    GecerlilikSonu = DateTimeOffset.UtcNow.AddHours(24)
+                });
             }
             else
             {
@@ -154,8 +165,8 @@ public static class AdminEndpoints
 
             await db.SaveChangesAsync(ct);
 
-            // Yeni kullanıcı için setup mail; mevcut kullanıcı yeni üyelikse mail GÖNDERME (zaten erişimi var)
-            if (yeniKullanici && setupToken is not null)
+            // v19 - Hem yeni hem mevcut kullaniciya setup/davet maili gider (yeni tenant erisimi icin); tum tenantlarda tutarli
+            if (setupToken is not null)
             {
                 // v18 - davetiye metinleri (konu/giris/imza/marka) EmailService icinde isletme_metinleri'nden render edilir (G.23-b)
                 var frontend = cfg["FrontendBaseUrl"] ?? "http://localhost:3000";
