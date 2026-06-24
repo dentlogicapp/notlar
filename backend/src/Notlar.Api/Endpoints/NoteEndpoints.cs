@@ -412,6 +412,58 @@ public static class NoteEndpoints
             return Results.Ok(MapYanit(n));
         });
 
+        // KALICI SİL (hard delete) — tenant-scoped. v19 Paket 3.
+        // İki aşamalı güvenlik: yalnızca çöpteki (Silindi=true) notlar kalıcı silinebilir.
+        // Yetki: admin tüm notları, normal üye yalnızca kendi oluşturduğunu.
+        // NotGecmisi FK Cascade ile otomatik silinir; Bildirim Not'a FK değil (etkilenmez); DenetimGunlugu izi kalır.
+        g.MapDelete("/{id:guid}/kalici", async (
+            Guid id, AppDbContext db, IUserContext uc,
+            IAuditService audit, CancellationToken ct) =>
+        {
+            if (uc.KullaniciId is null) return Results.Unauthorized();
+            if (uc.AktifIsletmeId is null) return Results.Unauthorized();
+            if (uc.GoruntumeModu) return Results.StatusCode(403);
+
+            var tenantId = uc.AktifIsletmeId.Value;
+            var n = await db.Notlar.FirstOrDefaultAsync(
+                x => x.Id == id && x.Silindi && x.IsletmeId == tenantId, ct);
+            if (n is null) return Results.NotFound();
+
+            if (!uc.Admin && n.OlusturanKullaniciId != uc.KullaniciId.Value)
+                return Results.Json(new { hata = "YETKI_YOK", mesaj = "Bu notu kalıcı silme yetkiniz yok. Yalnızca kendi oluşturduğunuz notları kalıcı silebilirsiniz." }, statusCode: 403);
+
+            var baslik = n.Baslik;
+            db.Notlar.Remove(n);  // NotGecmisi cascade ile otomatik
+            await db.SaveChangesAsync(ct);
+
+            await audit.YazAsync("not_kalici_silindi", "not", id, detay: baslik, ct: ct);
+            return Results.NoContent();
+        });
+
+        // ÇÖP KUTUSUNU BOŞALT — tenant-scoped. v19 Paket 3 bonus.
+        // Yetki dahilindeki tüm çöp notlarını tek seferde kalıcı siler (admin tümü, üye yalnızca kendininki).
+        g.MapDelete("/cop-bosalt", async (
+            AppDbContext db, IUserContext uc, IAuditService audit, CancellationToken ct) =>
+        {
+            if (uc.KullaniciId is null) return Results.Unauthorized();
+            if (uc.AktifIsletmeId is null) return Results.Unauthorized();
+            if (uc.GoruntumeModu) return Results.StatusCode(403);
+
+            var tenantId = uc.AktifIsletmeId.Value;
+            var sorgu = db.Notlar.Where(x => x.Silindi && x.IsletmeId == tenantId);
+            if (!uc.Admin)
+                sorgu = sorgu.Where(x => x.OlusturanKullaniciId == uc.KullaniciId.Value);
+
+            var silinecekler = await sorgu.ToListAsync(ct);
+            if (silinecekler.Count == 0) return Results.Ok(new { silinen = 0 });
+
+            db.Notlar.RemoveRange(silinecekler);  // NotGecmisi cascade ile otomatik
+            await db.SaveChangesAsync(ct);
+
+            await audit.YazAsync("cop_bosaltildi", "not", null, detay: $"{silinecekler.Count} not kalıcı silindi", ct: ct);
+            return Results.Ok(new { silinen = silinecekler.Count });
+        });
+
         // GEÇMİŞ — tenant-scoped
         g.MapGet("/{id:guid}/gecmis", async (Guid id, AppDbContext db, IUserContext uc, CancellationToken ct) =>
         {

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ChevronLeft, Loader2, RotateCcw, Trash2 } from "lucide-react";
@@ -9,7 +10,8 @@ import { CountdownWidget } from "@/components/CountdownWidget";
 import { UserMenu } from "@/components/UserMenu";
 import { Button } from "@/components/ui/button";
 import { notApi } from "@/lib/api";
-import { tarihFormat, gunFormat } from "@/lib/utils";
+import { useBen } from "@/lib/useBen";
+import { tarihFormat } from "@/lib/utils";
 import type { Not } from "@/lib/types";
 
 export default function Page() {
@@ -22,10 +24,17 @@ export default function Page() {
 
 function Icerik() {
   const qc = useQueryClient();
+  const { data: ben } = useBen();
   const { data, isLoading } = useQuery({
     queryKey: ["notlar", { silindi: true }],
     queryFn: () => notApi.list({ silindi: true }),
   });
+
+  // v19 Paket 3 - aktif tenant admin mi (kalici silme yetkisi: admin tum notlari, uye yalnizca kendi olusturdugunu)
+  const benAdmin = (ben?.uyelikler ?? []).find((u) => u.isletmeId === ben?.aktifIsletmeId)?.rol === "admin";
+  const yetkili = (n: Not) => benAdmin || ben?.id === n.olusturanId;
+
+  const [bosaltOnay, setBosaltOnay] = useState(false);
 
   const geri = useMutation({
     mutationFn: (id: string) => notApi.geriYukle(id),
@@ -35,6 +44,31 @@ function Icerik() {
     },
     onError: (err: Error) => toast.error(err.message),
   });
+
+  const kaliciSil = useMutation({
+    mutationFn: (id: string) => notApi.kaliciSil(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["notlar"] });
+      toast.success("Kalıcı olarak silindi");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const copBosalt = useMutation({
+    mutationFn: () => notApi.copBosalt(),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["notlar"] });
+      setBosaltOnay(false);
+      toast.success(r.silinen > 0 ? `${r.silinen} not kalıcı silindi` : "Silinecek not yok");
+    },
+    onError: (err: Error) => {
+      setBosaltOnay(false);
+      toast.error(err.message);
+    },
+  });
+
+  // Yetki dahilinde kalici silinebilecek cop notu var mi -> bosalt butonu goster
+  const bosaltilabilirVar = (data ?? []).some((n) => yetkili(n));
 
   return (
     <main className="min-h-screen pb-24">
@@ -52,12 +86,35 @@ function Icerik() {
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6">
         <section>
-          <div className="flex items-center gap-3 mb-2">
-            <Trash2 className="h-6 w-6 text-clay-500 dark:text-ink-200" />
-            <h1 className="font-display text-3xl text-clay-900 dark:text-ink-50">Çöp Kutusu</h1>
+          <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
+            <div className="flex items-center gap-3">
+              <Trash2 className="h-6 w-6 text-clay-500 dark:text-ink-200" />
+              <h1 className="font-display text-3xl text-clay-900 dark:text-ink-50">Çöp Kutusu</h1>
+            </div>
+            {bosaltilabilirVar && !bosaltOnay && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setBosaltOnay(true)}
+                className="text-red-700 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-900/20"
+              >
+                <Trash2 className="h-4 w-4 mr-1.5" /> Kutuyu Boşalt
+              </Button>
+            )}
+            {bosaltOnay && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-red-700 dark:text-rose-300">Tümü kalıcı silinsin mi?</span>
+                <Button variant="danger" size="sm" onClick={() => copBosalt.mutate()} disabled={copBosalt.isPending}>
+                  Evet, sil
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setBosaltOnay(false)}>
+                  Vazgeç
+                </Button>
+              </div>
+            )}
           </div>
           <p className="text-sm text-clay-500 dark:text-ink-200 italic">
-            Silinen notlar burada 30 gün bekler, sonra otomatik temizlenir.
+            Silinen notlar burada 30 gün bekler, sonra otomatik temizlenir. Kalıcı silme geri alınamaz.
           </p>
         </section>
 
@@ -69,7 +126,15 @@ function Icerik() {
           </div>
         ) : (
           <div className="space-y-2">
-            {data.map((n) => <SilinmisKart key={n.id} n={n} onGeri={() => geri.mutate(n.id)} />)}
+            {data.map((n) => (
+              <SilinmisKart
+                key={n.id}
+                n={n}
+                yetkili={yetkili(n)}
+                onGeri={() => geri.mutate(n.id)}
+                onKaliciSil={() => kaliciSil.mutate(n.id)}
+              />
+            ))}
           </div>
         )}
       </div>
@@ -77,7 +142,10 @@ function Icerik() {
   );
 }
 
-function SilinmisKart({ n, onGeri }: { n: Not; onGeri: () => void }) {
+function SilinmisKart({ n, yetkili, onGeri, onKaliciSil }: {
+  n: Not; yetkili: boolean; onGeri: () => void; onKaliciSil: () => void;
+}) {
+  const [silOnay, setSilOnay] = useState(false);
   const silinme = n.silinmeZamani ? new Date(n.silinmeZamani) : null;
   const otoSilme = silinme ? new Date(silinme.getTime() + 30 * 86400000) : null;
   const gun = otoSilme ? Math.max(0, Math.ceil((otoSilme.getTime() - Date.now()) / 86400000)) : null;
@@ -92,9 +160,31 @@ function SilinmisKart({ n, onGeri }: { n: Not; onGeri: () => void }) {
           {gun !== null && <span className="text-amber-700">Otomatik silmeye {gun} gün</span>}
         </p>
       </div>
-      <Button variant="outline" size="sm" onClick={onGeri}>
-        <RotateCcw className="h-4 w-4 mr-1.5" /> Geri Yükle
-      </Button>
+      <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 shrink-0">
+        {!silOnay ? (
+          <>
+            <Button variant="outline" size="sm" onClick={onGeri}>
+              <RotateCcw className="h-4 w-4 mr-1.5" /> Geri Yükle
+            </Button>
+            {yetkili && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSilOnay(true)}
+                className="text-red-700 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-900/20"
+              >
+                <Trash2 className="h-4 w-4 mr-1.5" /> Kalıcı Sil
+              </Button>
+            )}
+          </>
+        ) : (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-red-700 dark:text-rose-300">Kalıcı sil?</span>
+            <Button variant="danger" size="sm" onClick={onKaliciSil}>Evet</Button>
+            <Button variant="ghost" size="sm" onClick={() => setSilOnay(false)}>Vazgeç</Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

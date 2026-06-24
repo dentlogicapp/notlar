@@ -126,6 +126,9 @@ export const notApi = {
   remove: (id: string) => ist<void>(`/api/notlar/${id}`, { method: "DELETE" }),
   geriYukle: (id: string) =>
     ist<Not>(`/api/notlar/${id}/geri-yukle`, { method: "POST" }),
+  // v19 Paket 3 - kalici silme (sadece coptekiler) + cop bosalt
+  kaliciSil: (id: string) => ist<void>(`/api/notlar/${id}/kalici`, { method: "DELETE" }),
+  copBosalt: () => ist<{ silinen: number }>("/api/notlar/cop-bosalt", { method: "DELETE" }),
   gecmis: (id: string) => ist<NotGecmisi[]>(`/api/notlar/${id}/gecmis`),
 };
 
