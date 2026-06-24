@@ -15,6 +15,7 @@ public interface IDocxDonusturucu
 {
     Task<byte[]> UretAsync(
         List<(string Ad, bool SistemMi, List<Not> Notlar)> gruplar,
+        string markaAdi,
         string ciftIsmi,
         DateTime dugunTarihi,
         CancellationToken ct = default);
@@ -49,6 +50,7 @@ public sealed class DocxDonusturucu : IDocxDonusturucu
 
     public Task<byte[]> UretAsync(
         List<(string Ad, bool SistemMi, List<Not> Notlar)> gruplar,
+        string markaAdi,
         string ciftIsmi,
         DateTime dugunTarihi,
         CancellationToken ct = default)
@@ -86,11 +88,9 @@ public sealed class DocxDonusturucu : IDocxDonusturucu
 
         // ─── KAPAK ───
         body.Append(BosSatir(4));
-        body.Append(MetinSatiri("♡", "Georgia", 56, Terracotta, ortala: true));
+        body.Append(MetinSatiri(string.IsNullOrWhiteSpace(markaAdi) ? "Defter" : markaAdi, "Georgia", 36, Clay900, ortala: true));
         body.Append(BosSatir(1));
-        body.Append(MetinSatiri("Planlama Defterimiz", "Georgia", 36, Clay900, italik: true, ortala: true));
-        body.Append(BosSatir(1));
-        body.Append(MetinSatiri("en mutlu günümüze giderken yazdıklarımız",
+        body.Append(MetinSatiri("notlar ve planlar",
             "Georgia", 13, Clay700, italik: true, ortala: true));
         body.Append(BosSatir(2));
 
@@ -136,8 +136,6 @@ public sealed class DocxDonusturucu : IDocxDonusturucu
 
         // Açılış
         body.Append(BosSatir(3));
-        body.Append(MetinSatiri("♡", "Georgia", 28, Terracotta, ortala: true));
-        body.Append(BosSatir(1));
         body.Append(MetinSatiri(ad, "Georgia", 28, Clay900, italik: true, ortala: true));
 
         if (sistemMi)
@@ -157,7 +155,7 @@ public sealed class DocxDonusturucu : IDocxDonusturucu
 
         if (notlar.Count == 0)
         {
-            body.Append(MetinSatiri("Bu klasörde henüz hiç notumuz yok.",
+            body.Append(MetinSatiri("Bu klasörde henüz not yok.",
                 "Georgia", 12, Clay500, italik: true, ortala: true));
             return;
         }

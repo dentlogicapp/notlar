@@ -77,14 +77,15 @@ public static class ExportEndpoints
             }
 
             var tarih = DateTimeOffset.Now.ToString("yyyy-MM-dd_HH-mm");
-            var html = HtmlTasarimcisi.Uret(gruplar, ciftIsmi, dugunTarihi);  // TEK KAYNAK
+            var markaAdi = isletme?.MarkaAdi ?? "Defter";
+            var html = HtmlTasarimcisi.Uret(gruplar, markaAdi, ciftIsmi, dugunTarihi);  // TEK KAYNAK
 
             return format?.ToLowerInvariant() switch
             {
                 "html" => HtmlVer(html, tarih),
                 "pdf"  => await PdfVer(html, tarih, pdfRender, ct),
-                "docx" => await DocxVer(gruplar, ciftIsmi, dugunTarihi, tarih, docxDonusturucu, ct),
-                "xlsx" => XlsxVer(gruplar, tarih, dugunTarihi),
+                "docx" => await DocxVer(gruplar, markaAdi, ciftIsmi, dugunTarihi, tarih, docxDonusturucu, ct),
+                "xlsx" => XlsxVer(gruplar, markaAdi, tarih, dugunTarihi),
                 _ => Results.BadRequest(new { hata = "format parametresi: html | pdf | docx | xlsx" })
             };
         });
@@ -94,33 +95,33 @@ public static class ExportEndpoints
 
     private static IResult HtmlVer(string html, string tarih) =>
         Results.File(Encoding.UTF8.GetBytes(html), "text/html; charset=utf-8",
-            $"planlama-defterimiz-{tarih}.html");
+            $"defter-{tarih}.html");
 
     private static async Task<IResult> PdfVer(string html, string tarih,
         IPdfRender pdfRender, CancellationToken ct)
     {
         var pdf = await pdfRender.HtmlPdfeAsync(html, ct);
         return Results.File(pdf, "application/pdf",
-            $"planlama-defterimiz-{tarih}.pdf");
+            $"defter-{tarih}.pdf");
     }
 
     private static async Task<IResult> DocxVer(
         List<(string Ad, bool SistemMi, List<Not> Notlar)> gruplar,
-        string ciftIsmi, DateTime dugunTarihi, string tarih,
+        string markaAdi, string ciftIsmi, DateTime dugunTarihi, string tarih,
         IDocxDonusturucu donusturucu, CancellationToken ct)
     {
-        var docx = await donusturucu.UretAsync(gruplar, ciftIsmi, dugunTarihi, ct);
+        var docx = await donusturucu.UretAsync(gruplar, markaAdi, ciftIsmi, dugunTarihi, ct);
         return Results.File(docx,
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            $"planlama-defterimiz-{tarih}.docx");
+            $"defter-{tarih}.docx");
     }
 
     private static IResult XlsxVer(
-        List<(string Ad, bool SistemMi, List<Not> Notlar)> gruplar, string tarih, DateTime dugunTarihi)
+        List<(string Ad, bool SistemMi, List<Not> Notlar)> gruplar, string markaAdi, string tarih, DateTime dugunTarihi)
     {
-        var xlsx = XlsxTasarimcisi.Uret(gruplar, dugunTarihi);
+        var xlsx = XlsxTasarimcisi.Uret(gruplar, markaAdi, dugunTarihi);
         return Results.File(xlsx,
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            $"planlama-defterimiz-{tarih}.xlsx");
+            $"defter-{tarih}.xlsx");
     }
 }

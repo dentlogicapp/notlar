@@ -40,12 +40,14 @@ public static class XlsxTasarimcisi
 
     public static byte[] Uret(
         List<(string Ad, bool SistemMi, List<Not> Notlar)> gruplar,
+        string markaAdi,
         DateTime dugunTarihi)
     {
         using var wb = new XLWorkbook();
-        wb.Properties.Title = "Planlama Defterimiz";
-        wb.Properties.Author = "Planlama Defterimiz";
-        wb.Properties.Subject = "Düğün öncesi notlar";
+        var baslik = string.IsNullOrWhiteSpace(markaAdi) ? "Defter" : markaAdi;
+        wb.Properties.Title = baslik;
+        wb.Properties.Author = baslik;
+        wb.Properties.Subject = "Notlar ve planlar";
 
         var sheetAdlari = new List<(string Orijinal, string Sheet, bool SistemMi, int NotSayisi, int Tamamlanan)>();
 
@@ -96,7 +98,7 @@ public static class XlsxTasarimcisi
         var toplamTamamlanan = klasorler.Sum(k => k.Tamamlanan);
 
         // === BAŞLIK BLOĞU ===
-        ws.Cell("B2").Value = "♡ Planlama Defterimiz";
+        ws.Cell("B2").Value = baslik;
         ws.Range("B2:F2").Merge();
         var basliki = ws.Cell("B2");
         basliki.Style.Font.FontName = "Calibri";
@@ -108,7 +110,7 @@ public static class XlsxTasarimcisi
         basliki.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
         ws.Row(2).Height = 42;
 
-        ws.Cell("B3").Value = "en mutlu günümüze giderken yazdıklarımız";
+        ws.Cell("B3").Value = "notlar ve planlar";
         ws.Range("B3:F3").Merge();
         var altyazi = ws.Cell("B3");
         altyazi.Style.Font.FontName = "Calibri";
@@ -308,7 +310,7 @@ public static class XlsxTasarimcisi
 
         if (notlar.Count == 0)
         {
-            ws.Cell("B5").Value = "Bu klasörde henüz hiç notumuz yok.";
+            ws.Cell("B5").Value = "Bu klasörde henüz not yok.";
             ws.Range("B5:G5").Merge();
             ws.Cell("B5").Style.Font.Italic = true;
             ws.Cell("B5").Style.Font.FontColor = Clay500;

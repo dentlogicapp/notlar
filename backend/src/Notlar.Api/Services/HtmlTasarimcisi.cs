@@ -7,7 +7,7 @@ namespace Notlar.Api.Services;
 
 /// <summary>
 /// v14 — Defteri İndir için TEK KAYNAK HTML şablonu.
-/// Davetiye stilinde (Fraunces + terracotta + cream + clay, ♡ ve asma motifleri).
+/// Kurumsal defter stili (Fraunces + terracotta + cream + clay paleti, sade cizgisel ayraclar).
 /// Bu HTML hem doğrudan tarayıcıya verilir (HTML format), hem de PDF (Chromium print)
 /// ve DOCX (HtmlToOpenXml) dönüşümleri için kaynak olarak kullanılır.
 ///
@@ -40,22 +40,24 @@ public static class HtmlTasarimcisi
     /// Defterimizin tam HTML çıktısını üretir. Print-friendly CSS @page kuralları dahil.
     /// </summary>
     /// <param name="gruplar">Klasör + notları listesi</param>
-    /// <param name="ciftIsmi">Aktif kullanıcılardan dinamik çekilir: "Ad Soyad &amp; Ad Soyad"</param>
-    /// <param name="dugunTarihi">Hedef tarih — kalan gün hesabı için (UTC)</param>
+    /// <param name="markaAdi">Tenant marka adı — kapak başlığı + belge başlığı (hardcoded "Planlama Defterimiz" yerine)</param>
+    /// <param name="ciftIsmi">Aktif üyelerin adları: "Ad Soyad &amp; Ad Soyad" (hazırlayanlar)</param>
+    /// <param name="hedefTarihi">Hedef tarih — kalan gün hesabı için (UTC); sayaç kapalıysa 0 gün</param>
     public static string Uret(
         List<(string Ad, bool SistemMi, List<Not> Notlar)> gruplar,
+        string markaAdi,
         string ciftIsmi,
-        DateTime dugunTarihi)
+        DateTime hedefTarihi)
     {
         var bugun = Tr(DateTimeOffset.UtcNow);
-        var kalanGun = Math.Max(0, (dugunTarihi - DateTime.UtcNow.Date).Days);
+        var kalanGun = Math.Max(0, (hedefTarihi - DateTime.UtcNow.Date).Days);
         var toplamNot = gruplar.Sum(g => g.Notlar.Count);
         var toplamTamamlanan = gruplar.Sum(g => g.Notlar.Count(n => n.Tamamlandi));
 
         var sb = new StringBuilder(64_000);
-        BasligiYaz(sb);
+        BasligiYaz(sb, markaAdi);
         AcKapaksizSayfayi(sb);
-        KapakYaz(sb, bugun, kalanGun, toplamNot, toplamTamamlanan, ciftIsmi);
+        KapakYaz(sb, bugun, kalanGun, toplamNot, toplamTamamlanan, markaAdi, ciftIsmi);
         IcindekilerYaz(sb, gruplar);
         foreach (var (ad, sistemMi, notlar) in gruplar)
         {
@@ -68,14 +70,14 @@ public static class HtmlTasarimcisi
 
     // ─────────────────── HEAD + CSS ───────────────────
 
-    private static void BasligiYaz(StringBuilder sb)
+    private static void BasligiYaz(StringBuilder sb, string markaAdi)
     {
         sb.AppendLine("<!DOCTYPE html>");
         sb.AppendLine("<html lang=\"tr\">");
         sb.AppendLine("<head>");
         sb.AppendLine("<meta charset=\"UTF-8\" />");
         sb.AppendLine("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />");
-        sb.AppendLine("<title>Planlama Defterimiz</title>");
+        sb.AppendLine($"<title>{Esc(string.IsNullOrWhiteSpace(markaAdi) ? "Defter" : markaAdi)}</title>");
         sb.AppendLine("<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">");
         sb.AppendLine("<link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>");
         sb.AppendLine("<link href=\"https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300;9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap\" rel=\"stylesheet\">");
@@ -101,16 +103,14 @@ public static class HtmlTasarimcisi
     // ─────────────────── KAPAK ───────────────────
 
     private static void KapakYaz(StringBuilder sb, string bugun, int kalanGun,
-        int toplamNot, int toplamTamamlanan, string ciftIsmi)
+        int toplamNot, int toplamTamamlanan, string markaAdi, string ciftIsmi)
     {
+        var baslik = string.IsNullOrWhiteSpace(markaAdi) ? "Defter" : markaAdi;
         sb.AppendLine("<section class=\"kapak\">");
-        sb.AppendLine("  <div class=\"kapak-asma kapak-asma--sol\">" + SvgAsma + "</div>");
-        sb.AppendLine("  <div class=\"kapak-asma kapak-asma--sag\">" + SvgAsma + "</div>");
         sb.AppendLine("  <div class=\"kapak-icerik\">");
-        sb.AppendLine("    <div class=\"kapak-kalp\">" + SvgKalpBuyuk + "</div>");
-        sb.AppendLine("    <h1 class=\"kapak-baslik\">Planlama<br/><em>Defterimiz</em></h1>");
-        sb.AppendLine("    <div class=\"kapak-altcizgi\"><span class=\"kalp-mini\">♡</span></div>");
-        sb.AppendLine("    <p class=\"kapak-altyazi\">en mutlu günümüze giderken yazdıklarımız</p>");
+        sb.AppendLine($"    <h1 class=\"kapak-baslik\">{Esc(baslik)}</h1>");
+        sb.AppendLine("    <div class=\"kapak-altcizgi\"></div>");
+        sb.AppendLine("    <p class=\"kapak-altyazi\">notlar ve planlar</p>");
         sb.AppendLine("    <div class=\"kapak-istatistik\">");
         sb.AppendLine($"      <div class=\"istatistik-kart\"><span class=\"istatistik-sayi\">{toplamNot}</span><span class=\"istatistik-etiket\">not</span></div>");
         sb.AppendLine($"      <div class=\"istatistik-kart\"><span class=\"istatistik-sayi\">{toplamTamamlanan}</span><span class=\"istatistik-etiket\">tamamlandı</span></div>");
@@ -161,10 +161,9 @@ public static class HtmlTasarimcisi
 
         // Açılış sayfası
         sb.AppendLine("<section class=\"klasor-acilis\">");
-        sb.AppendLine("  <div class=\"klasor-acilis-kalp\">" + SvgKalpAcilis + "</div>");
         sb.AppendLine($"  <h2 class=\"klasor-acilis-baslik\">{Esc(ad)}</h2>");
         sb.AppendLine($"  <div class=\"klasor-acilis-rozet-satir\">{sistemRozet}</div>");
-        sb.AppendLine("  <div class=\"klasor-acilis-ayrac\"><span></span><span class=\"kalp-mini\">♡</span><span></span></div>");
+        sb.AppendLine("  <div class=\"klasor-acilis-ayrac\"><span></span><span></span></div>");
         sb.AppendLine("  <div class=\"klasor-ozet\">");
         sb.AppendLine($"    <div class=\"ozet-pill\"><strong>{notlar.Count}</strong> not</div>");
         sb.AppendLine($"    <div class=\"ozet-pill ozet-pill--basari\"><strong>{tamamlanan}</strong> tamamlandı</div>");
@@ -176,7 +175,7 @@ public static class HtmlTasarimcisi
         if (notlar.Count == 0)
         {
             sb.AppendLine("<section class=\"klasor-icerik klasor-icerik--bos\">");
-            sb.AppendLine("  <p class=\"bos-mesaj\">Bu klasörde henüz hiç notumuz yok.</p>");
+            sb.AppendLine("  <p class=\"bos-mesaj\">Bu klasörde henüz not yok.</p>");
             sb.AppendLine("</section>");
             return;
         }
