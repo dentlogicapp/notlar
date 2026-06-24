@@ -174,10 +174,20 @@ function Icerik() {
   );
 }
 
+// v19 A2 - tek dominant durum rozeti. Oncelik: Pasif > Kilitli > Sifre bekliyor > Aktif.
+// Kullanici gercek anlik durumunu her zaman dogru yansitir (yeni eklenen kullanici sifre belirleyene kadar "Sifre bekliyor").
+function durumBilgisi(u: Kullanici): { etiket: string; sinif: string } {
+  if (!u.aktif) return { etiket: "Pasif", sinif: "bg-clay-100 text-clay-500 dark:bg-ink-700 dark:text-ink-200" };
+  if (u.kilitli) return { etiket: "Kilitli", sinif: "bg-rose-100 text-red-700 dark:bg-rose-900/30 dark:text-rose-300" };
+  if (!u.sifreBelirlendi) return { etiket: "Şifre bekliyor", sinif: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300" };
+  return { etiket: "Aktif", sinif: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300" };
+}
+
 function KullaniciSatiri({ u, onSifre, onToggle, onKilit, onSil }: {
   u: Kullanici;
   onSifre: () => void; onToggle: () => void; onKilit: () => void; onSil: () => void;
 }) {
+  const durum = durumBilgisi(u);  // v19 A2 - tek dominant durum
   return (
     <tr className="border-t border-cream-300 dark:border-ink-700 hover:bg-cream-100/40 dark:hover:bg-ink-800/40">
       <td className="py-3 px-4">
@@ -188,6 +198,8 @@ function KullaniciSatiri({ u, onSifre, onToggle, onKilit, onSil }: {
           <div className="min-w-0">
             <p className="font-medium text-clay-900 dark:text-ink-50 truncate">{u.adSoyad}</p>
             <p className="text-xs text-clay-400 dark:text-ink-300 truncate">{u.email}</p>
+            {/* v19 A2 - durum sutunu mobilde gizli (md:table-cell); burada goster */}
+            <span className={`md:hidden inline-block mt-1 text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider ${durum.sinif}`}>{durum.etiket}</span>
           </div>
         </div>
       </td>
@@ -199,14 +211,7 @@ function KullaniciSatiri({ u, onSifre, onToggle, onKilit, onSil }: {
         )}
       </td>
       <td className="py-3 px-4 hidden md:table-cell">
-        <div className="flex flex-wrap gap-1.5">
-          {!u.aktif && <span className="text-[10px] px-2 py-0.5 rounded-full bg-clay-100 text-clay-500 dark:text-ink-200 uppercase tracking-wider">Pasif</span>}
-          {u.kilitli && <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-100 text-red-700 uppercase tracking-wider">Kilitli</span>}
-          {!u.sifreBelirlendi && <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 uppercase tracking-wider">Şifre bekliyor</span>}
-          {u.aktif && !u.kilitli && u.sifreBelirlendi && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 uppercase tracking-wider">Aktif</span>
-          )}
-        </div>
+        <span className={`inline-block text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider ${durum.sinif}`}>{durum.etiket}</span>
       </td>
       <td className="py-3 px-4 hidden lg:table-cell text-xs text-clay-500 dark:text-ink-200">
         {u.sonGirisZamani ? tarihFormat(u.sonGirisZamani) : "—"}
