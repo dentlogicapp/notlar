@@ -201,12 +201,12 @@ public sealed class Isletme
     public string IkonSeti { get; set; } = "kalp";          // 'kalp'|'klasik'|'ekip'|'aile'|'tatil'
 
     // Karşılama
-    public string KarsilamaBasligi { get; set; } = "Merhaba Aşkım";
-    public string KarsilamaAltMetni { get; set; } = "Bugün aklına gelen bir şeyi birlikte planlayıp tamamlamak için not etmek ister misin?";
+    public string KarsilamaBasligi { get; set; } = "Hoş geldin";
+    public string KarsilamaAltMetni { get; set; } = "Bugün ne planlayalım?";
 
     // Sayaç
     public bool SayacAktif { get; set; } = true;
-    public string SayacBasligi { get; set; } = "kavuşmamıza son";
+    public string SayacBasligi { get; set; } = "";
     public DateTime? SayacHedefTarihi { get; set; }
 
     // Mail

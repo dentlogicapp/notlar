@@ -114,7 +114,7 @@ export function TamamlaDialog({
             id="aciklama"
             value={aciklama}
             onChange={(e) => setAciklama(e.target.value)}
-            placeholder="Örn. Düğün salonuyla sözleşmeyi imzaladık. Tarih sabit, depozit ödendi."
+            placeholder="Örn. Önemli bir gelişmeyi veya kararı buraya yaz."
             autoFocus
           />
         </div>
@@ -603,7 +603,7 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
                   className="p-1.5 rounded-md text-terracotta bg-terracotta/10 inline-flex items-center gap-1 text-[10px] font-medium"
                 >
                   <Lock className="h-3 w-3" strokeWidth={2.5} />
-                  <span className="hidden sm:inline">Aşkın düzenliyor</span>
+                  <span className="hidden sm:inline">{not.kilitSahibiAdi} düzenliyor</span>
                 </span>
               ) : (
                 <button

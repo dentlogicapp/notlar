@@ -92,7 +92,7 @@ export function YeniKlasorButonu({ compact }: { compact?: boolean } = {}) {
         <form onSubmit={handleSubmit((d) => m.mutate(d))} className="space-y-4">
           <div>
             <Label htmlFor="ad">Ad</Label>
-            <Input id="ad" autoFocus placeholder="Örn. Düğün Hazırlığı" {...register("ad")} />
+            <Input id="ad" autoFocus placeholder="Örn. Projeler" {...register("ad")} />
             {errors.ad && <p className="text-xs text-red-600 mt-1">{errors.ad.message}</p>}
           </div>
           <div>
@@ -446,7 +446,7 @@ function KlasorSatiri({ klasor, aktif }: { klasor: Klasor; aktif: boolean }) {
             </p>
             <p className="text-[11px] text-clay-400 dark:text-ink-300 mt-0.5">
               {kilitli
-                ? <span className="text-terracotta inline-flex items-center gap-1"><Lock className="h-2.5 w-2.5" /> Aşkın düzenliyor</span>
+                ? <span className="text-terracotta inline-flex items-center gap-1"><Lock className="h-2.5 w-2.5" /> Düzenleniyor</span>
                 : (klasor.notSayisi > 0 ? `${klasor.notSayisi} not` : "boş")}
             </p>
           </div>
