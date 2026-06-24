@@ -8,7 +8,9 @@ export type AkisOlayi = {
   hedefId?: string | null;
   isletmeId?: string | null;
   aktorEmail?: string | null;
+  aktorAdSoyad?: string | null;     // v19 - kim (ad soyad)
   detay?: string | null;
+  degisenAlanlar?: string | null;   // v19 - eski/yeni deger (jsonb string)
   zaman: string;
 };
 

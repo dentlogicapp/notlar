@@ -194,8 +194,9 @@ public static class SuperAdminIsletmeEndpoints
             await db.SaveChangesAsync(ct);
 
             await audit.YazAsync("tenant_durum_degisti", hedefTip: "isletme", hedefId: isletme.Id,
+                detay: isletme.MarkaAdi,
                 degisenAlanlar: System.Text.Json.JsonSerializer.Serialize(
-                    new { eski, yeni = isletme.Aktif }), ct: ct);
+                    new { eski = eski ? "Aktif" : "Pasif", yeni = isletme.Aktif ? "Aktif" : "Pasif" }), ct: ct);
 
             if (!isletme.Aktif)
                 bildirim.TenantPasiflestirildi(isletme.MarkaAdi, uc.Email ?? "sistem");

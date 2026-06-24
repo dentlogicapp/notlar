@@ -51,6 +51,6 @@ public sealed class AuditService : IAuditService
         // TryWrite tabanli, throw etmez; audit yazimini etkilemez (paralel degil, hook).
         _akis.Yayinla(new AkisOlayi(
             kayit.Olay, kayit.HedefTip, kayit.HedefId, kayit.IsletmeId,
-            kayit.AktorEmail, kayit.Detay, kayit.Zaman));
+            kayit.AktorEmail, _user.AdSoyad, kayit.Detay, kayit.DegisenAlanlar, kayit.Zaman));
     }
 }

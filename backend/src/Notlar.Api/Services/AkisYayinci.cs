@@ -13,7 +13,9 @@ public sealed record AkisOlayi(
     Guid? HedefId,
     Guid? IsletmeId,
     string? AktorEmail,
+    string? AktorAdSoyad,    // v19 - kim (ad soyad; email yaninda okunabilir kimlik)
     string? Detay,
+    string? DegisenAlanlar,  // v19 - eski/yeni deger (jsonb string; degisiklik olaylarinda dolu)
     DateTimeOffset Zaman);
 
 /// <summary>

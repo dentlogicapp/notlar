@@ -128,7 +128,7 @@ export default function SuperAdminPage() {
           </div>
         )}
 
-        <CanliAkis />
+        <CanliAkis tenantlar={tenantlar} />
       </div>
     </main>
     <TenantOlusturModal open={modalAcik} onClose={() => setModalAcik(false)} />
