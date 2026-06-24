@@ -287,6 +287,11 @@ public static class AdminEndpoints
                 .FirstOrDefaultAsync(x => x.IsletmeId == tenantId && x.KullaniciId == id, ct);
             if (uyelik is null) return Results.NotFound();
 
+            // v19 - Yönetici (admin) pasife ALINAMAZ: ne kendisi ne başka bir yönetici. Tenant yöneticisiz kalmasın.
+            // Yön önemli: sadece aktif->pasif engelli; pasif bir yöneticiyi aktifleştirmek serbest.
+            if (uyelik.Rol == "admin" && uyelik.Aktif)
+                return Results.Json(new { hata = "YONETICI_PASIFLESTIRILEMEZ", mesaj = "Yöneticiler pasife alınamaz. Önce kullanıcının rolünü değiştirin." }, statusCode: 403);
+
             uyelik.Aktif = !uyelik.Aktif;
             await db.SaveChangesAsync(ct);
             await audit.YazAsync(uyelik.Aktif ? "kullanici_aktif" : "kullanici_pasif",

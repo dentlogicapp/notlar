@@ -259,7 +259,10 @@ export interface IsletmeUye {
   adSoyad: string;
   rol: string;
   aktif: boolean;
+  sifreBelirlendi: boolean;   // v19 - durum: aktif/pasif/sifre bekliyor ayrimi
   sonGiris: string | null;
+  notSayisi: number;          // v19 - uyenin tenant'a katkisi
+  klasorSayisi: number;
 }
 
 // v19 P4 - super admin yonetimi (ata/kaldir)
@@ -284,5 +287,8 @@ export interface IsletmeDetay {
   olusturanSuperAdminId: string | null;
   dolulukYuzde: number;
   saglikSkoru: number;
+  notSayisi: number;          // v19 - tenant geneli toplam not
+  klasorSayisi: number;       // v19 - tenant geneli toplam klasor
+  sonAktivite: string | null; // v19 - en guncel not ya da uye girisi
   uyeler: IsletmeUye[];
 }

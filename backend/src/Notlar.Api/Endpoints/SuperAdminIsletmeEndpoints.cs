@@ -90,13 +90,30 @@ public static class SuperAdminIsletmeEndpoints
             if (i is null)
                 return Results.NotFound(new { hata = "ISLETME_BULUNAMADI", mesaj = "Isletme bulunamadi." });
 
-            var uyeler = await db.IsletmeUyelikleri
+            // Üye başına not/klasör sayıları: N+1 yerine tek grup sorgusu.
+            var notSayilari = await db.Notlar.Where(n => n.IsletmeId == id && !n.Silindi)
+                .GroupBy(n => n.OlusturanKullaniciId)
+                .Select(g => new { KullaniciId = g.Key, Sayi = g.Count() })
+                .ToDictionaryAsync(x => x.KullaniciId, x => x.Sayi, ct);
+            var klasorSayilari = await db.Klasorler.Where(k => k.IsletmeId == id && !k.SistemMi && !k.Silindi)
+                .GroupBy(k => k.OlusturanKullaniciId)
+                .Select(g => new { KullaniciId = g.Key, Sayi = g.Count() })
+                .ToDictionaryAsync(x => x.KullaniciId, x => x.Sayi, ct);
+
+            var uyelerHam = await db.IsletmeUyelikleri
                 .Where(u => u.IsletmeId == id)
                 .OrderByDescending(u => u.KatilmaZamani)
-                .Select(u => new IsletmeUyeYaniti(
+                .Select(u => new
+                {
                     u.Kullanici.Id, u.Kullanici.Email, u.Kullanici.AdSoyad,
-                    u.Rol, u.Aktif, u.Kullanici.SonGirisZamani))
+                    u.Rol, u.Aktif,
+                    SifreBelirlendi = u.Kullanici.SifreBelirlenmeZamani != null,
+                    u.Kullanici.SonGirisZamani
+                })
                 .ToListAsync(ct);
+            var uyeler = uyelerHam.Select(u => new IsletmeUyeYaniti(
+                u.Id, u.Email, u.AdSoyad, u.Rol, u.Aktif, u.SifreBelirlendi, u.SonGirisZamani,
+                notSayilari.GetValueOrDefault(u.Id, 0), klasorSayilari.GetValueOrDefault(u.Id, 0))).ToList();
 
             var zorunluSet = (await db.MetinAnahtarlari
                 .Where(a => !a.Deprecated && a.Zorunlu && a.Kapsam == "Tenant")
@@ -112,14 +129,23 @@ public static class SuperAdminIsletmeEndpoints
             var onboardingTam = zorunluSet.Count > 0 && dolu.Count == zorunluSet.Count;
             var davetiyeVar = uyeler.Count > 1;
             var son30 = uyeler.Any(u => u.SonGiris >= DateTimeOffset.UtcNow.AddDays(-30));
-            var notVar = await db.Notlar.AnyAsync(n => n.IsletmeId == id && !n.Silindi, ct);
+            var notVar = notSayilari.Count > 0;
             var saglik = SaglikHesapla(onboardingTam, davetiyeVar, son30, notVar);
+
+            // Tenant geneli istatistik + son aktivite (en güncel not ya da en son üye girişi).
+            var toplamNot = notSayilari.Values.Sum();
+            var toplamKlasor = klasorSayilari.Values.Sum();
+            var sonNot = await db.Notlar.Where(n => n.IsletmeId == id && !n.Silindi)
+                .MaxAsync(n => (DateTimeOffset?)n.GuncellemeZamani, ct);
+            DateTimeOffset? sonGiris = uyeler.Count > 0 ? uyeler.Max(u => u.SonGiris) : null;
+            DateTimeOffset? sonAktivite = sonNot;
+            if (sonGiris.HasValue && (sonAktivite is null || sonGiris > sonAktivite)) sonAktivite = sonGiris;
 
             return Results.Ok(new IsletmeDetayYaniti(
                 i.Id, i.MarkaAdi, i.MarkaEmoji, i.KullanimModu, i.Aktif,
                 i.KarsilamaBasligi, i.SayacAktif, i.SayacBasligi, i.SayacHedefTarihi,
                 i.OlusturmaZamani, i.OlusturanSuperAdminId,
-                dolulukYuzde, saglik, uyeler));
+                dolulukYuzde, saglik, toplamNot, toplamKlasor, sonAktivite, uyeler));
         });
 
         // POST olustur - yeni tenant (B1 ozet doner). Opsiyonel admin atama Asama 4'te entegre edilir.
@@ -379,10 +405,11 @@ public record IsletmeOzetYaniti(
 
 public record IsletmeUyeYaniti(
     Guid KullaniciId, string Email, string AdSoyad, string Rol, bool Aktif,
-    DateTimeOffset? SonGiris);
+    bool SifreBelirlendi, DateTimeOffset? SonGiris, int NotSayisi, int KlasorSayisi);
 
 public record IsletmeDetayYaniti(
     Guid Id, string MarkaAdi, string MarkaEmoji, string KullanimModu, bool Aktif,
     string KarsilamaBasligi, bool SayacAktif, string SayacBasligi, DateTime? SayacHedefTarihi,
     DateTimeOffset OlusturmaZamani, Guid? OlusturanSuperAdminId,
-    int DolulukYuzde, int SaglikSkoru, IReadOnlyList<IsletmeUyeYaniti> Uyeler);
+    int DolulukYuzde, int SaglikSkoru, int NotSayisi, int KlasorSayisi, DateTimeOffset? SonAktivite,
+    IReadOnlyList<IsletmeUyeYaniti> Uyeler);

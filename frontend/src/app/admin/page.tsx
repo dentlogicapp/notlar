@@ -226,7 +226,9 @@ function KullaniciSatiri({ u, onSifre, onToggle, onKilit, onSil }: {
               <Lock className="h-4 w-4" />
             </Button>
           )}
-          <Button variant="ghost" size="sm" onClick={onToggle} title={u.aktif ? "Pasifleştir" : "Aktifleştir"}>
+          <Button variant="ghost" size="sm" onClick={onToggle}
+            disabled={u.rol === "admin" && u.aktif}
+            title={u.rol === "admin" && u.aktif ? "Yönetici pasife alınamaz" : (u.aktif ? "Pasifleştir" : "Aktifleştir")}>
             <ShieldOff className="h-4 w-4" />
           </Button>
           <Button variant="danger" size="sm" onClick={onSil} title="Sil">

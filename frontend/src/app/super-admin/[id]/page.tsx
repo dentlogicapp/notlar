@@ -4,7 +4,10 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, Loader2, Mail, Clock, UserPlus } from "lucide-react";
+import {
+  ChevronLeft, Loader2, Mail, Clock, UserPlus, FileText, FolderOpen,
+  Users, Activity, Gauge, Calendar, ShieldCheck, KeyRound, CircleSlash,
+} from "lucide-react";
 import { toast } from "sonner";
 import { superAdminIsletmeApi } from "@/lib/api";
 import type { IsletmeUye } from "@/lib/types";
@@ -22,9 +25,23 @@ function saglikStili(skor: number): string {
 }
 
 function tarih(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "(boş)";
   try { return new Date(iso).toLocaleDateString("tr-TR", { day: "2-digit", month: "long", year: "numeric" }); }
-  catch { return "—"; }
+  catch { return "(boş)"; }
+}
+
+function tarihSaat(iso: string | null): string {
+  if (!iso) return "Hiç etkinlik yok";
+  try {
+    return new Date(iso).toLocaleString("tr-TR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  } catch { return "Hiç etkinlik yok"; }
+}
+
+// Uye durumu - dominant tek rozet (admin/page durumBilgisi ile ayni mantik: Pasif > Sifre bekliyor > Aktif)
+function uyeDurumu(u: IsletmeUye): { etiket: string; sinif: string; ikon: typeof ShieldCheck } {
+  if (!u.aktif) return { etiket: "Pasif", sinif: "bg-clay-100 text-clay-500 dark:bg-ink-700 dark:text-ink-200", ikon: CircleSlash };
+  if (!u.sifreBelirlendi) return { etiket: "Şifre bekliyor", sinif: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400", ikon: KeyRound };
+  return { etiket: "Aktif", sinif: "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400", ikon: ShieldCheck };
 }
 
 export default function TenantDetayPage() {
@@ -52,46 +69,72 @@ export default function TenantDetayPage() {
           <p className="text-sm text-red-600 dark:text-red-400 py-12 text-center">Tenant bulunamadı veya yüklenemedi.</p>
         ) : (
           <div className="space-y-5">
-            {/* Baslik */}
-            <div className="kart p-6 flex items-start gap-4">
-              <span className="text-4xl shrink-0 leading-none">{t.markaEmoji}</span>
-              <div className="flex-1 min-w-0">
-                <h1 className="text-2xl font-display font-semibold text-clay-900 dark:text-ink-50 leading-tight">{t.markaAdi}</h1>
-                <p className="text-sm text-clay-400 dark:text-ink-300 mt-1">
-                  {MOD_ETIKET[t.kullanimModu] ?? t.kullanimModu} ·{" "}
-                  <span className={t.aktif ? "text-green-700 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
-                    {t.aktif ? "Aktif" : "Pasif"}
-                  </span>
-                </p>
+            {/* HERO - marka kimligi + saglik + doluluk bar */}
+            <div className="kart overflow-hidden">
+              <div className="p-6 flex items-start gap-4">
+                <span className="text-5xl shrink-0 leading-none">{t.markaEmoji}</span>
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-2xl font-display font-semibold text-clay-900 dark:text-ink-50 leading-tight truncate">{t.markaAdi}</h1>
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-cream-300 dark:bg-ink-700 text-clay-600 dark:text-ink-200">
+                      {MOD_ETIKET[t.kullanimModu] ?? t.kullanimModu}
+                    </span>
+                    <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium inline-flex items-center gap-1",
+                      t.aktif ? "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400"
+                              : "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400")}>
+                      <span className={cn("h-1.5 w-1.5 rounded-full", t.aktif ? "bg-green-500" : "bg-red-500")} />
+                      {t.aktif ? "Aktif" : "Pasif"}
+                    </span>
+                  </div>
+                </div>
+                <div className="shrink-0 text-center">
+                  <div className={cn("h-14 w-14 rounded-2xl flex items-center justify-center text-xl font-bold tabular-nums", saglikStili(t.saglikSkoru))}>
+                    {t.saglikSkoru}
+                  </div>
+                  <p className="text-[10px] uppercase tracking-wider text-clay-400 dark:text-ink-300 mt-1">Sağlık</p>
+                </div>
               </div>
-              <span className={cn("shrink-0 px-3 py-1 rounded-full text-sm font-semibold tabular-nums", saglikStili(t.saglikSkoru))}>
-                {t.saglikSkoru}
-              </span>
+              <div className="px-6 pb-5">
+                <div className="flex items-center justify-between text-[11px] text-clay-400 dark:text-ink-300 mb-1">
+                  <span className="uppercase tracking-wider">Kurulum doluluğu</span>
+                  <span className="tabular-nums font-medium text-clay-700 dark:text-ink-100">%{t.dolulukYuzde}</span>
+                </div>
+                <div className="h-2 rounded-full bg-cream-300 dark:bg-ink-700 overflow-hidden">
+                  <div className="h-full rounded-full bg-terracotta transition-all" style={{ width: `${t.dolulukYuzde}%` }} />
+                </div>
+              </div>
             </div>
 
-            {/* Ozet bilgiler */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <Bilgi etiket="Doluluk" deger={`%${t.dolulukYuzde}`} />
-              <Bilgi etiket="Üye sayısı" deger={String(t.uyeler.length)} />
-              <Bilgi etiket="Oluşturma" deger={tarih(t.olusturmaZamani)} />
-              <Bilgi etiket="Karşılama" deger={t.karsilamaBasligi || "—"} />
-              <Bilgi etiket="Sayaç" deger={t.sayacAktif ? (t.sayacBasligi || "Açık") : "Kapalı"} />
-              <Bilgi etiket="Hedef tarih" deger={tarih(t.sayacHedefTarihi)} />
+            {/* ISTATISTIK seridi - canli rakamlar */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <Istatistik ikon={FileText} etiket="Not" deger={t.notSayisi} />
+              <Istatistik ikon={FolderOpen} etiket="Klasör" deger={t.klasorSayisi} />
+              <Istatistik ikon={Users} etiket="Üye" deger={t.uyeler.length} />
+              <Istatistik ikon={Gauge} etiket="Doluluk" deger={`%${t.dolulukYuzde}`} />
             </div>
 
-            {/* Uyeler */}
+            {/* META - olusturma + son aktivite + karsilama + sayac */}
+            <div className="kart p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Meta ikon={Calendar} etiket="Oluşturulma" deger={tarih(t.olusturmaZamani)} />
+              <Meta ikon={Activity} etiket="Son aktivite" deger={tarihSaat(t.sonAktivite)} />
+              <Meta ikon={Mail} etiket="Karşılama başlığı" deger={t.karsilamaBasligi || "(boş)"} />
+              <Meta ikon={Clock} etiket="Sayaç" deger={t.sayacAktif ? `${t.sayacBasligi || "Açık"} · ${tarih(t.sayacHedefTarihi)}` : "Kapalı"} />
+            </div>
+
+            {/* UYELER - durum rozeti + katki */}
             <div className="kart p-5">
-              <h2 className="text-sm font-semibold text-clay-800 dark:text-ink-50 mb-3">Üyeler ({t.uyeler.length})</h2>
+              <h2 className="text-sm font-semibold text-clay-800 dark:text-ink-50 mb-3 flex items-center gap-2">
+                <Users className="h-4 w-4 text-clay-400" /> Üyeler ({t.uyeler.length})
+              </h2>
               {t.uyeler.length === 0 ? (
                 <p className="text-sm text-clay-400 dark:text-ink-300 italic">Henüz üye yok (boş tenant).</p>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-1">
                   {t.uyeler.map((u) => <UyeSatiri key={u.kullaniciId} u={u} />)}
                 </div>
               )}
             </div>
 
-            {/* Yonetici atama (super admin yonetim islemi) */}
             <AdminAtaBolum id={id} />
 
             <p className="text-[11px] text-clay-400 dark:text-ink-300 text-center italic">Tenant içeriği salt-okunur. Yönetici atama dışındaki düzenlemeler için "Gör" ile tenant'a geçin.</p>
@@ -102,36 +145,57 @@ export default function TenantDetayPage() {
   );
 }
 
-function Bilgi({ etiket, deger }: { etiket: string; deger: string }) {
+function Istatistik({ ikon: Ikon, etiket, deger }: { ikon: typeof FileText; etiket: string; deger: number | string }) {
   return (
-    <div className="kart p-3">
-      <p className="text-[11px] uppercase tracking-wider text-clay-400 dark:text-ink-300">{etiket}</p>
-      <p className="text-sm font-medium text-clay-900 dark:text-ink-50 mt-0.5 truncate">{deger}</p>
+    <div className="kart p-4">
+      <Ikon className="h-4 w-4 text-terracotta mb-2" />
+      <p className="text-2xl font-display font-semibold text-clay-900 dark:text-ink-50 tabular-nums leading-none">{deger}</p>
+      <p className="text-[11px] uppercase tracking-wider text-clay-400 dark:text-ink-300 mt-1">{etiket}</p>
+    </div>
+  );
+}
+
+function Meta({ ikon: Ikon, etiket, deger }: { ikon: typeof Calendar; etiket: string; deger: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="h-9 w-9 rounded-lg bg-cream-200 dark:bg-ink-800 flex items-center justify-center shrink-0">
+        <Ikon className="h-4 w-4 text-clay-400 dark:text-ink-300" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-[11px] uppercase tracking-wider text-clay-400 dark:text-ink-300">{etiket}</p>
+        <p className="text-sm font-medium text-clay-900 dark:text-ink-50 mt-0.5 truncate">{deger}</p>
+      </div>
     </div>
   );
 }
 
 function UyeSatiri({ u }: { u: IsletmeUye }) {
+  const durum = uyeDurumu(u);
+  const DurumIkon = durum.ikon;
   return (
-    <div className="flex items-center gap-3 py-2 border-b border-cream-200 dark:border-ink-700/50 last:border-0">
-      <div className="h-8 w-8 rounded-full bg-cream-300 dark:bg-ink-700 flex items-center justify-center text-xs font-semibold text-clay-600 dark:text-ink-200 shrink-0">
+    <div className="flex items-center gap-3 py-2.5 px-2 rounded-lg hover:bg-cream-100 dark:hover:bg-ink-800/50 transition-colors">
+      <div className="h-9 w-9 rounded-full bg-cream-300 dark:bg-ink-700 flex items-center justify-center text-xs font-semibold text-clay-600 dark:text-ink-200 shrink-0">
         {u.adSoyad.slice(0, 1).toUpperCase()}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-clay-900 dark:text-ink-50 truncate">{u.adSoyad}</p>
-        <p className="text-[11px] text-clay-400 dark:text-ink-300 flex items-center gap-1 truncate">
+        <div className="flex items-center gap-2">
+          <p className="text-sm text-clay-900 dark:text-ink-50 truncate font-medium">{u.adSoyad}</p>
+          {u.rol === "admin" && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-terracotta/15 text-terracotta font-medium shrink-0">Yönetici</span>
+          )}
+        </div>
+        <p className="text-[11px] text-clay-400 dark:text-ink-300 flex items-center gap-1 truncate mt-0.5">
           <Mail className="h-3 w-3 shrink-0" /> {u.email}
         </p>
-      </div>
-      <div className="text-right shrink-0">
-        <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full",
-          u.rol === "admin" ? "bg-terracotta/15 text-terracotta" : "bg-cream-300 dark:bg-ink-700 text-clay-500 dark:text-ink-300")}>
-          {u.rol === "admin" ? "Yönetici" : "Kullanıcı"}
-        </span>
-        <p className="text-[10px] text-clay-400 dark:text-ink-300 mt-1 flex items-center gap-1 justify-end">
-          <Clock className="h-2.5 w-2.5" /> {u.sonGiris ? tarih(u.sonGiris) : "hiç girmedi"}
+        <p className="text-[10px] text-clay-400 dark:text-ink-300 flex items-center gap-2.5 mt-1 flex-wrap">
+          <span className="inline-flex items-center gap-1"><FileText className="h-2.5 w-2.5" /> {u.notSayisi} not</span>
+          <span className="inline-flex items-center gap-1"><FolderOpen className="h-2.5 w-2.5" /> {u.klasorSayisi} klasör</span>
+          <span className="inline-flex items-center gap-1"><Clock className="h-2.5 w-2.5" /> {u.sonGiris ? tarih(u.sonGiris) : "hiç girmedi"}</span>
         </p>
       </div>
+      <span className={cn("shrink-0 text-[11px] font-medium px-2 py-1 rounded-full inline-flex items-center gap-1", durum.sinif)}>
+        <DurumIkon className="h-3 w-3" /> {durum.etiket}
+      </span>
     </div>
   );
 }
