@@ -114,7 +114,8 @@ public sealed class Not
 
     // Hatırlatıcı — tek hatırlatma per not (sade). Tümü NULL = hatırlatıcı yok.
     public DateTimeOffset? HatirlatmaZamani { get; set; }
-    public string? HatirlatmaKime { get; set; }                 // "askima" | "bana" | "ikimize"
+    public string? HatirlatmaKime { get; set; }                 // DEPRECATED v19 P4 — eski 2-kullanicili model ("askima"|"bana"|"ikimize"). Yeni kayitlar HatirlatmaAliciIdler kullanir.
+    public string? HatirlatmaAliciIdler { get; set; }           // JSONB uuid[] — v19 P4 cok alici (secili uye id listesi). DegisenAlanlar pattern'i (string JSON).
     public string? HatirlatmaSekli { get; set; }                // "uygulama" | "email" | "her_ikisi"
     public bool HatirlatmaGonderildiMi { get; set; }            // background service idempotent için
     public DateTimeOffset? HatirlatmaGonderimZamani { get; set; }

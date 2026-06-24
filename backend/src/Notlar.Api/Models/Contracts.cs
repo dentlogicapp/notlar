@@ -35,6 +35,12 @@ public sealed record UyelikYaniti(
     string Rol,            // tenant scope'taki rol ('admin' | 'kullanici')
     bool Aktif);
 
+// v19 P4 - hatirlatma alici secimi icin hafif tenant uye listesi
+public sealed record TenantUyeYaniti(
+    Guid KullaniciId,
+    string AdSoyad,
+    string Email);
+
 public sealed record IsletmeYaniti(
     Guid Id,
     string MarkaAdi,
@@ -83,8 +89,9 @@ public sealed record KlasorIcerikOzetYaniti(
 public sealed record NotOlusturIstegi(
     string Baslik, string? Icerik, Guid? KlasorId,
     DateTimeOffset? HatirlatmaZamani = null,
-    string? HatirlatmaKime = null,         // "askima" | "bana" | "ikimize"
-    string? HatirlatmaSekli = null         // "uygulama" | "email" | "her_ikisi"
+    string? HatirlatmaKime = null,         // DEPRECATED v19 P4 (eski 2-kullanicili model)
+    string? HatirlatmaSekli = null,        // "uygulama" | "email" | "her_ikisi"
+    List<Guid>? HatirlatmaAliciIdler = null // v19 P4 - secili uye id'leri (cok alici)
 );
 
 public sealed record NotGuncelleIstegi(
@@ -92,7 +99,8 @@ public sealed record NotGuncelleIstegi(
     DateTimeOffset? HatirlatmaZamani = null,
     string? HatirlatmaKime = null,
     string? HatirlatmaSekli = null,
-    bool HatirlatmaSil = false              // toggle kapatıldıysa hatırlatmayı sil
+    bool HatirlatmaSil = false,             // toggle kapatıldıysa hatırlatmayı sil
+    List<Guid>? HatirlatmaAliciIdler = null // v19 P4 - secili uye id'leri
 );
 
 public sealed record NotTamamlaIstegi(string TamamlanmaAciklamasi);
@@ -108,6 +116,7 @@ public sealed record NotYaniti(
     // Hatırlatma (kurulmamışsa null)
     DateTimeOffset? HatirlatmaZamani,
     string? HatirlatmaKime,
+    List<Guid>? HatirlatmaAliciIdler,
     string? HatirlatmaSekli,
     bool HatirlatmaGonderildiMi,
     // Kilit

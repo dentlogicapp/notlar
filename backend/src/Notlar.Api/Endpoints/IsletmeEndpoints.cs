@@ -35,6 +35,21 @@ public static class IsletmeEndpoints
             return Results.Ok(uyelikler);
         });
 
+        // GET /api/isletmeler/uyeler — aktif tenant'in aktif uyeleri (hatirlatma alici secimi icin hafif liste; admin yetkisi gerekmez)
+        g.MapGet("/uyeler", async (AppDbContext db, IUserContext uc, CancellationToken ct) =>
+        {
+            if (uc.AktifIsletmeId is null) return Results.Unauthorized();
+            var tenantId = uc.AktifIsletmeId.Value;
+
+            var uyeler = await db.IsletmeUyelikleri
+                .Where(u => u.IsletmeId == tenantId && u.Aktif)
+                .OrderBy(u => u.Kullanici.AdSoyad)
+                .Select(u => new TenantUyeYaniti(u.KullaniciId, u.Kullanici.AdSoyad, u.Kullanici.Email))
+                .ToListAsync(ct);
+
+            return Results.Ok(uyeler);
+        });
+
         // POST /api/isletmeler/aktif/{id} — aktif tenant değiştir + JWT yenile
         g.MapPost("/aktif/{id:guid}", async (
             Guid id, AppDbContext db, IUserContext uc,

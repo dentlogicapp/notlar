@@ -115,17 +115,23 @@ public static class NoteEndpoints
 
             if (req.HatirlatmaZamani.HasValue)
             {
-                if (string.IsNullOrWhiteSpace(req.HatirlatmaKime) || string.IsNullOrWhiteSpace(req.HatirlatmaSekli))
-                    return Results.BadRequest(new { hata = "Hatırlatıcı için kime ve şekil zorunlu." });
-                if (!new[] { "askima", "bana", "ikimize" }.Contains(req.HatirlatmaKime))
-                    return Results.BadRequest(new { hata = "HatirlatmaKime geçersiz." });
+                if (req.HatirlatmaAliciIdler is null || req.HatirlatmaAliciIdler.Count == 0 || string.IsNullOrWhiteSpace(req.HatirlatmaSekli))
+                    return Results.BadRequest(new { hata = "Hatırlatıcı için en az bir alıcı ve şekil zorunlu." });
                 if (!new[] { "uygulama", "email", "her_ikisi" }.Contains(req.HatirlatmaSekli))
                     return Results.BadRequest(new { hata = "HatirlatmaSekli geçersiz." });
                 if (req.HatirlatmaZamani.Value <= DateTimeOffset.UtcNow)
                     return Results.BadRequest(new { hata = "Hatırlatma zamanı gelecekte olmalı." });
 
+                // Alıcılar bu tenant'ın aktif üyesi olmalı (defense in depth: tenant sızıntısı yok).
+                var aliciIdler = req.HatirlatmaAliciIdler.Distinct().ToList();
+                var tenantUyeIdler = await db.IsletmeUyelikleri
+                    .Where(x => x.IsletmeId == tenantId && x.Aktif)
+                    .Select(x => x.KullaniciId).ToListAsync(ct);
+                if (aliciIdler.Any(a => !tenantUyeIdler.Contains(a)))
+                    return Results.BadRequest(new { hata = "HATIRLATMA_ALICI_GECERSIZ", mesaj = "Seçilen alıcı bu tenant'ın üyesi değil." });
+
                 n.HatirlatmaZamani = req.HatirlatmaZamani;
-                n.HatirlatmaKime = req.HatirlatmaKime;
+                n.HatirlatmaAliciIdler = JsonSerializer.Serialize(aliciIdler);
                 n.HatirlatmaSekli = req.HatirlatmaSekli;
                 n.HatirlatmaKuranKullaniciId = uc.KullaniciId.Value;
             }
@@ -195,6 +201,7 @@ public static class NoteEndpoints
             {
                 n.HatirlatmaZamani = null;
                 n.HatirlatmaKime = null;
+                n.HatirlatmaAliciIdler = null;
                 n.HatirlatmaSekli = null;
                 n.HatirlatmaGonderildiMi = false;
                 n.HatirlatmaGonderimZamani = null;
@@ -202,16 +209,22 @@ public static class NoteEndpoints
             }
             else if (req.HatirlatmaZamani.HasValue)
             {
-                if (string.IsNullOrWhiteSpace(req.HatirlatmaKime) || string.IsNullOrWhiteSpace(req.HatirlatmaSekli))
-                    return Results.BadRequest(new { hata = "Hatırlatıcı için kime ve şekil zorunlu." });
-                if (!new[] { "askima", "bana", "ikimize" }.Contains(req.HatirlatmaKime))
-                    return Results.BadRequest(new { hata = "HatirlatmaKime geçersiz." });
+                if (req.HatirlatmaAliciIdler is null || req.HatirlatmaAliciIdler.Count == 0 || string.IsNullOrWhiteSpace(req.HatirlatmaSekli))
+                    return Results.BadRequest(new { hata = "Hatırlatıcı için en az bir alıcı ve şekil zorunlu." });
                 if (!new[] { "uygulama", "email", "her_ikisi" }.Contains(req.HatirlatmaSekli))
                     return Results.BadRequest(new { hata = "HatirlatmaSekli geçersiz." });
 
+                var aliciIdler = req.HatirlatmaAliciIdler.Distinct().ToList();
+                var tenantUyeIdler = await db.IsletmeUyelikleri
+                    .Where(x => x.IsletmeId == tenantId && x.Aktif)
+                    .Select(x => x.KullaniciId).ToListAsync(ct);
+                if (aliciIdler.Any(a => !tenantUyeIdler.Contains(a)))
+                    return Results.BadRequest(new { hata = "HATIRLATMA_ALICI_GECERSIZ", mesaj = "Seçilen alıcı bu tenant'ın üyesi değil." });
+
                 var zamanDegisti = n.HatirlatmaZamani != req.HatirlatmaZamani;
                 n.HatirlatmaZamani = req.HatirlatmaZamani;
-                n.HatirlatmaKime = req.HatirlatmaKime;
+                n.HatirlatmaAliciIdler = JsonSerializer.Serialize(aliciIdler);
+                n.HatirlatmaKime = null;
                 n.HatirlatmaSekli = req.HatirlatmaSekli;
                 if (zamanDegisti)
                 {
@@ -495,7 +508,9 @@ public static class NoteEndpoints
         n.OlusturanKullaniciId, n.OlusturanKullanici.AdSoyad,
         n.OlusturmaZamani, n.GuncellemeZamani,
         n.Silindi, n.SilinmeZamani,
-        n.HatirlatmaZamani, n.HatirlatmaKime, n.HatirlatmaSekli,
+        n.HatirlatmaZamani, n.HatirlatmaKime,
+        n.HatirlatmaAliciIdler is null ? null : JsonSerializer.Deserialize<List<Guid>>(n.HatirlatmaAliciIdler),
+        n.HatirlatmaSekli,
         n.HatirlatmaGonderildiMi,
         kilitSahibiAdi,
         n.EskiKlasorId);

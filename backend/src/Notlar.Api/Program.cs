@@ -296,6 +296,8 @@ using (var scope = app.Services.CreateScope())
             ALTER TABLE notlar
                 ADD COLUMN IF NOT EXISTS ""HatirlatmaKime"" character varying(10);
             ALTER TABLE notlar
+                ADD COLUMN IF NOT EXISTS ""HatirlatmaAliciIdler"" jsonb;
+            ALTER TABLE notlar
                 ADD COLUMN IF NOT EXISTS ""HatirlatmaSekli"" character varying(15);
             ALTER TABLE notlar
                 ADD COLUMN IF NOT EXISTS ""HatirlatmaGonderildiMi"" boolean NOT NULL DEFAULT false;

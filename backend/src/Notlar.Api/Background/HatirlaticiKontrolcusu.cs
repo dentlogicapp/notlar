@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using Notlar.Api.Data;
 using Notlar.Api.Entities;
 using Notlar.Api.Services;
@@ -77,11 +78,11 @@ public sealed class HatirlaticiKontrolcusu : BackgroundService
                     : kullanicilar.FirstOrDefault(k => k.Id == not.HatirlatmaKuranKullaniciId.Value)
                         ?? not.OlusturanKullanici;
 
-                var hedefler = HedefBul(kullanicilar, kuran, not.HatirlatmaKime ?? "bana");
+                var hedefler = HedefBul(kullanicilar, kuran, not);
 
                 foreach (var hedef in hedefler)
                 {
-                    var kimeMetin = KimeMetinUret(hedef, kuran, not.HatirlatmaKime ?? "bana");
+                    var kimeMetin = KimeMetinUret(hedef, kuran);
 
                     // Uygulama içi bildirim
                     if (not.HatirlatmaSekli == "uygulama" || not.HatirlatmaSekli == "her_ikisi")
@@ -136,9 +137,16 @@ public sealed class HatirlaticiKontrolcusu : BackgroundService
         _log.LogInformation("Hatırlatıcı kontrolcüsü: {Sayi} not işlendi", bekleyenler.Count);
     }
 
-    private static IReadOnlyList<Kullanici> HedefBul(IReadOnlyList<Kullanici> tumu, Kullanici kuran, string kime)
+    private static IReadOnlyList<Kullanici> HedefBul(IReadOnlyList<Kullanici> tumu, Kullanici kuran, Not not)
     {
-        return kime switch
+        // v19 P4 - yeni: secili uye id listesi (uuid[]). POST/PUT'ta tenant uyesi dogrulandi.
+        if (!string.IsNullOrWhiteSpace(not.HatirlatmaAliciIdler))
+        {
+            var idler = JsonSerializer.Deserialize<List<Guid>>(not.HatirlatmaAliciIdler) ?? new List<Guid>();
+            return tumu.Where(k => idler.Contains(k.Id) && k.Aktif).ToArray();
+        }
+        // Geriye uyum: migration oncesi eski string model ("askima"/"bana"/"ikimize")
+        return (not.HatirlatmaKime ?? "bana") switch
         {
             "bana" => new[] { kuran },
             "askima" => tumu.Where(k => k.Id != kuran.Id && k.Aktif).ToArray(),
@@ -147,15 +155,10 @@ public sealed class HatirlaticiKontrolcusu : BackgroundService
         };
     }
 
-    private static string KimeMetinUret(Kullanici hedef, Kullanici kuran, string kime)
+    private static string KimeMetinUret(Kullanici hedef, Kullanici kuran)
     {
-        // 4 doğru varyant (kuran perspektifi: "Sen" | "Aşkın")
-        var hedefKurdu = hedef.Id == kuran.Id;
-        var ikimize = kime == "ikimize";
-
-        if (hedefKurdu && !ikimize) return "Sen kurdun · Sana hatırlatıldı";
-        if (hedefKurdu && ikimize)  return "Sen kurdun · Aşkına ve sana hatırlatıldı";
-        if (!hedefKurdu && !ikimize) return "Aşkın kurdu · Sana hatırlatıldı";
-        return "Aşkın kurdu · Aşkına ve sana hatırlatıldı";
+        // v19 P4 - cok-uyeli model: kuran perspektifi yerine kim kurdu bilgisi.
+        if (hedef.Id == kuran.Id) return "Sen kurdun · Sana hatırlatıldı";
+        return $"{kuran.AdSoyad} kurdu · Sana hatırlatıldı";
     }
 }

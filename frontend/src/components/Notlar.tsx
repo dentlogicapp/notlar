@@ -9,7 +9,7 @@ import { useState, useEffect } from "react";
 import {
   Eye, Pencil, Trash2, Plus, History, CheckCircle2, Loader2, FolderHeart, Tag, Bell, Lock, AlertTriangle
 } from "lucide-react";
-import { notApi, klasorApi } from "@/lib/api";
+import { notApi, klasorApi, isletmeApi } from "@/lib/api";
 import { useIsletmeMetinleri, metinDeger } from "@/lib/useIsletmeMetinleri";
 import { useEditLock } from "@/lib/useEditLock";
 import { Button } from "./ui/button";
@@ -167,8 +167,8 @@ export function DuzenleDialog({
     const pad = (n: number) => String(n).padStart(2, "0");
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   });
-  const [hatirlatmaKime, setHatirlatmaKime] = useState<"askima" | "bana" | "ikimize" | "">(
-    (not.hatirlatmaKime as "askima" | "bana" | "ikimize") ?? ""
+  const [hatirlatmaAliciIdler, setHatirlatmaAliciIdler] = useState<string[]>(
+    not.hatirlatmaAliciIdler ?? []
   );
   const [hatirlatmaSekli, setHatirlatmaSekli] = useState<"uygulama" | "email" | "her_ikisi" | "">(
     (not.hatirlatmaSekli as "uygulama" | "email" | "her_ikisi") ?? ""
@@ -177,6 +177,11 @@ export function DuzenleDialog({
   const { data: klasorler } = useQuery({
     queryKey: ["klasorler"],
     queryFn: klasorApi.list,
+  });
+  // v19 P4 - hatirlatma alici secimi icin tenant uyeleri (kendisi dahil aktif uyeler)
+  const { data: uyeler } = useQuery({
+    queryKey: ["tenant-uyeler"],
+    queryFn: isletmeApi.uyeler,
   });
 
   const m = useMutation({
@@ -194,7 +199,7 @@ export function DuzenleDialog({
           klasorId,
           degisiklikAciklamasi: aciklamaTrim,
           hatirlatmaZamani: iso,
-          hatirlatmaKime: hatirlatmaKime as "askima" | "bana" | "ikimize",
+          hatirlatmaAliciIdler,
           hatirlatmaSekli: hatirlatmaSekli as "uygulama" | "email" | "her_ikisi",
           hatirlatmaSil: false,
         });
@@ -356,18 +361,34 @@ export function DuzenleDialog({
                 />
               </div>
               <div>
-                <Label htmlFor="hatirlatma-kime">Kime hatırlatılsın</Label>
-                <select
-                  id="hatirlatma-kime"
-                  value={hatirlatmaKime}
-                  onChange={(e) => setHatirlatmaKime(e.target.value as "askima" | "bana" | "ikimize" | "")}
-                  className="h-11 w-full rounded-xl border border-clay-200 bg-white dark:bg-ink-850 px-4 text-[15px] text-clay-900 dark:text-ink-50 focus:outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta/15 transition-colors"
-                >
-                  <option value="" disabled>Seç…</option>
-                  <option value="askima">Aşkıma</option>
-                  <option value="bana">Bana</option>
-                  <option value="ikimize">İkimize de</option>
-                </select>
+                <Label>Kime hatırlatılsın</Label>
+                <div className="space-y-1 rounded-xl border border-clay-200 dark:border-ink-700 bg-white dark:bg-ink-850 p-2 max-h-44 overflow-y-auto">
+                  {(uyeler ?? []).length === 0 ? (
+                    <p className="text-sm text-clay-400 dark:text-ink-300 px-2 py-1.5">Üyeler yükleniyor…</p>
+                  ) : (
+                    (uyeler ?? []).map((u) => {
+                      const secili = hatirlatmaAliciIdler.includes(u.kullaniciId);
+                      return (
+                        <label
+                          key={u.kullaniciId}
+                          className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-cream-100 dark:hover:bg-ink-800 cursor-pointer transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={secili}
+                            onChange={() =>
+                              setHatirlatmaAliciIdler((prev) =>
+                                secili ? prev.filter((id) => id !== u.kullaniciId) : [...prev, u.kullaniciId]
+                              )
+                            }
+                            className="h-4 w-4 rounded border-clay-300 text-terracotta focus:ring-terracotta/40"
+                          />
+                          <span className="text-[15px] text-clay-900 dark:text-ink-50 truncate">{u.adSoyad}</span>
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
               </div>
               <div>
                 <Label htmlFor="hatirlatma-sekli">Hatırlatma şekli</Label>
@@ -395,7 +416,7 @@ export function DuzenleDialog({
             disabled={
               m.isPending ||
               baslik.trim().length === 0 ||
-              (hatirlaticiAcik && (!hatirlatmaZamani || !hatirlatmaKime || !hatirlatmaSekli))
+              (hatirlaticiAcik && (!hatirlatmaZamani || hatirlatmaAliciIdler.length === 0 || !hatirlatmaSekli))
             }
           >
             Kaydet

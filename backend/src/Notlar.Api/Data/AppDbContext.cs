@@ -121,7 +121,8 @@ public sealed class AppDbContext : DbContext
             e.HasOne(x => x.TamamlayanKullanici).WithMany()
              .HasForeignKey(x => x.TamamlayanKullaniciId).OnDelete(DeleteBehavior.SetNull);
             // Hatırlatıcı kolonları
-            e.Property(x => x.HatirlatmaKime).HasMaxLength(10);    // askima/bana/ikimize
+            e.Property(x => x.HatirlatmaKime).HasMaxLength(10);    // askima/bana/ikimize (deprecated)
+            e.Property(x => x.HatirlatmaAliciIdler).HasColumnType("jsonb");  // v19 P4 - uuid[] secili uye id'leri
             e.Property(x => x.HatirlatmaSekli).HasMaxLength(15);   // uygulama/email/her_ikisi
             e.HasIndex(x => new { x.KlasorId, x.Silindi });
             e.HasIndex(x => x.OlusturmaZamani);

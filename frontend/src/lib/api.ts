@@ -4,6 +4,7 @@ import type {
   BildirimOzeti,
   Cinsiyet, HatirlatmaKime, HatirlatmaSekli,
   Uyelik, Isletme, MetinAnahtari, AiAyari, AiModel, AiTestSonucu,
+  TenantUye,
   MetinBirlesik, MetinVersiyon, OnboardingDurum,
   TaslakSonucu,
   IsletmeOzet, IsletmeDetay, SuperAdminOzet,
@@ -228,6 +229,7 @@ export interface IsletmeAyarGuncelleOnerisi {
 // v15 — Multi-tenant API
 export const isletmeApi = {
   uyelik: () => ist<Uyelik[]>("/api/isletmeler/uyelik"),
+  uyeler: () => ist<TenantUye[]>("/api/isletmeler/uyeler"),  // v19 P4 - hatirlatma alici secimi
   aktifDegistir: (id: string) =>
     ist<Ben>(`/api/isletmeler/aktif/${id}`, { method: "POST" }),
   aktif: () => ist<Isletme>("/api/isletmeler/aktif"),

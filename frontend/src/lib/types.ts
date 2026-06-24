@@ -13,6 +13,13 @@ export interface Uyelik {
   aktif: boolean;
 }
 
+// v19 P4 - hatirlatma alici secimi icin hafif tenant uye listesi
+export interface TenantUye {
+  kullaniciId: string;
+  adSoyad: string;
+  email: string;
+}
+
 export interface Isletme {
   id: string;
   markaAdi: string;
@@ -100,7 +107,8 @@ export interface Not {
   silinmeZamani: string | null;
   // Hatırlatma (kurulmamışsa null)
   hatirlatmaZamani: string | null;
-  hatirlatmaKime: HatirlatmaKime | null;
+  hatirlatmaKime: HatirlatmaKime | null;        // DEPRECATED v19 P4
+  hatirlatmaAliciIdler: string[] | null;        // v19 P4 - secili uye id'leri (cok alici)
   hatirlatmaSekli: HatirlatmaSekli | null;
   hatirlatmaGonderildiMi: boolean;
   // Kilit
