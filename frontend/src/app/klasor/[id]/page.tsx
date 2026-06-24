@@ -64,10 +64,12 @@ function Icerik({ params }: { params: Promise<{ id: string }> }) {
           </section>
         )}
 
-        {/* Hızlı not ekleme - bu klasöre */}
-        <section className="kart p-4 sm:p-5">
-          <YeniNotFormu klasorId={id} />
-        </section>
+        {/* Hızlı not ekleme - bu klasöre. v19 B1 - sistem klasörü (Tamamlananlar) için gizli; not ancak tamamlandığında buraya taşınır. */}
+        {!k?.sistemMi && (
+          <section className="kart p-4 sm:p-5">
+            <YeniNotFormu klasorId={id} />
+          </section>
+        )}
 
         {/* 2-kolon: sol klasör listesi (aktif highlight), sağ bu klasörün notları */}
         <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] lg:grid-cols-[280px_1fr] gap-6">
@@ -75,8 +77,9 @@ function Icerik({ params }: { params: Promise<{ id: string }> }) {
 
           <section className="min-w-0">
             <h2 className="font-display text-xl text-clay-900 dark:text-ink-50 mb-4 px-1">Notlar</h2>
-            {/* Bu klasör içinde klasör badge'i göstermeye gerek yok */}
-            <NotListesi klasorId={id} klasorBadgeGoster={false} />
+            {/* Bu klasör içinde klasör badge'i göstermeye gerek yok.
+                v19 B4 - sistem klasörü (Tamamlananlar) tamamlanan notları gösterir; normal klasör sadece bekleyen (tamamlanan Tamamlananlar'a taşınır). */}
+            <NotListesi klasorId={id} klasorBadgeGoster={false} sadeceBekleyen={!k?.sistemMi} />
           </section>
         </div>
       </div>

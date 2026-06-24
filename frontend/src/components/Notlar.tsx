@@ -221,7 +221,8 @@ export function DuzenleDialog({
   });
 
   // Klasörleri hiyerarşik sırala (kök → alt)
-  const klasorSecenekleri = (klasorler ?? []).slice().sort((a, b) => {
+  // v19 B1 - sistem klasörü (Tamamlananlar) klasör seçiminde gizli; not ancak tamamlandığında buraya taşınır (defense in depth: backend de reddeder).
+  const klasorSecenekleri = (klasorler ?? []).filter(k => !k.sistemMi).slice().sort((a, b) => {
     const ustA = a.ustKlasorId ? 1 : 0;
     const ustB = b.ustKlasorId ? 1 : 0;
     if (ustA !== ustB) return ustA - ustB;

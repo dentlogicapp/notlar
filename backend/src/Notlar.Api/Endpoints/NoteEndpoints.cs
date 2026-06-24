@@ -96,9 +96,12 @@ public static class NoteEndpoints
             // KlasorId varsa tenant'a ait olmalı
             if (req.KlasorId.HasValue)
             {
-                var klasorVar = await db.Klasorler
-                    .AnyAsync(k => k.Id == req.KlasorId.Value && k.IsletmeId == tenantId && !k.Silindi, ct);
-                if (!klasorVar) return Results.BadRequest(new { hata = "Klasör bulunamadı." });
+                var klasor = await db.Klasorler
+                    .FirstOrDefaultAsync(k => k.Id == req.KlasorId.Value && k.IsletmeId == tenantId && !k.Silindi, ct);
+                if (klasor is null) return Results.BadRequest(new { hata = "Klasör bulunamadı." });
+                // v19 B1 - sistem klasorune (Tamamlananlar) manuel not EKLENEMEZ; not ancak tamamlandiginda buraya tasinir (defense in depth: frontend gizler + backend reddeder).
+                if (klasor.SistemMi)
+                    return Results.BadRequest(new { hata = "SISTEM_KLASORU_NOT_EKLENEMEZ", mesaj = "Bu bir sistem klasörü; doğrudan not eklenemez. Not ancak tamamlandığında buraya taşınır." });
             }
 
             var n = new Not
@@ -169,9 +172,12 @@ public static class NoteEndpoints
             // Hedef klasör de tenant'a ait olmalı
             if (req.KlasorId.HasValue)
             {
-                var klasorVar = await db.Klasorler
-                    .AnyAsync(k => k.Id == req.KlasorId.Value && k.IsletmeId == tenantId && !k.Silindi, ct);
-                if (!klasorVar) return Results.BadRequest(new { hata = "Klasör bulunamadı." });
+                var klasor = await db.Klasorler
+                    .FirstOrDefaultAsync(k => k.Id == req.KlasorId.Value && k.IsletmeId == tenantId && !k.Silindi, ct);
+                if (klasor is null) return Results.BadRequest(new { hata = "Klasör bulunamadı." });
+                // v19 B1 - sistem klasorune (Tamamlananlar) not TASINAMAZ; sadece tamamlama tasir.
+                if (klasor.SistemMi)
+                    return Results.BadRequest(new { hata = "SISTEM_KLASORU_NOT_TASINAMAZ", mesaj = "Bu bir sistem klasörü; not buraya taşınamaz. Not ancak tamamlandığında buraya taşınır." });
             }
 
             var kilitSahibi = await LockEndpoints.KilitBaskasiMi(
