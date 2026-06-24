@@ -123,12 +123,34 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     var db = ctx.HttpContext.RequestServices.GetRequiredService<Notlar.Api.Data.AppDbContext>();
                     var durum = await db.Kullanicilar
                         .Where(u => u.Id == kullaniciId)
-                        .Select(u => new { u.Aktif })
+                        .Select(u => new { u.Aktif, u.SuperAdmin })
                         .FirstOrDefaultAsync(ctx.HttpContext.RequestAborted);
 
-                    // durum null = kullanıcı silinmiş (hard delete)
-                    // !durum.Aktif = pasifleştirilmiş
-                    if (durum is null || !durum.Aktif)
+                    // durum null = kullanıcı silinmiş (hard delete); !Aktif = global pasifleştirilmiş
+                    bool gecersiz = durum is null || !durum.Aktif;
+                    string sebep = "KULLANICI_PASIF_VEYA_SILINDI";
+
+                    // v19 A3 - tenant scope üyelik kontrolü. Yönetimden üye pasifleştirilir/çıkarılırsa anlık çıkış.
+                    // toggleAktif IsletmeUyelik.Aktif'i değiştirir; global Kullanici.Aktif değişmez -> eski kod kaçırıyordu.
+                    // Super admin hariç: tenant üyeliği olmayabilir + görüntüleme modunda hedef tenant'a üye değildir.
+                    if (!gecersiz && durum is not null && !durum.SuperAdmin)
+                    {
+                        var aktifIsletmeClaim = ctx.Principal?.FindFirst("aktif_isletme_id")?.Value;
+                        if (Guid.TryParse(aktifIsletmeClaim, out var aktifIsletmeId))
+                        {
+                            var uyelikAktif = await db.IsletmeUyelikleri
+                                .AnyAsync(u => u.IsletmeId == aktifIsletmeId
+                                            && u.KullaniciId == kullaniciId
+                                            && u.Aktif, ctx.HttpContext.RequestAborted);
+                            if (!uyelikAktif)
+                            {
+                                gecersiz = true;
+                                sebep = "UYELIK_PASIF_VEYA_SILINDI";
+                            }
+                        }
+                    }
+
+                    if (gecersiz)
                     {
                         // Cookie'yi de temizle — tarayıcı yeniden istek atmasın
                         ctx.HttpContext.Response.Cookies.Delete("auth_token", new Microsoft.AspNetCore.Http.CookieOptions
@@ -138,7 +160,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                             SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax,
                             Path = "/"
                         });
-                        ctx.Fail("KULLANICI_PASIF_VEYA_SILINDI");
+                        ctx.Fail(sebep);
                     }
                 }
                 catch (OperationCanceledException)
