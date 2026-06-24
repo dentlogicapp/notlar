@@ -65,7 +65,7 @@ public sealed class DocxDonusturucu : IDocxDonusturucu
                 var body = new Body();
                 main.Document.Append(body);
 
-                IcerikYaz(body, gruplar, ciftIsmi, dugunTarihi);
+                IcerikYaz(body, markaAdi, gruplar, ciftIsmi, dugunTarihi);
 
                 // Sayfa boyutu A4 + kenar boşlukları (en sonra)
                 body.Append(SayfaAyari());
@@ -76,7 +76,7 @@ public sealed class DocxDonusturucu : IDocxDonusturucu
         }, ct);
     }
 
-    private void IcerikYaz(Body body,
+    private void IcerikYaz(Body body, string markaAdi,
         List<(string Ad, bool SistemMi, List<Not> Notlar)> gruplar,
         string ciftIsmi, DateTime dugunTarihi)
     {

@@ -63,7 +63,7 @@ public static class XlsxTasarimcisi
         }
 
         // Şimdi Genel Bakış'ı doldur (sheet adları belli oldu, hyperlink kurabiliriz)
-        GenelBakisYaz(genelBakis, sheetAdlari, dugunTarihi);
+        GenelBakisYaz(genelBakis, baslik, sheetAdlari, dugunTarihi);
 
         // İlk sheet seçili açılsın
         genelBakis.SetTabActive();
@@ -87,7 +87,7 @@ public static class XlsxTasarimcisi
     /// <summary>
     /// Sheet 1: Davetiye stilinde başlık + istatistik kartları + klasör listesi (tıklanabilir köprülerle)
     /// </summary>
-    private static void GenelBakisYaz(IXLWorksheet ws,
+    private static void GenelBakisYaz(IXLWorksheet ws, string baslik,
         List<(string Orijinal, string Sheet, bool SistemMi, int NotSayisi, int Tamamlanan)> klasorler,
         DateTime dugunTarihi)
     {
