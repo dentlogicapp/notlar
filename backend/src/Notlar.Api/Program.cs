@@ -138,14 +138,55 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                         var aktifIsletmeClaim = ctx.Principal?.FindFirst("aktif_isletme_id")?.Value;
                         if (Guid.TryParse(aktifIsletmeClaim, out var aktifIsletmeId))
                         {
-                            var uyelikAktif = await db.IsletmeUyelikleri
+                            // v19 İş 2 - aktif tenant GEÇERLİ mi: üye aktif + tenant aktif + silinmemiş.
+                            // (A3'ten genişletildi: eskiden sadece IsletmeUyelik.Aktif; artık tenant pasif/silinmiş de yakalanır.)
+                            var aktifGecerli = await db.IsletmeUyelikleri
                                 .AnyAsync(u => u.IsletmeId == aktifIsletmeId
                                             && u.KullaniciId == kullaniciId
-                                            && u.Aktif, ctx.HttpContext.RequestAborted);
-                            if (!uyelikAktif)
+                                            && u.Aktif
+                                            && u.Isletme.Aktif
+                                            && !u.Isletme.Silindi, ctx.HttpContext.RequestAborted);
+                            if (!aktifGecerli)
                             {
-                                gecersiz = true;
-                                sebep = "UYELIK_PASIF_VEYA_SILINDI";
+                                // Aktif tenant pasif/silinmiş. Başka aktif tenant varsa KESİNTİSİZ GEÇİŞ; yoksa logout.
+                                var baska = await db.IsletmeUyelikleri
+                                    .Where(u => u.KullaniciId == kullaniciId
+                                             && u.Aktif && u.Isletme.Aktif && !u.Isletme.Silindi)
+                                    .Select(u => new { u.IsletmeId, u.Rol })
+                                    .FirstOrDefaultAsync(ctx.HttpContext.RequestAborted);
+                                if (baska is not null)
+                                {
+                                    // KESİNTİSİZ GEÇİŞ: DB AktifIsletmeId güncelle + yeni token + cookie + bu istek için principal yenile.
+                                    var kullanici = await db.Kullanicilar.FirstAsync(u => u.Id == kullaniciId, ctx.HttpContext.RequestAborted);
+                                    kullanici.AktifIsletmeId = baska.IsletmeId;
+                                    await db.SaveChangesAsync(ctx.HttpContext.RequestAborted);
+
+                                    var jwt = ctx.HttpContext.RequestServices.GetRequiredService<Notlar.Api.Services.IJwtService>();
+                                    var yeniToken = jwt.TokenUret(kullanici, aktifRol: baska.Rol);
+
+                                    ctx.HttpContext.Response.Cookies.Append("auth_token", yeniToken, new Microsoft.AspNetCore.Http.CookieOptions
+                                    {
+                                        HttpOnly = true,
+                                        Secure = ctx.HttpContext.Request.IsHttps,
+                                        SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax,
+                                        Path = "/"
+                                    });
+
+                                    // Bu istek de yeni tenant bağlamında çalışsın (kesintisiz): principal'i yeni token claim'leriyle yenile.
+                                    var yeniJwt = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().ReadJwtToken(yeniToken);
+                                    var kimlik = new System.Security.Claims.ClaimsIdentity(yeniJwt.Claims,
+                                        ctx.Principal!.Identity!.AuthenticationType);
+                                    ctx.Principal = new System.Security.Claims.ClaimsPrincipal(kimlik);
+
+                                    // Frontend UI'yi yeni tenant'a senkronlasın (marka/sayaç/notlar): response header -> client invalidate.
+                                    ctx.HttpContext.Response.Headers.Append("X-Tenant-Gecis", baska.IsletmeId.ToString());
+                                }
+                                else
+                                {
+                                    // Tek tenant'lı kullanıcı + o tenant pasif -> sistemden çıkış.
+                                    gecersiz = true;
+                                    sebep = "TENANT_PASIF_BASKA_AKTIF_YOK";
+                                }
                             }
                         }
                     }
@@ -192,7 +233,7 @@ builder.Services.AddCors(opt =>
         .WithOrigins(corsOrigins)
         .AllowAnyHeader()
         .AllowAnyMethod()
-        .WithExposedHeaders("Content-Disposition")  // v19 - defter indir dosya adini frontend okuyabilsin
+        .WithExposedHeaders("Content-Disposition", "X-Tenant-Gecis")  // v19 - defter indir dosya adi + Is 2 kesintisiz tenant gecisi
         .AllowCredentials());
 });
 

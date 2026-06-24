@@ -39,6 +39,10 @@ async function ist<T>(yol: string, init?: RequestInit): Promise<T> {
     credentials: "include",
     headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
   });
+  // v19 İş 2 - kesintisiz tenant geçişi: backend aktif tenant'ı değiştirdiyse UI'yi (marka/sayaç/notlar) senkronla
+  if (typeof window !== "undefined" && r.headers.get("X-Tenant-Gecis")) {
+    window.dispatchEvent(new CustomEvent("tenant-gecis"));
+  }
   if (!r.ok) {
     // v11 — 401: kullanıcı pasif/silindi veya token geçersiz
     if (r.status === 401) {

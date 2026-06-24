@@ -1,6 +1,8 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { useBen } from "@/lib/useBen";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
@@ -8,6 +10,18 @@ import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 export function AuthGuard({ children, requireAdmin = false, requireSuperAdmin = false }: { children: React.ReactNode; requireAdmin?: boolean; requireSuperAdmin?: boolean }) {
   const { data: ben, isLoading, isError } = useBen();
   const router = useRouter();
+  const qc = useQueryClient();
+
+  // v19 İş 2 - kesintisiz tenant geçişi: aktif tenant pasifleşip backend başka tenant'a geçirdiyse
+  // (X-Tenant-Gecis header) tüm tenant-scoped veriyi (ben/marka/sayaç/notlar/klasörler) tazele.
+  useEffect(() => {
+    function gecis() {
+      qc.invalidateQueries();
+      toast.info("Aktif markanız pasifleştirildi; başka markanıza geçirildiniz.");
+    }
+    window.addEventListener("tenant-gecis", gecis);
+    return () => window.removeEventListener("tenant-gecis", gecis);
+  }, [qc]);
 
   // v15 — Aktif tenant'taki rol
   const aktifRol = ben?.uyelikler?.find(u => u.isletmeId === ben?.aktifIsletmeId)?.rol ?? "kullanici";
