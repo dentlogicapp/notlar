@@ -54,7 +54,7 @@ public static class AnahtarKatalogu
             .Etiket("Not Ekleme Form İpucu")
             .Yonlendirme("Yeni not ekleme kutusunda kullanıcıya gösterilecek soluk ipucu. (Örn: 'Bir hatıra düşün...', 'Bir dosya notu ekle...', 'Bir menü fikri yaz...')")
             .Aciklama("Ana sayfada büyük not ekleme kutusunda görünür.")
-            .Sira(120).Kapsam(KapsamTipi.Sistem).Build(),
+            .Sira(120).Varsayilan("Aklına geleni not al...").Build(),
 
         // --- SAYAC ---
         AnahtarTanim.Tanim("sayac_aktif")
