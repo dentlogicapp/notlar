@@ -124,6 +124,48 @@ public static class AnahtarKatalogu
             .Aciklama("Mail içinde CTA butonundan önce görünür. 2-4 cümle önerilir.")
             .Zorunlu().Sira(330).Varsayilan("Aşağıdaki butona tıklayarak hesabınızı oluşturabilir ve şifrenizi belirleyebilirsiniz. Hesabınız hazır olduğunda e-posta adresiniz ve şifrenizle giriş yapabilirsiniz.").Build(),
 
+        AnahtarTanim.Tanim("mail_davetiye_buton")
+            .Kategori(Kategori.Mail).Tip(AlanTipi.Metin)
+            .Etiket("Davet Maili Buton Metni")
+            .Yonlendirme("Davet mailindeki ana çağrı butonunun metni. (Örn: 'Hesabımı Aç', 'Hemen Başla', 'Davetimi Kabul Et')")
+            .Aciklama("Mailin ortasındaki büyük butonun üzerinde görünür.")
+            .Sira(331).Varsayilan("Hesabımı Aç ve Şifre Belirle").Build(),
+
+        AnahtarTanim.Tanim("mail_davetiye_baglanti_notu")
+            .Kategori(Kategori.Mail).Tip(AlanTipi.Metin)
+            .Etiket("Davet Maili Bağlantı Notu")
+            .Yonlendirme("Butonun altındaki küçük bilgi notu. (Örn: 'Bu bağlantı 24 saat geçerli.')")
+            .Aciklama("Buton geçerlilik süresi gibi kısa bilgileri belirtir.")
+            .Sira(332).Varsayilan("Bu bağlantı 24 saat geçerli.").Build(),
+
+        AnahtarTanim.Tanim("mail_davetiye_rehber_baslik")
+            .Kategori(Kategori.Mail).Tip(AlanTipi.Metin)
+            .Etiket("Davet Maili Rehber Başlığı")
+            .Yonlendirme("Rehber bölümünün ana başlığı. (Örn: 'İçeride seni neler bekliyor?')")
+            .Aciklama("Rehber maddelerinin üstündeki büyük başlık.")
+            .Sira(333).Varsayilan("İçeride seni neler bekliyor?").Build(),
+
+        AnahtarTanim.Tanim("mail_davetiye_rehber_alt_baslik")
+            .Kategori(Kategori.Mail).Tip(AlanTipi.Metin)
+            .Etiket("Davet Maili Rehber Alt Başlığı")
+            .Yonlendirme("Rehber başlığının altındaki italik açıklama. (Örn: 'Hızlı başlangıç rehberi')")
+            .Aciklama("Rehber başlığının hemen altında küçük italik metin.")
+            .Sira(334).Varsayilan("Hızlı başlangıç rehberi").Build(),
+
+        AnahtarTanim.Tanim("mail_davetiye_rehber")
+            .Kategori(Kategori.Mail).Tip(AlanTipi.Body)
+            .Etiket("Davet Maili Rehber İçeriği")
+            .Yonlendirme("Yeni kullanıcıya gösterilen adım adım başlangıç rehberi. Boş bırakılırsa varsayılan 6 maddelik rehber kullanılır.")
+            .Aciklama("Mailin alt bölümündeki numaralı rehber. Boş = sistemin hazır 6 maddelik rehberi.")
+            .Sira(335).Build(),
+
+        AnahtarTanim.Tanim("mail_davetiye_kapanis")
+            .Kategori(Kategori.Mail).Tip(AlanTipi.Metin)
+            .Etiket("Davet Maili Kapanış Cümlesi")
+            .Yonlendirme("Rehberin altındaki italik kapanış cümlesi. (Örn: 'Hadi başlayalım. İhtiyacın olan her şey içeride seni bekliyor.')")
+            .Aciklama("İmzanın hemen üstünde, motive edici son cümle.")
+            .Sira(336).Varsayilan("Hadi başlayalım. İhtiyacın olan her şey içeride seni bekliyor.").Build(),
+
         AnahtarTanim.Tanim("mail_hatirlatma_konu")
             .Kategori(Kategori.Mail).Tip(AlanTipi.Subject)
             .Placeholderlar("not_basligi", "kullanici_adi")

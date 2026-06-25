@@ -20,6 +20,12 @@ public static class AnahtarKodu
     public const string MailDavetiyeKonu = "mail_davetiye_konu";
     public const string MailDavetiyeAltBaslik = "mail_davetiye_alt_baslik";
     public const string MailDavetiyeGirisMetni = "mail_davetiye_giris_metni";
+    public const string MailDavetiyeButon = "mail_davetiye_buton";
+    public const string MailDavetiyeBaglantiNotu = "mail_davetiye_baglanti_notu";
+    public const string MailDavetiyeRehberBaslik = "mail_davetiye_rehber_baslik";
+    public const string MailDavetiyeRehberAltBaslik = "mail_davetiye_rehber_alt_baslik";
+    public const string MailDavetiyeRehber = "mail_davetiye_rehber";
+    public const string MailDavetiyeKapanis = "mail_davetiye_kapanis";
     public const string MailHatirlatmaKonu = "mail_hatirlatma_konu";
     public const string MailHatirlatmaGirisMetni = "mail_hatirlatma_giris_metni";
     public const string MailEklendiKonu = "mail_eklendi_konu";
@@ -40,7 +46,9 @@ public static class AnahtarKodu
         DashboardKarsilamaBasligi, DashboardKarsilamaAltMetin, NotFormPlaceholder,
         SayacAktif, SayacAktifCumle, SayacBittiCumle, SayacHedefTarihi,
         MailImza, MailTonu, MailDavetiyeKonu, MailDavetiyeAltBaslik,
-        MailDavetiyeGirisMetni, MailHatirlatmaKonu, MailHatirlatmaGirisMetni,
+        MailDavetiyeGirisMetni, MailDavetiyeButon, MailDavetiyeBaglantiNotu,
+        MailDavetiyeRehberBaslik, MailDavetiyeRehberAltBaslik, MailDavetiyeRehber,
+        MailDavetiyeKapanis, MailHatirlatmaKonu, MailHatirlatmaGirisMetni,
         MailEklendiKonu, MailEklendiGirisMetni, MailSifreKonu, MailSifreGirisMetni,
         IletisimEmail,
         BildirimYeniNotMetin, BildirimNotTamamlandiMetin, BildirimHatirlaticiMetin,

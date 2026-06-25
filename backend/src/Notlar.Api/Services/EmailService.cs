@@ -230,6 +230,21 @@ public sealed class EmailService : IEmailService
         var imza = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailImza,
             "", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
 
+        var altBaslik = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailDavetiyeAltBaslik,
+            "hesabınız hazır", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
+        var buton = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailDavetiyeButon,
+            "Hesabımı Aç ve Şifre Belirle", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
+        var baglantiNotu = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailDavetiyeBaglantiNotu,
+            "Bu bağlantı 24 saat geçerli.", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
+        var rehberBaslik = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailDavetiyeRehberBaslik,
+            "İçeride seni neler bekliyor?", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
+        var rehberAltBaslik = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailDavetiyeRehberAltBaslik,
+            "Hızlı başlangıç rehberi", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
+        var rehber = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailDavetiyeRehber,
+            "", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
+        var kapanis = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailDavetiyeKapanis,
+            "Hadi başlayalım. İhtiyacın olan her şey içeride seni bekliyor.", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
+
         var sayacAktif = sozluk.TryGetValue(AnahtarKodu.SayacAktif, out var saDeger) && saDeger == "true";
         var (sayacGecti, sayacGun) = MailSayac(sozluk.GetValueOrDefault(AnahtarKodu.SayacHedefTarihi));
         var sayacBaslik = sayacGecti
@@ -240,7 +255,8 @@ public sealed class EmailService : IEmailService
             ? $"{WebUtility.HtmlEncode(sayacBaslik)} <strong>{sayacGun} gün</strong>"
             : "";
 
-        var html = DavetiyeHtmlSablonu(aliciIlkAd, link, sayacGoster, sayacCumleHtml, girisMetni, imza, markaAdi);
+        var html = DavetiyeHtmlSablonu(aliciIlkAd, link, sayacGoster, sayacCumleHtml, girisMetni, imza, markaAdi,
+            altBaslik, buton, baglantiNotu, rehberBaslik, rehberAltBaslik, rehber, kapanis);
         return (konu, html, sozluk.GetValueOrDefault(AnahtarKodu.IletisimEmail), markaAdi);
     }
 
@@ -339,7 +355,8 @@ public sealed class EmailService : IEmailService
         return (fark.TotalSeconds <= 0, (int)Math.Floor(Math.Abs(fark.TotalDays)));
     }
 
-    private static string DavetiyeHtmlSablonu(string aliciIlkAd, string link, bool sayacGoster, string sayacCumleHtml, string girisMetni, string mailImza, string markaAdi)
+    private static string DavetiyeHtmlSablonu(string aliciIlkAd, string link, bool sayacGoster, string sayacCumleHtml, string girisMetni, string mailImza, string markaAdi,
+        string altBaslik, string buton, string baglantiNotu, string rehberBaslik, string rehberAltBaslik, string rehber, string kapanis)
     {
         // v18 Paket2 - sayac cumlesi field'lerden (sayac_aktif_cumle/bitti_cumle) + ileri sayim;
         // hesaplama caller'da (MailSayac). Sayac kapali/bos ise blok hic basilmaz.
@@ -366,6 +383,26 @@ public sealed class EmailService : IEmailService
       </td></tr>
       {(sonMu ? "" : @"<tr><td style='padding:22px 40px 0;'><div style='border-top:1px dashed #ebe3d4;'></div></td></tr>")}";
 
+        // Rehber: tenant mail_davetiye_rehber doldurduysa onu bas; bos ise varsayilan 7 maddelik rehber (mevcut tasarim korunur).
+        var rehberHtml = !string.IsNullOrWhiteSpace(rehber)
+            ? $@"<tr><td style='padding:24px 40px 0;'>
+        <div style='color:#5d4a37;font-size:15px;line-height:1.7;'>{rehber}</div>
+      </td></tr>"
+            : Madde("01", "Giriş yapmak için",
+                "Yukarıdaki butona tıklayıp kendi şifreni belirleyince hesabın hazır. Bir dahaki sefere sadece e-posta adresin ve şifrenle giriş yaparsın. Giriş ekranındaki <strong>“Beni hatırla”</strong> kutusunu işaretli bırakırsan her seferinde tekrar girmek zorunda kalmazsın.")
+            + Madde("02", "Aklına bir şey geldiğinde",
+                "Ana sayfada <em>“Bir not düşün…”</em> yazan kutuyu göreceksin. Aklındakini yaz, sağdaki <strong>Ekle</strong> butonuna dokun, oldu. İstersen sadece bir başlık, istersen detaylı bir açıklama ekleyebilirsin.")
+            + Madde("03", "Bir işi tamamladığında",
+                "Her notun yanında küçük bir kutucuk var. Ona tıkladığında <em>“Nasıl tamamlandı?”</em> diye sorulacak. Birkaç kelime yaz (örneğin: <em>“Rapor gönderildi, onay bekleniyor”</em>) ki sonradan dönüp ne yapıldığını hatırlayabilesin. Bu küçük detaylar ileride işine yarayacak.")
+            + Madde("04", "Bir notu güncellemek",
+                "Her notun altında küçük ikonlar göreceksin: <strong>göz</strong> (detaylar), <strong>kalem</strong> (düzenle), <strong>çöp kutusu</strong> (sil). Kalem ikonuna tıklayıp başlığı, içeriği veya hangi klasöre ait olduğunu istediğin gibi değiştirebilirsin.")
+            + Madde("05", "Hatırlatıcı kurmak",
+                "Bir işi unutmamak istersen kalem ikonuyla düzenle penceresini aç, en altta <strong>“Hatırlatıcı kur”</strong> seçeneğini göreceksin. Tarih ve saati seç, kime hatırlatılacağını ve nasıl bildirim alınacağını (uygulama içinde, e-postayla veya her ikisi) belirle. Zamanı geldiğinde hatırlatma gönderilir.")
+            + Madde("06", "Bir notun geçmişini görmek",
+                "Aynı satırdaki <strong>göz</strong> ikonu, notun bütün geçmişini gösterir: ne zaman oluşturuldu, ne zaman ne değişti, kim ne yazdı, ne zaman tamamlandı… Hiçbir şey kaybolmaz; ekipteki herkes değişiklikleri görebilir.")
+            + Madde("07", "Konuları ayırmak için - klasörler",
+                "Sol panelden <strong>“Yeni klasör”</strong> diyerek konuları gruplayabilirsin: <em>“Projeler”, “Toplantılar”, “Arşiv”</em> gibi. Notu eklerken veya düzenlerken hangi klasöre ait olduğunu seçebilirsin. İstersen bir klasörü sonradan silebilirsin - içindeki notlar kaybolmaz, sadece klasörsüz hâle gelir.", sonMu: true);
+
         return $@"<!DOCTYPE html>
 <html lang='tr'>
 <head>
@@ -387,7 +424,7 @@ public sealed class EmailService : IEmailService
           {aliciIlkAd},
         </h1>
         <p style='color:#c4704d;font-size:14px;margin:0;font-style:italic;letter-spacing:0.04em;'>
-          hesabınız hazır
+          {altBaslik}
         </p>
       </td></tr>
 
@@ -401,10 +438,10 @@ public sealed class EmailService : IEmailService
       <tr><td style='padding:32px 40px 12px;text-align:center;'>
         <a href='{link}'
            style='display:inline-block;background:#3d2817;color:#faf6ef;padding:16px 36px;border-radius:10px;text-decoration:none;font-weight:500;font-size:15px;letter-spacing:0.01em;'>
-          Hesabımı Aç ve Şifre Belirle
+          {buton}
         </a>
         <p style='color:#9c8a73;font-size:12px;margin:14px 0 0;'>
-          Bu bağlantı 24 saat geçerli.
+          {baglantiNotu}
         </p>
       </td></tr>
 
@@ -420,33 +457,14 @@ public sealed class EmailService : IEmailService
 
       <tr><td style='padding:24px 40px 0;'>
         <h2 style='font-family:Georgia,""Times New Roman"",serif;font-size:20px;color:#3d2817;margin:0 0 6px;text-align:center;font-weight:600;'>
-          İçeride seni neler bekliyor?
+          {rehberBaslik}
         </h2>
         <p style='color:#9c8a73;font-size:13px;margin:0;text-align:center;font-style:italic;'>
-          Hızlı başlangıç rehberi
+          {rehberAltBaslik}
         </p>
       </td></tr>
 
-      {Madde("01", "Giriş yapmak için",
-        "Yukarıdaki butona tıklayıp kendi şifreni belirleyince hesabın hazır. Bir dahaki sefere sadece e-posta adresin ve şifrenle giriş yaparsın. Giriş ekranındaki <strong>“Beni hatırla”</strong> kutusunu işaretli bırakırsan her seferinde tekrar girmek zorunda kalmazsın.")}
-
-      {Madde("02", "Aklına bir şey geldiğinde",
-        "Ana sayfada <em>“Bir not düşün…”</em> yazan kutuyu göreceksin. Aklındakini yaz, sağdaki <strong>Ekle</strong> butonuna dokun, oldu. İstersen sadece bir başlık, istersen detaylı bir açıklama ekleyebilirsin.")}
-
-      {Madde("03", "Bir işi tamamladığında",
-        "Her notun yanında küçük bir kutucuk var. Ona tıkladığında <em>“Nasıl tamamlandı?”</em> diye sorulacak. Birkaç kelime yaz (örneğin: <em>“Rapor gönderildi, onay bekleniyor”</em>) ki sonradan dönüp ne yapıldığını hatırlayabilesin. Bu küçük detaylar ileride işine yarayacak.")}
-
-      {Madde("04", "Bir notu güncellemek",
-        "Her notun altında küçük ikonlar göreceksin: <strong>göz</strong> (detaylar), <strong>kalem</strong> (düzenle), <strong>çöp kutusu</strong> (sil). Kalem ikonuna tıklayıp başlığı, içeriği veya hangi klasöre ait olduğunu istediğin gibi değiştirebilirsin.")}
-
-      {Madde("05", "Hatırlatıcı kurmak",
-        "Bir işi unutmamak istersen kalem ikonuyla düzenle penceresini aç, en altta <strong>“Hatırlatıcı kur”</strong> seçeneğini göreceksin. Tarih ve saati seç, kime hatırlatılacağını ve nasıl bildirim alınacağını (uygulama içinde, e-postayla veya her ikisi) belirle. Zamanı geldiğinde hatırlatma gönderilir.")}
-
-      {Madde("06", "Bir notun geçmişini görmek",
-        "Aynı satırdaki <strong>göz</strong> ikonu, notun bütün geçmişini gösterir: ne zaman oluşturuldu, ne zaman ne değişti, kim ne yazdı, ne zaman tamamlandı… Hiçbir şey kaybolmaz; ekipteki herkes değişiklikleri görebilir.")}
-
-      {Madde("07", "Konuları ayırmak için — klasörler",
-        "Sol panelden <strong>“Yeni klasör”</strong> diyerek konuları gruplayabilirsin: <em>“Projeler”, “Toplantılar”, “Arşiv”</em> gibi. Notu eklerken veya düzenlerken hangi klasöre ait olduğunu seçebilirsin. İstersen bir klasörü sonradan silebilirsin — içindeki notlar kaybolmaz, sadece klasörsüz hâle gelir.", sonMu: true)}
+      {rehberHtml}
 
       <tr><td style='padding:32px 40px 8px;'>
         <table role='presentation' width='100%' cellpadding='0' cellspacing='0' border='0'>
@@ -460,7 +478,7 @@ public sealed class EmailService : IEmailService
 
       <tr><td style='padding:20px 40px 0;'>
         <p style='color:#5d4a37;font-size:15px;line-height:1.7;margin:0;text-align:center;font-style:italic;'>
-          Hadi başlayalım. İhtiyacın olan her şey içeride seni bekliyor.
+          {kapanis}
         </p>
       </td></tr>
 
