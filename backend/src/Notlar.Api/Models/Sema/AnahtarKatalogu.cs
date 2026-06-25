@@ -191,16 +191,20 @@ public static class AnahtarKatalogu
 
         AnahtarTanim.Tanim("bildirim_not_tamamlandi_metin")
             .Kategori(Kategori.Bildirim).Tip(AlanTipi.Metin)
+            .Placeholderlar("not_basligi")
             .Etiket("Not Tamamlandı Bildirimi")
             .Yonlendirme("Bir not tamamlandığında gösterilecek bildirim. (Örn: '✓ {not_basligi} tamamlandı', '{kullanici_adi} tamamladı: {not_basligi}')")
             .Aciklama("İlgili kullanıcılara in-app + opsiyonel mail.")
+            .Varsayilan("{not_basligi} tamamlandı")
             .Sira(410).Kapsam(KapsamTipi.Sistem).Build(),
 
         AnahtarTanim.Tanim("bildirim_hatirlatici_metin")
             .Kategori(Kategori.Bildirim).Tip(AlanTipi.Metin)
+            .Placeholderlar("not_basligi")
             .Etiket("Hatırlatıcı Bildirimi Metni")
             .Yonlendirme("Hatırlatıcı zamanı geldiğinde gösterilen bildirim. (Örn: '⏰ Hatırlatma: {not_basligi}', '{not_basligi} için bugün son gün')")
             .Aciklama("Tarih/saat geldiğinde in-app + mail.")
+            .Varsayilan("Hatırlatma: {not_basligi}")
             .Sira(420).Kapsam(KapsamTipi.Sistem).Build(),
 
         // --- FORM ---
@@ -209,6 +213,7 @@ public static class AnahtarKatalogu
             .Etiket("Klasör Oluştur Formu İpucu")
             .Yonlendirme("Yeni klasör oluşturma form alanı için soluk ipucu. (Örn: 'Yeni klasör adı...', 'Konu başlığı...', 'Proje adı yaz...')")
             .Aciklama("Sol panelden 'Yeni klasör' tıklandığında açılan formda görünür.")
+            .Varsayilan("Yeni klasör adı...")
             .Sira(500).Kapsam(KapsamTipi.Sistem).Build(),
 
         AnahtarTanim.Tanim("form_giris_email_placeholder")
@@ -216,6 +221,7 @@ public static class AnahtarKatalogu
             .Etiket("Giriş Formu E-posta İpucu")
             .Yonlendirme("Login sayfasında e-posta alanı için ipucu. (Örn: 'E-posta adresin', 'E-mail address', 'ornek@firma.com')")
             .Aciklama("Login sayfasında üst form alanında görünür.")
+            .Varsayilan("ornek@eposta.com")
             .Sira(510).Kapsam(KapsamTipi.Sistem).Build(),
     };
 }
