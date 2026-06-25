@@ -106,16 +106,16 @@ public static class MetinlerEndpoints
             return Results.Ok(new { gonderildi = true, email = uc.Email });
         });
 
-        // GET /mail-onizle?tip=davet|hatirlatma|eklendi|sifre -> v19 4-B: canli HTML onizleme (gonderme yok).
-        // Tenant'in kendi metinleriyle render eder; panelde iframe icine basilir.
-        g.MapGet("/mail-onizle", async (string tip, IUserContext uc, IEmailService email, CancellationToken ct) =>
+        // POST /mail-onizle -> v19 4-B/Is2: canli HTML onizleme (gonderme yok). Body'deki degerler kaydedilmemis
+        // duzenleme degerleridir; kayitli metinlerin uzerine binerek ANLIK onizleme saglar. Degerler bos -> kayitli hali.
+        g.MapPost("/mail-onizle", async (MailOnizleIstegi req, IUserContext uc, IEmailService email, CancellationToken ct) =>
         {
             if (uc.AktifIsletmeId is null) return Results.Unauthorized();
             var gecerli = new[] { "davet", "hatirlatma", "eklendi", "sifre" };
-            if (string.IsNullOrWhiteSpace(tip) || !gecerli.Contains(tip))
+            if (string.IsNullOrWhiteSpace(req.Tip) || !gecerli.Contains(req.Tip))
                 return Results.BadRequest(new { hata = "GECERSIZ_TIP", mesaj = "tip: davet|hatirlatma|eklendi|sifre" });
 
-            var html = await email.MailOnizleHtmlAsync(uc.AktifIsletmeId.Value, tip, ct);
+            var html = await email.MailOnizleHtmlAsync(uc.AktifIsletmeId.Value, req.Tip, req.Degerler, ct);
             return Results.Content(html, "text/html; charset=utf-8");
         });
 
@@ -175,3 +175,5 @@ public static class MetinlerEndpoints
         catch { return new List<string>(); }
     }
 }
+
+public record MailOnizleIstegi(string Tip, Dictionary<string, string>? Degerler);

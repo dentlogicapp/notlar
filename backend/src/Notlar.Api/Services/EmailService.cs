@@ -16,7 +16,8 @@ public interface IEmailService
     // v19 B5 - davet maili onizleme (gonderme yok, HTML render doner). markaAdi override (yeni tenant henuz yoksa).
     Task<string> DavetMailOnizleHtmlAsync(Guid isletmeId, string aliciAd, string? markaAdi, CancellationToken ct = default);
     // v19 4-B - genel mail onizleme: tip = davet | hatirlatma | eklendi | sifre (gonderme yok, dummy verilerle render).
-    Task<string> MailOnizleHtmlAsync(Guid isletmeId, string tip, CancellationToken ct = default);
+    // v19 Is2 - metinOverride: kaydedilmemis duzenleme degerleri (anlik onizleme icin kayitli metinlerin uzerine biner).
+    Task<string> MailOnizleHtmlAsync(Guid isletmeId, string tip, IReadOnlyDictionary<string, string>? metinOverride = null, CancellationToken ct = default);
     Task SifreSifirlamaMailGonderAsync(string toEmail, string adSoyad, string link, Guid? isletmeId, CancellationToken ct = default);
     // v18 - hatirlatma konusu isletme_metinleri'nden render edilir; body (Asama 6 kapsami disi) korunur.
     Task HatirlaticiMailGonderAsync(string toEmail, string aliciAdSoyad, string notBaslik, string? notIcerik,
@@ -53,6 +54,17 @@ public sealed class EmailService : IEmailService
         var d = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var m in metinler)
             if (!string.IsNullOrWhiteSpace(m.Icerik)) d[m.Anahtar] = m.Icerik!;
+        return d;
+    }
+
+    // v19 Is2 - kayitli metinler uzerine gecici (kaydedilmemis) duzenleme degerlerini bindirir (anlik onizleme).
+    private static IReadOnlyDictionary<string, string> SozlukBirlestir(
+        IReadOnlyDictionary<string, string> kayitli, IReadOnlyDictionary<string, string>? gecici)
+    {
+        if (gecici is null || gecici.Count == 0) return kayitli;
+        var d = new Dictionary<string, string>(kayitli, StringComparer.Ordinal);
+        foreach (var kv in gecici)
+            if (!string.IsNullOrWhiteSpace(kv.Value)) d[kv.Key] = kv.Value;
         return d;
     }
 
@@ -137,18 +149,19 @@ public sealed class EmailService : IEmailService
 
     // v19 4-B - genel mail onizleme. Davet mevcut render'i reuse; diger 3 tip dummy verilerle sablonu
     // dogrudan render eder (sablon tek kaynak; gonderim metodlariyla ayni sablonu cagirir, gonderme yok).
-    public async Task<string> MailOnizleHtmlAsync(Guid isletmeId, string tip, CancellationToken ct = default)
+    public async Task<string> MailOnizleHtmlAsync(Guid isletmeId, string tip,
+        IReadOnlyDictionary<string, string>? metinOverride = null, CancellationToken ct = default)
     {
         const string dummyAd = "Ayşe Yılmaz";
         const string ilkAd = "Ayşe";
 
         if (tip == "davet")
         {
-            var (_, davetHtml, _, _) = await DavetMailRenderAsync(dummyAd, "#onizleme", isletmeId, ct);
+            var (_, davetHtml, _, _) = await DavetMailRenderAsync(dummyAd, "#onizleme", isletmeId, ct, metinOverride: metinOverride);
             return davetHtml;
         }
 
-        var sozluk = SozlukYap(await _metin.TumunuGetirAsync(isletmeId, ct));
+        var sozluk = SozlukBirlestir(SozlukYap(await _metin.TumunuGetirAsync(isletmeId, ct)), metinOverride);
         var runtime = new Dictionary<string, string>(StringComparer.Ordinal) { ["alici_ad"] = ilkAd };
         var markaAdi = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MarkaAdi,
             "Markanız", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
@@ -189,7 +202,8 @@ public sealed class EmailService : IEmailService
 
     // Ortak davet maili render mantigi (gonder + onizleme paylasir; paralel yapi yok).
     private async Task<(string konu, string html, string? replyTo, string markaAdi)> DavetMailRenderAsync(
-        string adSoyad, string link, Guid isletmeId, CancellationToken ct, string? markaAdiOverride = null)
+        string adSoyad, string link, Guid isletmeId, CancellationToken ct, string? markaAdiOverride = null,
+        IReadOnlyDictionary<string, string>? metinOverride = null)
     {
         var aliciIlkAd = adSoyad.Split(' ')[0];
 
@@ -198,7 +212,7 @@ public sealed class EmailService : IEmailService
             "Aşağıdaki butona tıklayarak hesabınızı oluşturabilir ve şifrenizi belirleyebilirsiniz. " +
             "Hesabınız hazır olduğunda e-posta adresiniz ve şifrenizle giriş yapabilirsiniz.";
 
-        var sozluk = SozlukYap(await _metin.TumunuGetirAsync(isletmeId, ct));
+        var sozluk = SozlukBirlestir(SozlukYap(await _metin.TumunuGetirAsync(isletmeId, ct)), metinOverride);
         var runtime = new Dictionary<string, string>(StringComparer.Ordinal) { ["alici_ad"] = aliciIlkAd };
 
         // marka_adi'yi once coz (override > tenant metni > notr fallback) ve runtime'a ekle:

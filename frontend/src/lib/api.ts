@@ -353,10 +353,13 @@ export const metinApi = {
       method: "POST",
       body: JSON.stringify({ email, ad }),
     }),
-  // v19 4-B - gercek mail HTML onizleme (tip: davet|hatirlatma|eklendi|sifre). text/html doner, ist() degil.
-  mailOnizle: async (tip: string): Promise<string> => {
-    const res = await fetch(`${API}/api/admin/metinler/mail-onizle?tip=${encodeURIComponent(tip)}`, {
+  // v19 4-B/Is2 - gercek mail HTML onizleme. degerler = kaydedilmemis duzenleme (anlik); bos -> kayitli hali.
+  mailOnizle: async (tip: string, degerler?: Record<string, string>): Promise<string> => {
+    const res = await fetch(`${API}/api/admin/metinler/mail-onizle`, {
+      method: "POST",
       credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tip, degerler: degerler ?? null }),
     });
     if (!res.ok) throw new Error("Önizleme alınamadı");
     return res.text();
