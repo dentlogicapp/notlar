@@ -99,6 +99,12 @@ public static class AdminEndpoints
                     .Where(m => !string.IsNullOrWhiteSpace(m.Icerik))
                     .Select(m => m.Anahtar)
                     .ToHashSet(StringComparer.Ordinal);
+                // v19 fix: AnahtarKatalogu varsayilani dolu olan anahtarlar da "dolu" sayilir.
+                // Mail CozVeyaFallback ile varsayilanla render edilir; tenant override sart degildir.
+                // (Onceki hal sadece override'a bakiyordu -> varsayilan kullanan tenant uye ekleyemiyordu.)
+                foreach (var t in AnahtarKatalogu.Tumu)
+                    if (!string.IsNullOrWhiteSpace(t.Varsayilan))
+                        doluSet.Add(t.Anahtar);
                 var eksikMail = davetiyeAnahtarlari.Where(a => !doluSet.Contains(a)).ToList();
                 if (eksikMail.Count > 0)
                     return Results.Json(
@@ -220,6 +226,10 @@ public static class AdminEndpoints
                 .Where(m => !string.IsNullOrWhiteSpace(m.Icerik))
                 .Select(m => m.Anahtar)
                 .ToHashSet(StringComparer.Ordinal);
+            // v19 fix: varsayilani dolu anahtarlar da "dolu" (mail varsayilanla render edilir).
+            foreach (var t in AnahtarKatalogu.Tumu)
+                if (!string.IsNullOrWhiteSpace(t.Varsayilan))
+                    doluSet.Add(t.Anahtar);
             var eksik = davetiyeAnahtarlari.Where(a => !doluSet.Contains(a)).ToList();
             if (eksik.Count > 0)
                 return Results.Json(
