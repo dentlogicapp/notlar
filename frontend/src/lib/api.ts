@@ -381,6 +381,8 @@ export const superAdminIsletmeApi = {
     ist<{ id: string; aktif: boolean }>(`/api/super-admin/isletmeler/${id}/durum`, { method: "POST" }),
   adminAta: (id: string, data: { email: string; adSoyad: string; cinsiyet: string }) =>
     ist<{ kullaniciId: string; email: string }>(`/api/super-admin/isletmeler/${id}/admin-ata`, { method: "POST", body: JSON.stringify(data) }),
+  uyeGuncelle: (id: string, uyeId: string, data: { adSoyad: string; cinsiyet: Cinsiyet }) =>
+    ist<{ ok: boolean; kullaniciId: string; adSoyad: string; cinsiyet: string | null }>(`/api/super-admin/isletmeler/${id}/uye/${uyeId}`, { method: "PUT", body: JSON.stringify(data) }),
   goruntule: (id: string) =>
     ist<{ ok: boolean; gecerlilikBitis: string }>(`/api/super-admin/isletmeler/${id}/goruntule`, { method: "POST" }),
   goruntuleBitir: () =>

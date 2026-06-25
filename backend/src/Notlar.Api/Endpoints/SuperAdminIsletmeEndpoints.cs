@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using Notlar.Api.Data;
 using Notlar.Api.Entities;
 using Notlar.Api.Services;
@@ -108,12 +109,12 @@ public static class SuperAdminIsletmeEndpoints
                     u.Kullanici.Id, u.Kullanici.Email, u.Kullanici.AdSoyad,
                     u.Rol, u.Aktif,
                     SifreBelirlendi = u.Kullanici.SifreBelirlenmeZamani != null,
-                    u.Kullanici.SonGirisZamani
+                    u.Kullanici.SonGirisZamani, u.Kullanici.Cinsiyet
                 })
                 .ToListAsync(ct);
             var uyeler = uyelerHam.Select(u => new IsletmeUyeYaniti(
                 u.Id, u.Email, u.AdSoyad, u.Rol, u.Aktif, u.SifreBelirlendi, u.SonGirisZamani,
-                notSayilari.GetValueOrDefault(u.Id, 0), klasorSayilari.GetValueOrDefault(u.Id, 0))).ToList();
+                notSayilari.GetValueOrDefault(u.Id, 0), klasorSayilari.GetValueOrDefault(u.Id, 0), u.Cinsiyet)).ToList();
 
             var zorunluSet = (await db.MetinAnahtarlari
                 .Where(a => !a.Deprecated && a.Zorunlu && a.Kapsam == "Tenant")
@@ -350,6 +351,46 @@ public static class SuperAdminIsletmeEndpoints
             return Results.Ok(new { kullaniciId = user.Id, email = mail, yeniKullanici, rol = "admin" });
         });
 
+        // PUT /{id}/uye/{uyeId} - super admin herhangi bir tenant uyesinin ad/soyad/cinsiyetini gunceller.
+        // Email DEGISMEZ. AdSoyad navigation FK uzerinden o tenant'in tum not/klasor/akisina aninda yansir.
+        g.MapPut("/{id:guid}/uye/{uyeId:guid}", async (
+            Guid id, Guid uyeId, IsletmeUyeGuncelleIstegi req, AppDbContext db,
+            IAuditService audit, CancellationToken ct) =>
+        {
+            var uyelik = await db.IsletmeUyelikleri
+                .Include(x => x.Kullanici)
+                .FirstOrDefaultAsync(x => x.IsletmeId == id && x.KullaniciId == uyeId, ct);
+            if (uyelik is null) return Results.NotFound(new { hata = "UYE_BULUNAMADI", mesaj = "Üye bu tenant'ta bulunamadı." });
+
+            if (string.IsNullOrWhiteSpace(req.AdSoyad))
+                return Results.BadRequest(new { hata = "AD_SOYAD_ZORUNLU", mesaj = "Ad soyad zorunlu." });
+            if (req.Cinsiyet != "kadin" && req.Cinsiyet != "erkek")
+                return Results.BadRequest(new { hata = "CINSIYET_GECERSIZ", mesaj = "Cinsiyet 'kadin' veya 'erkek' olmalı." });
+
+            var user = uyelik.Kullanici;
+            var eskiAd = user.AdSoyad;
+            var eskiCinsiyet = user.Cinsiyet ?? "";
+            var yeniAd = req.AdSoyad.Trim();
+            var adDegisti = eskiAd != yeniAd;
+            var cinsiyetDegisti = eskiCinsiyet != req.Cinsiyet;
+
+            if (adDegisti || cinsiyetDegisti)
+            {
+                user.AdSoyad = yeniAd;
+                user.Cinsiyet = req.Cinsiyet;
+                await db.SaveChangesAsync(ct);
+
+                var degisenler = new Dictionary<string, object>();
+                if (adDegisti) degisenler["adSoyad"] = new { eski = eskiAd, yeni = yeniAd };
+                if (cinsiyetDegisti) degisenler["cinsiyet"] = new { eski = eskiCinsiyet, yeni = req.Cinsiyet };
+                await audit.YazAsync("uye_guncellendi_super", hedefTip: "kullanici", hedefId: uyeId,
+                    degisenAlanlar: JsonSerializer.Serialize(degisenler),
+                    detay: $"{user.Email}", ct: ct);
+            }
+
+            return Results.Ok(new { ok = true, kullaniciId = uyeId, adSoyad = user.AdSoyad, cinsiyet = user.Cinsiyet });
+        });
+
         // POST /{id}/goruntule - B2 read-only impersonation basla.
         // Gecici JWT: aktif_isletme_id = hedef tenant (DB'ye YAZILMAZ, sadece token claim).
         // Server-authoritative: gecici JWT'de goruntuleme_modu claim + aktif_isletme_id=hedef.
@@ -408,6 +449,8 @@ public record IsletmeOlusturIstegi(string MarkaAdi, string? MarkaEmoji, string K
 public record DavetOnizleIstegi(string? MarkaAdi, string? AdminAd);  // v19 B5
 
 public record IsletmeAdminAtaIstegi(string Email, string AdSoyad, string Cinsiyet);
+// v19 - super admin tenant detayindan uye guncelleme (email DEGISMEZ)
+public record IsletmeUyeGuncelleIstegi(string AdSoyad, string Cinsiyet);
 
 public record IsletmeOzetYaniti(
     Guid Id, string MarkaAdi, string MarkaEmoji, string KullanimModu, bool Aktif,
@@ -415,7 +458,7 @@ public record IsletmeOzetYaniti(
 
 public record IsletmeUyeYaniti(
     Guid KullaniciId, string Email, string AdSoyad, string Rol, bool Aktif,
-    bool SifreBelirlendi, DateTimeOffset? SonGiris, int NotSayisi, int KlasorSayisi);
+    bool SifreBelirlendi, DateTimeOffset? SonGiris, int NotSayisi, int KlasorSayisi, string? Cinsiyet);
 
 public record IsletmeDetayYaniti(
     Guid Id, string MarkaAdi, string MarkaEmoji, string KullanimModu, bool Aktif,

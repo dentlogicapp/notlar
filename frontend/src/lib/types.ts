@@ -271,6 +271,7 @@ export interface IsletmeUye {
   sonGiris: string | null;
   notSayisi: number;          // v19 - uyenin tenant'a katkisi
   klasorSayisi: number;
+  cinsiyet: string | null;    // v19 - super admin uye duzenleme icin
 }
 
 // v19 P4 - super admin yonetimi (ata/kaldir)

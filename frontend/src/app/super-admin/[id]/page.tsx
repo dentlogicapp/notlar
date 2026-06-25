@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronLeft, Loader2, Mail, Clock, UserPlus, FileText, FolderOpen,
   Users, Activity, Gauge, Calendar, ShieldCheck, KeyRound, CircleSlash,
+  Pencil, Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import { superAdminIsletmeApi } from "@/lib/api";
@@ -130,7 +131,7 @@ export default function TenantDetayPage() {
                 <p className="text-sm text-clay-400 dark:text-ink-300 italic">Henüz üye yok (boş tenant).</p>
               ) : (
                 <div className="space-y-1">
-                  {t.uyeler.map((u) => <UyeSatiri key={u.kullaniciId} u={u} />)}
+                  {t.uyeler.map((u) => <UyeSatiri key={u.kullaniciId} u={u} tenantId={id} />)}
                 </div>
               )}
             </div>
@@ -169,11 +170,66 @@ function Meta({ ikon: Ikon, etiket, deger }: { ikon: typeof Calendar; etiket: st
   );
 }
 
-function UyeSatiri({ u }: { u: IsletmeUye }) {
+function UyeSatiri({ u, tenantId }: { u: IsletmeUye; tenantId: string }) {
+  const qc = useQueryClient();
   const durum = uyeDurumu(u);
   const DurumIkon = durum.ikon;
+  const [duzenle, setDuzenle] = useState(false);
+  const [adSoyad, setAdSoyad] = useState(u.adSoyad);
+  const [cinsiyet, setCinsiyet] = useState<"kadin" | "erkek" | "">(
+    (u.cinsiyet as "kadin" | "erkek") ?? ""
+  );
+
+  const m = useMutation({
+    mutationFn: () => superAdminIsletmeApi.uyeGuncelle(tenantId, u.kullaniciId, { adSoyad: adSoyad.trim(), cinsiyet: cinsiyet as "kadin" | "erkek" }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["super-admin-isletme", tenantId] });
+      toast.success("Üye bilgileri güncellendi");
+      setDuzenle(false);
+    },
+    onError: () => toast.error("Üye güncellenemedi"),
+  });
+
+  const gecerli = adSoyad.trim().length > 0 && (cinsiyet === "kadin" || cinsiyet === "erkek");
+
+  if (duzenle) {
+    return (
+      <div className="py-2.5 px-3 rounded-lg bg-cream-100 dark:bg-ink-800/60 space-y-2.5">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input
+            value={adSoyad}
+            autoFocus
+            onChange={(e) => setAdSoyad(e.target.value)}
+            placeholder="Ad Soyad"
+            className="flex-1 rounded-lg border border-cream-300 dark:border-ink-700 bg-white dark:bg-ink-850 px-3 py-1.5 text-sm text-clay-900 dark:text-ink-50 focus:outline-none focus:ring-2 focus:ring-terracotta/40"
+          />
+          <select
+            value={cinsiyet}
+            onChange={(e) => setCinsiyet(e.target.value as "kadin" | "erkek" | "")}
+            className="rounded-lg border border-cream-300 dark:border-ink-700 bg-white dark:bg-ink-850 px-2 py-1.5 text-sm text-clay-900 dark:text-ink-50 focus:outline-none focus:ring-2 focus:ring-terracotta/40"
+          >
+            <option value="" disabled>Cinsiyet</option>
+            <option value="kadin">Kadın</option>
+            <option value="erkek">Erkek</option>
+          </select>
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[10px] text-clay-400 dark:text-ink-300 truncate inline-flex items-center gap-1 min-w-0">
+            <Mail className="h-3 w-3 shrink-0" /> {u.email} · e-posta değiştirilemez
+          </span>
+          <div className="flex gap-1.5 shrink-0">
+            <button onClick={() => setDuzenle(false)} className="px-2.5 py-1 text-xs text-clay-500 dark:text-ink-300 hover:text-clay-800 dark:hover:text-ink-100 transition-colors">İptal</button>
+            <button onClick={() => m.mutate()} disabled={!gecerli || m.isPending} className="px-3 py-1 text-xs rounded-lg bg-terracotta text-white hover:bg-terracotta/90 disabled:opacity-50 inline-flex items-center gap-1 transition-colors">
+              {m.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />} Kaydet
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex items-center gap-3 py-2.5 px-2 rounded-lg hover:bg-cream-100 dark:hover:bg-ink-800/50 transition-colors">
+    <div className="flex items-center gap-3 py-2.5 px-2 rounded-lg hover:bg-cream-100 dark:hover:bg-ink-800/50 transition-colors group">
       <div className="h-9 w-9 rounded-full bg-cream-300 dark:bg-ink-700 flex items-center justify-center text-xs font-semibold text-clay-600 dark:text-ink-200 shrink-0">
         {u.adSoyad.slice(0, 1).toUpperCase()}
       </div>
@@ -193,6 +249,13 @@ function UyeSatiri({ u }: { u: IsletmeUye }) {
           <span className="inline-flex items-center gap-1"><Clock className="h-2.5 w-2.5" /> {u.sonGiris ? tarih(u.sonGiris) : "hiç girmedi"}</span>
         </p>
       </div>
+      <button
+        onClick={() => setDuzenle(true)}
+        title="Üyeyi düzenle"
+        className="shrink-0 p-1.5 rounded-lg text-clay-400 hover:text-terracotta hover:bg-terracotta/10 transition-colors sm:opacity-0 sm:group-hover:opacity-100"
+      >
+        <Pencil className="h-3.5 w-3.5" />
+      </button>
       <span className={cn("shrink-0 text-[11px] font-medium px-2 py-1 rounded-full inline-flex items-center gap-1", durum.sinif)}>
         <DurumIkon className="h-3 w-3" /> {durum.etiket}
       </span>
