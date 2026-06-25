@@ -406,10 +406,19 @@ public static class SuperAdminIsletmeEndpoints
             var user = await db.Kullanicilar.FindAsync(new object[] { uc.KullaniciId.Value }, ct);
             if (user is null) return Results.Unauthorized();
 
+            // v19 G.6 - super admin hedef tenant'a ZATEN UYE ise normal yetkiyle girer (goruntuleme modu
+            // kapali, kendi tenant'i gibi yazabilir; JWT Role = tenant uyelik rolu). Uye degilse salt-okunur
+            // impersonation (mevcut B2 davranisi: 1 saat, goruntuleme_modu=true).
+            var hedefUyelik = await db.IsletmeUyelikleri
+                .FirstOrDefaultAsync(u => u.IsletmeId == id && u.KullaniciId == user.Id && u.Aktif, ct);
+            var hedefUyeMi = hedefUyelik is not null;
+
             // Gecici override: aktif tenant = hedef. SaveChanges YOK -> DB degismez, sadece token claim'i etkilenir.
             var gercekAktif = user.AktifIsletmeId;
             user.AktifIsletmeId = id;
-            var token = jwt.TokenUret(user, goruntulemeModu: true, sureSaat: 1);  // B2 - 1 saat salt-okunur impersonation
+            var token = hedefUyeMi
+                ? jwt.TokenUret(user, aktifRol: hedefUyelik!.Rol)              // uye: normal yetki, goruntuleme yok
+                : jwt.TokenUret(user, goruntulemeModu: true, sureSaat: 1);     // B2 - 1 saat salt-okunur impersonation
             user.AktifIsletmeId = gercekAktif;
 
             var gun = int.Parse(cfg["Jwt:GunOmru"] ?? "30");
