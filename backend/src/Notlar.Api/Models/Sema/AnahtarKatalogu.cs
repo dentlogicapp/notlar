@@ -182,6 +182,21 @@ public static class AnahtarKatalogu
             .Aciklama("Hatırlatma mailinde not başlığından önce görünür. Boş bırakılırsa varsayılan kullanılır.")
             .Sira(341).Varsayilan("Hatırlatmanın zamanı geldi.").Build(),
 
+        AnahtarTanim.Tanim("mail_hatirlatma_alt_baslik")
+            .Kategori(Kategori.Mail).Tip(AlanTipi.Metin)
+            .Placeholderlar("alici_ad")
+            .Etiket("Hatırlatıcı Maili Alt Başlığı")
+            .Yonlendirme("Başlıkta alıcının adından sonra gelen ifade. (Örn: 'hatırlatıcının zamanı geldi')")
+            .Aciklama("Mailin başlığında 'Ad, ...' biçiminde alıcı adından sonra görünür.")
+            .Sira(342).Varsayilan("hatırlatıcının zamanı geldi").Build(),
+
+        AnahtarTanim.Tanim("mail_hatirlatma_buton")
+            .Kategori(Kategori.Mail).Tip(AlanTipi.Metin)
+            .Etiket("Hatırlatıcı Maili Buton Metni")
+            .Yonlendirme("Nota gitme butonunun metni. (Örn: 'Notu Defterimde Aç', 'Nota Git')")
+            .Aciklama("Mailin altındaki butonun üzerinde görünür (ok işareti otomatik eklenir).")
+            .Sira(343).Varsayilan("Notu Defterimde Aç").Build(),
+
         AnahtarTanim.Tanim("mail_eklendi_konu")
             .Kategori(Kategori.Mail).Tip(AlanTipi.Subject)
             .Placeholderlar("alici_ad", "marka_adi")
@@ -198,6 +213,20 @@ public static class AnahtarKatalogu
             .Aciklama("Markaya eklendi mailinde giriş butonundan önce görünür.")
             .Sira(343).Varsayilan("Hesabınla artık bu markaya da erişebilirsin.").Build(),
 
+        AnahtarTanim.Tanim("mail_eklendi_alt_baslik")
+            .Kategori(Kategori.Mail).Tip(AlanTipi.Metin)
+            .Etiket("Markaya Eklendi Maili Alt Başlığı")
+            .Yonlendirme("Başlığın altındaki italik kısa ifade. (Örn: 'ekibe eklendiniz', 'aramıza hoş geldin')")
+            .Aciklama("Alıcının adının hemen altında görünür.")
+            .Sira(344).Varsayilan("ekibe eklendiniz").Build(),
+
+        AnahtarTanim.Tanim("mail_eklendi_buton")
+            .Kategori(Kategori.Mail).Tip(AlanTipi.Metin)
+            .Etiket("Markaya Eklendi Maili Buton Metni")
+            .Yonlendirme("Giriş butonunun metni. (Örn: 'Giriş Yap', 'Hemen Başla')")
+            .Aciklama("Mailin ortasındaki butonun üzerinde görünür.")
+            .Sira(345).Varsayilan("Giriş Yap").Build(),
+
         AnahtarTanim.Tanim("mail_sifre_konu")
             .Kategori(Kategori.Mail).Tip(AlanTipi.Subject)
             .Placeholderlar("alici_ad")
@@ -213,6 +242,27 @@ public static class AnahtarKatalogu
             .Yonlendirme("Şifre sıfırlama mailinde butondan önce gösterilecek açıklama. Geçerlilik süresi vb. burada belirtilebilir.")
             .Aciklama("Sıfırlama bağlantısı butonundan önce görünür.")
             .Sira(345).Varsayilan("Şifreni sıfırlamak için aşağıdaki bağlantıyı kullan.").Build(),
+
+        AnahtarTanim.Tanim("mail_sifre_baslik")
+            .Kategori(Kategori.Mail).Tip(AlanTipi.Metin)
+            .Etiket("Şifre Sıfırlama Maili Başlığı")
+            .Yonlendirme("Mailin en üstündeki büyük başlık. (Örn: 'Şifre sıfırlama isteği', 'Şifreni mi unuttun?')")
+            .Aciklama("Mailin ortasındaki büyük başlık metni.")
+            .Sira(346).Varsayilan("Şifre sıfırlama isteği").Build(),
+
+        AnahtarTanim.Tanim("mail_sifre_buton")
+            .Kategori(Kategori.Mail).Tip(AlanTipi.Metin)
+            .Etiket("Şifre Sıfırlama Maili Buton Metni")
+            .Yonlendirme("Şifre belirleme butonunun metni. (Örn: 'Yeni Şifre Belirle', 'Şifremi Sıfırla')")
+            .Aciklama("Sıfırlama bağlantısı butonunun üzerinde görünür.")
+            .Sira(347).Varsayilan("Yeni Şifre Belirle").Build(),
+
+        AnahtarTanim.Tanim("mail_sifre_not")
+            .Kategori(Kategori.Mail).Tip(AlanTipi.Metin)
+            .Etiket("Şifre Sıfırlama Maili Güvenlik Notu")
+            .Yonlendirme("Butonun altındaki güvenlik açıklaması. (Örn: 'Bu isteği sen yapmadıysan bu maili görmezden gelebilirsin.')")
+            .Aciklama("Talebi yapmayan kullanıcıyı rahatlatan kısa not.")
+            .Sira(348).Varsayilan("Bu isteği sen yapmadıysan bu maili görmezden gelebilirsin. Hesabın güvende, şifren değişmez.").Build(),
 
         AnahtarTanim.Tanim("iletisim_email")
             .Kategori(Kategori.Mail).Tip(AlanTipi.Subject)
