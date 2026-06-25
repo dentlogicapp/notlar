@@ -130,6 +130,31 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     bool gecersiz = durum is null || !durum.Aktif;
                     string sebep = "KULLANICI_PASIF_VEYA_SILINDI";
 
+                    // v19 K5 - super_admin DB-claim sync: mevcut kullanici super admin yapilinca/kaldirilinca
+                    // JWT eski kalir (claim guncel degil) -> RequireSuperAdmin 403 verir. Yeniden giris beklemeden
+                    // anlik yetki: claim != DB ise JWT'yi yenile (tenant gecis pattern; aktif tenant rolu korunur).
+                    if (!gecersiz && durum is not null)
+                    {
+                        var claimSuper = ctx.Principal?.FindFirst("super_admin")?.Value == "true";
+                        if (claimSuper != durum.SuperAdmin)
+                        {
+                            var saKullanici = await db.Kullanicilar.FirstAsync(u => u.Id == kullaniciId, ctx.HttpContext.RequestAborted);
+                            var saMevcutRol = ctx.Principal?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+                            var saJwt = ctx.HttpContext.RequestServices.GetRequiredService<Notlar.Api.Services.IJwtService>();
+                            var saYeniToken = saJwt.TokenUret(saKullanici, aktifRol: saMevcutRol);
+                            ctx.HttpContext.Response.Cookies.Append("auth_token", saYeniToken, new Microsoft.AspNetCore.Http.CookieOptions
+                            {
+                                HttpOnly = true,
+                                Secure = ctx.HttpContext.Request.IsHttps,
+                                SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax,
+                                Path = "/"
+                            });
+                            var saYeniJwt = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().ReadJwtToken(saYeniToken);
+                            var saKimlik = new System.Security.Claims.ClaimsIdentity(saYeniJwt.Claims, ctx.Principal!.Identity!.AuthenticationType);
+                            ctx.Principal = new System.Security.Claims.ClaimsPrincipal(saKimlik);
+                        }
+                    }
+
                     // v19 A3 - tenant scope üyelik kontrolü. Yönetimden üye pasifleştirilir/çıkarılırsa anlık çıkış.
                     // toggleAktif IsletmeUyelik.Aktif'i değiştirir; global Kullanici.Aktif değişmez -> eski kod kaçırıyordu.
                     // Super admin hariç: tenant üyeliği olmayabilir + görüntüleme modunda hedef tenant'a üye değildir.
