@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using Notlar.Api.Data;
 using Notlar.Api.Entities;
 using Notlar.Api.Models;
@@ -308,6 +309,61 @@ public static class AdminEndpoints
                 uyelik.Kullanici.SifreBelirlenmeZamani != null,
                 uyelik.Kullanici.KilitlenmeZamani != null,
                 uyelik.Kullanici.OlusturmaZamani, uyelik.Kullanici.SonGirisZamani,
+                notSayisi, klasorSayisi));
+        });
+
+        // v19 - Uye guncelleme (ad/soyad/cinsiyet). Email DEGISMEZ. AdSoyad navigation FK uzerinden
+        // tum not/klasor/akista aninda guncellenir; degisiklik audit + canli akisa yansir (tenant geneline enjekte).
+        g.MapPut("/kullanicilar/{id:guid}", async (
+            Guid id, KullaniciGuncelleIstegi req, AppDbContext db, IUserContext uc,
+            IAuditService audit, CancellationToken ct) =>
+        {
+            if (uc.AktifIsletmeId is null) return Results.Unauthorized();
+            if (uc.GoruntumeModu) return Results.StatusCode(403);
+            var tenantId = uc.AktifIsletmeId.Value;
+
+            var uyelik = await db.IsletmeUyelikleri
+                .Include(x => x.Kullanici)
+                .FirstOrDefaultAsync(x => x.IsletmeId == tenantId && x.KullaniciId == id, ct);
+            if (uyelik is null) return Results.NotFound();
+
+            if (string.IsNullOrWhiteSpace(req.AdSoyad))
+                return Results.BadRequest(new { hata = "AD_SOYAD_ZORUNLU", mesaj = "Ad soyad zorunlu." });
+            if (req.Cinsiyet != "kadin" && req.Cinsiyet != "erkek")
+                return Results.BadRequest(new { hata = "CINSIYET_GECERSIZ", mesaj = "Cinsiyet 'kadin' veya 'erkek' olmalı." });
+
+            var user = uyelik.Kullanici;
+            var eskiAd = user.AdSoyad;
+            var eskiCinsiyet = user.Cinsiyet ?? "";
+            var yeniAd = req.AdSoyad.Trim();
+            var adDegisti = eskiAd != yeniAd;
+            var cinsiyetDegisti = eskiCinsiyet != req.Cinsiyet;
+
+            if (adDegisti || cinsiyetDegisti)
+            {
+                user.AdSoyad = yeniAd;
+                user.Cinsiyet = req.Cinsiyet;
+                await db.SaveChangesAsync(ct);
+
+                var degisenler = new Dictionary<string, object>();
+                if (adDegisti) degisenler["adSoyad"] = new { eski = eskiAd, yeni = yeniAd };
+                if (cinsiyetDegisti) degisenler["cinsiyet"] = new { eski = eskiCinsiyet, yeni = req.Cinsiyet };
+                await audit.YazAsync("kullanici_guncellendi", "kullanici", id,
+                    degisenAlanlar: JsonSerializer.Serialize(degisenler),
+                    detay: user.Email, ct: ct);
+            }
+
+            var notSayisi = await db.Notlar.CountAsync(
+                n => n.OlusturanKullaniciId == id && !n.Silindi && n.IsletmeId == tenantId, ct);
+            var klasorSayisi = await db.Klasorler.CountAsync(
+                k => k.OlusturanKullaniciId == id && !k.SistemMi && !k.Silindi && k.IsletmeId == tenantId, ct);
+
+            return Results.Ok(new KullaniciYaniti(
+                id, user.Email, user.AdSoyad, uyelik.Rol, uyelik.Aktif,
+                user.Cinsiyet,
+                user.SifreBelirlenmeZamani != null,
+                user.KilitlenmeZamani != null,
+                user.OlusturmaZamani, user.SonGirisZamani,
                 notSayisi, klasorSayisi));
         });
 

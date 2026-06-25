@@ -20,7 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { adminApi } from "@/lib/api";
 import { useBen } from "@/lib/useBen";
 import { tarihFormat, bastari } from "@/lib/utils";
-import type { Kullanici } from "@/lib/types";
+import type { Kullanici, Cinsiyet } from "@/lib/types";
 
 const schema = z.object({
   email: z.string().email("Geçerli email gir"),
@@ -82,6 +82,7 @@ function Icerik() {
   });
 
   const [silDialogKullanici, setSilDialogKullanici] = useState<Kullanici | null>(null);
+  const [duzenleKullanici, setDuzenleKullanici] = useState<Kullanici | null>(null);
 
   return (
     <main className="min-h-screen pb-24">
@@ -152,6 +153,7 @@ function Icerik() {
                     onSifre={() => sifre.mutate(u.id)}
                     onToggle={() => toggle.mutate(u.id)}
                     onKilit={() => kilit.mutate(u.id)}
+                    onDuzenle={() => setDuzenleKullanici(u)}
                     onSil={() => setSilDialogKullanici(u)}
                   />
                 ))}
@@ -170,6 +172,14 @@ function Icerik() {
           beklemede={sil.isPending}
         />
       )}
+
+      {/* v19 - Üye düzenleme (ad/soyad/cinsiyet) */}
+      {duzenleKullanici && (
+        <KullaniciDuzenleDialog
+          kullanici={duzenleKullanici}
+          onClose={() => setDuzenleKullanici(null)}
+        />
+      )}
     </main>
   );
 }
@@ -183,9 +193,9 @@ function durumBilgisi(u: Kullanici): { etiket: string; sinif: string } {
   return { etiket: "Aktif", sinif: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300" };
 }
 
-function KullaniciSatiri({ u, onSifre, onToggle, onKilit, onSil }: {
+function KullaniciSatiri({ u, onSifre, onToggle, onKilit, onDuzenle, onSil }: {
   u: Kullanici;
-  onSifre: () => void; onToggle: () => void; onKilit: () => void; onSil: () => void;
+  onSifre: () => void; onToggle: () => void; onKilit: () => void; onDuzenle: () => void; onSil: () => void;
 }) {
   const durum = durumBilgisi(u);  // v19 A2 - tek dominant durum
   return (
@@ -218,6 +228,9 @@ function KullaniciSatiri({ u, onSifre, onToggle, onKilit, onSil }: {
       </td>
       <td className="py-3 px-4 text-right">
         <div className="inline-flex gap-0.5">
+          <Button variant="ghost" size="sm" onClick={onDuzenle} title="Düzenle">
+            <FileEdit className="h-4 w-4" />
+          </Button>
           <Button variant="ghost" size="sm" onClick={onSifre} title="Şifre sıfırla">
             <KeyRound className="h-4 w-4" />
           </Button>
@@ -317,6 +330,75 @@ function KullaniciEkleDialog() {
             <Button type="submit" disabled={m.isPending}>Davet Gönder</Button>
           </div>
         </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// v19 - Üye düzenleme: ad/soyad/cinsiyet. Email DEĞİŞMEZ (disabled gösterilir).
+// Kaydedince güncelleme tüm tenant içeriğine (not/klasör/akış) anında yansır.
+function KullaniciDuzenleDialog({ kullanici, onClose }: { kullanici: Kullanici; onClose: () => void }) {
+  const qc = useQueryClient();
+  const [adSoyad, setAdSoyad] = useState(kullanici.adSoyad);
+  const [cinsiyet, setCinsiyet] = useState<"kadin" | "erkek" | "">(
+    (kullanici.cinsiyet as "kadin" | "erkek") ?? ""
+  );
+
+  const m = useMutation({
+    mutationFn: () => adminApi.guncelleUser(kullanici.id, { adSoyad: adSoyad.trim(), cinsiyet: cinsiyet as Cinsiyet }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["users"] });
+      qc.invalidateQueries({ queryKey: ["notlar"] });
+      qc.invalidateQueries({ queryKey: ["klasorler"] });
+      toast.success("Üye bilgileri güncellendi");
+      onClose();
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const gecerli = adSoyad.trim().length > 0 && (cinsiyet === "kadin" || cinsiyet === "erkek");
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Üye Bilgilerini Düzenle</DialogTitle>
+          <DialogDescription>
+            E-posta değiştirilemez. Ad, soyad ve cinsiyet güncellemesi tüm tenant içeriğine anında yansır.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="duzenle-email">E-posta (değiştirilemez)</Label>
+            <Input id="duzenle-email" value={kullanici.email} disabled className="opacity-60 cursor-not-allowed" />
+          </div>
+          <div>
+            <Label htmlFor="duzenle-ad">Ad Soyad</Label>
+            <Input id="duzenle-ad" autoFocus value={adSoyad} onChange={(e) => setAdSoyad(e.target.value)} />
+          </div>
+          <div>
+            <Label htmlFor="duzenle-cinsiyet">Cinsiyet</Label>
+            <select
+              id="duzenle-cinsiyet"
+              value={cinsiyet}
+              onChange={(e) => setCinsiyet(e.target.value as "kadin" | "erkek" | "")}
+              className="h-11 w-full rounded-xl border border-clay-200 bg-white dark:bg-ink-850 px-4 text-[15px] text-clay-900 dark:text-ink-50 focus:outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta/15 transition-colors"
+            >
+              <option value="" disabled>Seç…</option>
+              <option value="kadin">Kadın</option>
+              <option value="erkek">Erkek</option>
+            </select>
+            <p className="text-[11px] text-clay-400 dark:text-ink-300 mt-1.5 italic leading-relaxed">
+              Cinsiyet, kişiselleştirilmiş mail hitabında kullanılır.
+            </p>
+          </div>
+          <div className="flex gap-2 justify-end pt-2">
+            <Button type="button" variant="outline" onClick={onClose}>İptal</Button>
+            <Button type="button" onClick={() => m.mutate()} disabled={!gecerli || m.isPending}>
+              {m.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Kaydet"}
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

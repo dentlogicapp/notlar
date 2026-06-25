@@ -10,6 +10,8 @@ public sealed record TokenDogrulamaYaniti(string Email, string AdSoyad, string A
 // User
 // Cinsiyet: "kadin" | "erkek" — zorunlu (Alt-3 davetiye + ileride raporlama için)
 public sealed record KullaniciOlusturIstegi(string Email, string AdSoyad, string Rol, string Cinsiyet);
+// v19 - uye guncelleme (email DEGISMEZ; ad/soyad/cinsiyet tenant geneline aninda yansir)
+public sealed record KullaniciGuncelleIstegi(string AdSoyad, string Cinsiyet);
 public sealed record KullaniciYaniti(
     Guid Id, string Email, string AdSoyad, string Rol, bool Aktif,
     string? Cinsiyet,

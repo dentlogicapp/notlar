@@ -200,6 +200,8 @@ export const adminApi = {
   listUsers: () => ist<Kullanici[]>("/api/admin/kullanicilar"),
   createUser: (data: { email: string; adSoyad: string; rol: "admin" | "kullanici"; cinsiyet: Cinsiyet }) =>
     ist<Kullanici>("/api/admin/kullanicilar", { method: "POST", body: JSON.stringify(data) }),
+  guncelleUser: (id: string, data: { adSoyad: string; cinsiyet: Cinsiyet }) =>
+    ist<Kullanici>(`/api/admin/kullanicilar/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   sifreSifirla: (id: string) =>
     ist<{ mesaj: string }>(`/api/admin/kullanicilar/${id}/sifre-sifirla`, { method: "POST" }),
   toggleAktif: (id: string) =>

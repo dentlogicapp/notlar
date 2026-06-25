@@ -84,7 +84,7 @@ public static class SuperAdminIsletmeEndpoints
         });
 
         // GET detay - salt-okunur (uyeler + doluluk + saglik). Duzenleme endpoint'i YOK (v19 read-only).
-        g.MapGet("/{id:guid}", async (Guid id, AppDbContext db, CancellationToken ct) =>
+        g.MapGet("/{id:guid}", async (Guid id, AppDbContext db, IIsletmeMetinService metinService, CancellationToken ct) =>
         {
             var i = await db.Isletmeler.FirstOrDefaultAsync(x => x.Id == id && !x.Silindi, ct);
             if (i is null)
@@ -141,9 +141,19 @@ public static class SuperAdminIsletmeEndpoints
             DateTimeOffset? sonAktivite = sonNot;
             if (sonGiris.HasValue && (sonAktivite is null || sonGiris > sonAktivite)) sonAktivite = sonGiris;
 
+            // Karsilama + sayac CANLI kaynaktan: isletme_metinleri (ana ekranin okudugu yer).
+            // isletmeler.KarsilamaBasligi/Sayac* kolonlari v15 kalintisidir; tenant duzenleyince guncellenmez.
+            var metinler = await metinService.TumunuGetirAsync(id, ct);
+            var metinSozluk = metinler.ToDictionary(m => m.Anahtar, m => m.Icerik, StringComparer.Ordinal);
+            string MetinAl(string anahtar) => metinSozluk.TryGetValue(anahtar, out var v) ? v : "";
+            var karsilamaCanli = MetinAl("dashboard_karsilama_basligi");
+            var sayacAktifCanli = MetinAl("sayac_aktif").Equals("true", StringComparison.OrdinalIgnoreCase);
+            var sayacBasligiCanli = MetinAl("sayac_aktif_cumle");
+            DateTime? sayacHedefCanli = DateTime.TryParse(MetinAl("sayac_hedef_tarihi"), out var dt) ? dt : null;
+
             return Results.Ok(new IsletmeDetayYaniti(
                 i.Id, i.MarkaAdi, i.MarkaEmoji, i.KullanimModu, i.Aktif,
-                i.KarsilamaBasligi, i.SayacAktif, i.SayacBasligi, i.SayacHedefTarihi,
+                karsilamaCanli, sayacAktifCanli, sayacBasligiCanli, sayacHedefCanli,
                 i.OlusturmaZamani, i.OlusturanSuperAdminId,
                 dolulukYuzde, saglik, toplamNot, toplamKlasor, sonAktivite, uyeler));
         });
