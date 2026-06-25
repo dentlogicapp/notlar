@@ -376,7 +376,7 @@ public sealed class EmailService : IEmailService
 <body style='margin:0;padding:0;background:#faf6ef;font-family:-apple-system,BlinkMacSystemFont,""Segoe UI"",Roboto,sans-serif;color:#3d2817;'>
 <table role='presentation' width='100%' cellpadding='0' cellspacing='0' border='0' style='padding:32px 12px;background:#faf6ef;'>
   <tr><td align='center'>
-    <table role='presentation' width='560' cellpadding='0' cellspacing='0' border='0' style='max-width:560px;background:#ffffff;border-radius:18px;border:1px solid #ebe3d4;overflow:hidden;'>
+    <table role='presentation' width='100%' cellpadding='0' cellspacing='0' border='0' style='max-width:560px;width:100%;background:#ffffff;border-radius:18px;border:1px solid #ebe3d4;overflow:hidden;'>
 
       <tr><td style='padding:40px 40px 8px;text-align:center;'>
         <div style='font-size:18px;color:#c4704d;line-height:1;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;'>{markaAdi}</div>
@@ -506,7 +506,7 @@ public sealed class EmailService : IEmailService
 <body style='margin:0;padding:0;background:#faf6ef;font-family:-apple-system,BlinkMacSystemFont,""Segoe UI"",Roboto,sans-serif;color:#3d2817;'>
 <table role='presentation' width='100%' cellpadding='0' cellspacing='0' border='0' style='padding:32px 12px;background:#faf6ef;'>
   <tr><td align='center'>
-    <table role='presentation' width='560' cellpadding='0' cellspacing='0' border='0' style='max-width:560px;background:#ffffff;border-radius:18px;border:1px solid #ebe3d4;overflow:hidden;'>
+    <table role='presentation' width='100%' cellpadding='0' cellspacing='0' border='0' style='max-width:560px;width:100%;background:#ffffff;border-radius:18px;border:1px solid #ebe3d4;overflow:hidden;'>
 
       <tr><td style='padding:40px 40px 8px;text-align:center;'>
         <div style='font-size:18px;color:#c4704d;line-height:1;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;'>{markaAdi}</div>
@@ -560,7 +560,7 @@ public sealed class EmailService : IEmailService
 <body style='margin:0;padding:0;background:#faf6ef;font-family:-apple-system,BlinkMacSystemFont,""Segoe UI"",Roboto,sans-serif;color:#3d2817;'>
 <table role='presentation' width='100%' cellpadding='0' cellspacing='0' border='0' style='padding:48px 16px;'>
   <tr><td align='center'>
-    <table role='presentation' width='560' cellpadding='0' cellspacing='0' border='0' style='max-width:560px;background:#ffffff;border-radius:16px;padding:48px 40px;border:1px solid #ebe3d4;'>
+    <table role='presentation' width='100%' cellpadding='0' cellspacing='0' border='0' style='max-width:560px;width:100%;background:#ffffff;border-radius:16px;padding:48px 40px;border:1px solid #ebe3d4;'>
       <tr><td>
         <div style='text-align:center;font-size:32px;color:#c4704d;margin-bottom:20px;line-height:1;'></div>
         <h1 style='font-family:Georgia,""Times New Roman"",serif;font-size:26px;color:#3d2817;margin:0 0 14px;text-align:center;font-weight:600;'>
@@ -634,7 +634,7 @@ public sealed class EmailService : IEmailService
 <body style='margin:0;padding:0;background:#faf6ef;font-family:-apple-system,BlinkMacSystemFont,""Segoe UI"",Roboto,sans-serif;color:#3d2817;'>
 <table role='presentation' width='100%' cellpadding='0' cellspacing='0' border='0' style='padding:32px 12px;background:#faf6ef;'>
   <tr><td align='center'>
-    <table role='presentation' width='560' cellpadding='0' cellspacing='0' border='0' style='max-width:560px;background:#ffffff;border-radius:18px;border:1px solid #ebe3d4;overflow:hidden;'>
+    <table role='presentation' width='100%' cellpadding='0' cellspacing='0' border='0' style='max-width:560px;width:100%;background:#ffffff;border-radius:18px;border:1px solid #ebe3d4;overflow:hidden;'>
 
       <!-- Üst kalp -->
       <tr><td style='padding:40px 40px 12px;text-align:center;'>

@@ -344,7 +344,7 @@ function Icerik() {
           </div>
         )}
 
-        <div className="grid lg:grid-cols-[1fr_minmax(0,400px)] gap-6">
+        <div className="space-y-6">
           <div className="kart p-6 space-y-6 min-h-[200px]">
           {sekmeMetinleri.length === 0 ? (
             <p className="text-sm text-clay-400 dark:text-ink-300 italic">Bu sekmede metin bulunmuyor.</p>
@@ -414,12 +414,12 @@ function Icerik() {
           )}
           </div>
 
-          <aside className="lg:sticky lg:top-24 self-start">
+          <div>
             <p className="text-xs italic text-clay-400 dark:text-ink-300 mb-2">Canlı Önizleme</p>
             <div data-tour-step="live-preview" className="kart p-5">
               <LivePreview sekme={sekme} degerler={degerler} mailAltSekme={mailAltSekme} />
             </div>
-          </aside>
+          </div>
         </div>
       </div>
 
