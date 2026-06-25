@@ -671,9 +671,9 @@ public sealed class EmailService : IEmailService
 
       <!-- v19 4-B: tenant duzenlenebilir giris metni (mail_hatirlatma_giris_metni) -->
       <tr><td style='padding:16px 40px 0;text-align:center;'>
-        <p style='color:#5d4a37;font-size:15px;line-height:1.7;margin:0;'>
-          {System.Net.WebUtility.HtmlEncode(girisMetni)}
-        </p>
+        <div style='color:#5d4a37;font-size:15px;line-height:1.7;'>
+          {girisMetni}
+        </div>
       </td></tr>
 
       <!-- İçerik kartı -->
