@@ -79,10 +79,11 @@ public sealed class HatirlaticiKontrolcusu : BackgroundService
                         ?? not.OlusturanKullanici;
 
                 var hedefler = HedefBul(kullanicilar, kuran, not);
+                // v19 - kime metni TUM alicilar + kuran ile canli uretilir (her hedefe ayni, sabit liste).
+                var kimeMetin = KimeMetinUret(hedefler, kuran);
 
                 foreach (var hedef in hedefler)
                 {
-                    var kimeMetin = KimeMetinUret(hedef, kuran);
 
                     // Uygulama içi bildirim
                     if (not.HatirlatmaSekli == "uygulama" || not.HatirlatmaSekli == "her_ikisi")
@@ -155,10 +156,19 @@ public sealed class HatirlaticiKontrolcusu : BackgroundService
         };
     }
 
-    private static string KimeMetinUret(Kullanici hedef, Kullanici kuran)
+    private static string KimeMetinUret(IReadOnlyList<Kullanici> hedefler, Kullanici kuran)
     {
-        // v19 P4 - cok-uyeli model: kuran perspektifi yerine kim kurdu bilgisi.
-        if (hedef.Id == kuran.Id) return "Sen kurdun · Sana hatırlatıldı";
-        return $"{kuran.AdSoyad} kurdu · Sana hatırlatıldı";
+        // v19 - canli: kuran + TUM alici isimleri (kisa ad). Ornek: "Musa D. hatirlaticiyi kurdu, Musa D., Hasan K.'e hatirlatildi".
+        var alicilar = string.Join(", ", hedefler.Select(h => KisaAd(h.AdSoyad)));
+        return $"{KisaAd(kuran.AdSoyad)} hatırlatıcıyı kurdu · {alicilar}'e hatırlatıldı";
+    }
+
+    // "Musa Deveci" -> "Musa D." | "Mehmet Ali Kaya" -> "Mehmet Ali K." | "Hasan" -> "Hasan"
+    private static string KisaAd(string adSoyad)
+    {
+        var p = (adSoyad ?? "").Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (p.Length == 0) return "";
+        if (p.Length == 1) return p[0];
+        return $"{string.Join(" ", p[..^1])} {char.ToUpper(p[^1][0])}.";
     }
 }
