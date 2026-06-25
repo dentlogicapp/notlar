@@ -288,7 +288,7 @@ function Icerik() {
       <CountdownWidget />
 
       <header className="sticky top-0 z-30 bg-cream-100/85 dark:bg-ink-800/85 backdrop-blur-md border-b border-cream-300 dark:border-ink-700/60">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
           <Link href="/admin" className="flex items-center gap-1 text-clay-600 dark:text-ink-100 hover:text-clay-900 dark:hover:text-ink-50 transition-colors min-w-0">
             <ChevronLeft className="h-5 w-5 shrink-0" />
             <span className="font-display text-base truncate">Marka &amp; Görünüm</span>
@@ -306,7 +306,7 @@ function Icerik() {
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6">
         <div className="flex items-center gap-3">
           <Palette className="h-6 w-6 text-terracotta" />
           <h1 className="font-display text-3xl text-clay-900 dark:text-ink-50">Marka &amp; Görünüm</h1>
@@ -344,7 +344,7 @@ function Icerik() {
           </div>
         )}
 
-        <div className="grid lg:grid-cols-[1fr_minmax(0,360px)] gap-6">
+        <div className="grid lg:grid-cols-[1fr_minmax(0,400px)] gap-6">
           <div className="kart p-6 space-y-6 min-h-[200px]">
           {sekmeMetinleri.length === 0 ? (
             <p className="text-sm text-clay-400 dark:text-ink-300 italic">Bu sekmede metin bulunmuyor.</p>
@@ -424,7 +424,7 @@ function Icerik() {
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 z-30 bg-cream-100/90 dark:bg-ink-800/90 backdrop-blur-md border-t border-cream-300 dark:border-ink-700/60">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
           <span className="text-xs flex items-center gap-1.5">
             {durum === "kaydediliyor" && (
               <><Loader2 className="h-3.5 w-3.5 animate-spin text-clay-500" /><span className="text-clay-500 dark:text-ink-300">Kaydediliyor...</span></>

@@ -143,12 +143,14 @@ export function LivePreview({ sekme, degerler, mailAltSekme = "davetiye" }: { se
           </div>
         ) : gercekHtml ? (
           <div className="relative">
-            <iframe
-              title="Gerçek mail önizleme"
-              srcDoc={gercekHtml}
-              className="w-full rounded-xl border border-cream-300 dark:border-ink-700 bg-white"
-              style={{ height: 520 }}
-            />
+            <div className="w-full rounded-xl border border-cream-300 dark:border-ink-700 bg-white overflow-hidden" style={{ height: 520 }}>
+              <iframe
+                title="Gerçek mail önizleme"
+                srcDoc={gercekHtml}
+                scrolling="no"
+                style={{ width: 560, height: 808, border: 0, transform: "scale(0.643)", transformOrigin: "top left", background: "#ffffff" }}
+              />
+            </div>
             {gercekYukleniyor && (
               <div className="absolute top-2 right-2 text-[10px] text-clay-500 bg-white/85 dark:bg-ink-900/85 px-2 py-0.5 rounded-md shadow-sm">güncelleniyor...</div>
             )}
