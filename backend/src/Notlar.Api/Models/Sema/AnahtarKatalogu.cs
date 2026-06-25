@@ -132,6 +132,46 @@ public static class AnahtarKatalogu
             .Aciklama("Hatırlatma zamanı geldiğinde gönderilen mail'in subject'i.")
             .Sira(340).Varsayilan("Hatırlatma: {not_basligi}").Build(),
 
+        AnahtarTanim.Tanim("mail_hatirlatma_giris_metni")
+            .Kategori(Kategori.Mail).Tip(AlanTipi.Body)
+            .Placeholderlar("not_basligi", "kullanici_adi")
+            .Etiket("Hatırlatıcı Maili Giriş Metni")
+            .Yonlendirme("Hatırlatma mailinin üst kısmında, not detayından önce gösterilecek açıklama. (Örn: 'Kurduğun hatırlatmanın zamanı geldi 🤍')")
+            .Aciklama("Hatırlatma mailinde not başlığından önce görünür. Boş bırakılırsa varsayılan kullanılır.")
+            .Sira(341).Varsayilan("Hatırlatmanın zamanı geldi.").Build(),
+
+        AnahtarTanim.Tanim("mail_eklendi_konu")
+            .Kategori(Kategori.Mail).Tip(AlanTipi.Subject)
+            .Placeholderlar("alici_ad", "marka_adi")
+            .Etiket("Markaya Eklendi Maili Konusu")
+            .Yonlendirme("Hesabı zaten olan bir kullanıcı yeni bir markaya eklendiğinde gönderilen mail'in konusu. (Örn: '{marka_adi} ekibine eklendin')")
+            .Aciklama("Mevcut hesap bir tenant'a üye yapıldığında gönderilir.")
+            .Sira(342).Varsayilan("{marka_adi} ekibine eklendin").Build(),
+
+        AnahtarTanim.Tanim("mail_eklendi_giris_metni")
+            .Kategori(Kategori.Mail).Tip(AlanTipi.Body)
+            .Placeholderlar("alici_ad", "marka_adi")
+            .Etiket("Markaya Eklendi Maili Giriş Metni")
+            .Yonlendirme("Kullanıcıya neden eklendiğini ve nasıl giriş yapacağını anlatan paragraf.")
+            .Aciklama("Markaya eklendi mailinde giriş butonundan önce görünür.")
+            .Sira(343).Varsayilan("Hesabınla artık bu markaya da erişebilirsin.").Build(),
+
+        AnahtarTanim.Tanim("mail_sifre_konu")
+            .Kategori(Kategori.Mail).Tip(AlanTipi.Subject)
+            .Placeholderlar("alici_ad")
+            .Etiket("Şifre Sıfırlama Maili Konusu")
+            .Yonlendirme("Şifre sıfırlama talebinde gönderilen mail'in konusu. (Örn: 'Şifre sıfırlama bağlantın')")
+            .Aciklama("Kullanıcı şifresini sıfırlamak istediğinde gönderilir.")
+            .Sira(344).Varsayilan("Şifre sıfırlama bağlantın").Build(),
+
+        AnahtarTanim.Tanim("mail_sifre_giris_metni")
+            .Kategori(Kategori.Mail).Tip(AlanTipi.Body)
+            .Placeholderlar("alici_ad")
+            .Etiket("Şifre Sıfırlama Maili Giriş Metni")
+            .Yonlendirme("Şifre sıfırlama mailinde butondan önce gösterilecek açıklama. Geçerlilik süresi vb. burada belirtilebilir.")
+            .Aciklama("Sıfırlama bağlantısı butonundan önce görünür.")
+            .Sira(345).Varsayilan("Şifreni sıfırlamak için aşağıdaki bağlantıyı kullan.").Build(),
+
         AnahtarTanim.Tanim("iletisim_email")
             .Kategori(Kategori.Mail).Tip(AlanTipi.Subject)
             .Limit(120).Kapsam(KapsamTipi.Tenant)

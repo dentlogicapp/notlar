@@ -15,7 +15,7 @@ public interface IEmailService
     Task MarkayaEklendiMailGonderAsync(string toEmail, string adSoyad, string girisLink, Guid isletmeId, CancellationToken ct = default);
     // v19 B5 - davet maili onizleme (gonderme yok, HTML render doner). markaAdi override (yeni tenant henuz yoksa).
     Task<string> DavetMailOnizleHtmlAsync(Guid isletmeId, string aliciAd, string? markaAdi, CancellationToken ct = default);
-    Task SifreSifirlamaMailGonderAsync(string toEmail, string adSoyad, string link, CancellationToken ct = default);
+    Task SifreSifirlamaMailGonderAsync(string toEmail, string adSoyad, string link, Guid? isletmeId, CancellationToken ct = default);
     // v18 - hatirlatma konusu isletme_metinleri'nden render edilir; body (Asama 6 kapsami disi) korunur.
     Task HatirlaticiMailGonderAsync(string toEmail, string aliciAdSoyad, string notBaslik, string? notIcerik,
         string? klasorAdi, string kimeMetin, DateTimeOffset hatirlatmaZamani, Guid notId, Guid isletmeId, CancellationToken ct = default);
@@ -115,8 +115,12 @@ public sealed class EmailService : IEmailService
         var imza = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailImza,
             "", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
 
-        var konu = $"{markaAdi} ekibine eklendiniz";
-        var html = MarkayaEklendiHtmlSablonu(aliciIlkAd, girisLink, imza, markaAdi);
+        var konu = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailEklendiKonu,
+            $"{markaAdi} ekibine eklendiniz", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
+        var girisMetni = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailEklendiGirisMetni,
+            $"<strong>{System.Net.WebUtility.HtmlEncode(markaAdi)}</strong> çalışma alanına eklendiniz. Zaten bir hesabınız olduğu için yeni bir şifre belirlemenize gerek yok. Mevcut e-posta adresiniz ve şifrenizle giriş yaparak bu çalışma alanına erişebilirsiniz.",
+            "davetiye", isletmeId, runtime, htmlEncode: false, ct);
+        var html = MarkayaEklendiHtmlSablonu(aliciIlkAd, girisLink, girisMetni, imza, markaAdi);
         var replyTo = sozluk.GetValueOrDefault(AnahtarKodu.IletisimEmail);
         await GonderAsync(toEmail, adSoyad, konu, html, ct, replyTo, fromAdOverride: markaAdi);
     }
@@ -172,12 +176,24 @@ public sealed class EmailService : IEmailService
         return (konu, html, sozluk.GetValueOrDefault(AnahtarKodu.IletisimEmail), markaAdi);
     }
 
-    public Task SifreSifirlamaMailGonderAsync(string toEmail, string adSoyad, string link, CancellationToken ct = default)
+    public async Task SifreSifirlamaMailGonderAsync(string toEmail, string adSoyad, string link, Guid? isletmeId, CancellationToken ct = default)
     {
         var ilkAd = adSoyad.Split(' ')[0];
-        var konu = "Şifre Sıfırlama";
-        var html = SifreSifirlamaHtmlSablonu(ilkAd, link);
-        return GonderAsync(toEmail, adSoyad, konu, html, ct);
+        var sozluk = isletmeId.HasValue
+            ? SozlukYap(await _metin.TumunuGetirAsync(isletmeId.Value, ct))
+            : new Dictionary<string, string>(StringComparer.Ordinal);
+        var runtime = new Dictionary<string, string>(StringComparer.Ordinal) { ["alici_ad"] = ilkAd };
+
+        var konu = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailSifreKonu,
+            "Şifre Sıfırlama", "sifre", isletmeId ?? Guid.Empty, runtime, htmlEncode: false, ct);
+        var girisMetni = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailSifreGirisMetni,
+            "Şifreni sıfırlamak için aşağıdaki bağlantıyı kullan.", "sifre", isletmeId ?? Guid.Empty, runtime, htmlEncode: false, ct);
+        var imza = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailImza,
+            "", "sifre", isletmeId ?? Guid.Empty, runtime, htmlEncode: false, ct);
+
+        var html = SifreSifirlamaHtmlSablonu(ilkAd, link, girisMetni, imza);
+        var replyTo = sozluk.GetValueOrDefault(AnahtarKodu.IletisimEmail);
+        await GonderAsync(toEmail, adSoyad, konu, html, ct, replyTo);
     }
 
     /// <summary>
@@ -194,8 +210,10 @@ public sealed class EmailService : IEmailService
         var runtime = new Dictionary<string, string>(StringComparer.Ordinal) { ["not_basligi"] = notBaslik };
         var konu = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailHatirlatmaKonu,
             $"Hatırlatma — \"{notBaslik}\"", "hatirlatma", isletmeId, runtime, htmlEncode: false, ct);
+        var girisMetni = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailHatirlatmaGirisMetni,
+            "Hatırlatmanın zamanı geldi.", "hatirlatma", isletmeId, runtime, htmlEncode: false, ct);
 
-        var html = HatirlaticiHtmlSablonu(aliciIlkAd, notBaslik, notIcerik, klasorAdi, kimeMetin, hatirlatmaZamani, notLink);
+        var html = HatirlaticiHtmlSablonu(aliciIlkAd, notBaslik, notIcerik, klasorAdi, kimeMetin, girisMetni, hatirlatmaZamani, notLink);
         await GonderAsync(toEmail, aliciAdSoyad, konu, html, ct, sozluk.GetValueOrDefault(AnahtarKodu.IletisimEmail));
     }
 
@@ -401,7 +419,7 @@ public sealed class EmailService : IEmailService
 
     // v19 bonus - mevcut kullanici bilgilendirme maili sablonu. Davetiye paletiyle tutarli (#faf6ef/#3d2817/#c4704d),
     // ama "sifre belirle" yerine "mevcut hesabinizla giris yapin" temasi (buton -> giris ekrani).
-    private static string MarkayaEklendiHtmlSablonu(string aliciIlkAd, string girisLink, string mailImza, string markaAdi)
+    private static string MarkayaEklendiHtmlSablonu(string aliciIlkAd, string girisLink, string girisMetni, string mailImza, string markaAdi)
     {
         var imzaBlok = string.IsNullOrWhiteSpace(mailImza) ? "" : $@"
       <tr><td style='padding:20px 40px 0;text-align:center;'>
@@ -437,7 +455,7 @@ public sealed class EmailService : IEmailService
 
       <tr><td style='padding:28px 40px 0;'>
         <div style='color:#5d4a37;font-size:15px;line-height:1.7;margin:0;text-align:justify;hyphens:auto;'>
-          <strong>{markaAdi}</strong> çalışma alanına eklendiniz. Zaten bir hesabınız olduğu için yeni bir şifre belirlemenize gerek yok. Mevcut e-posta adresiniz ve şifrenizle giriş yaparak bu çalışma alanına erişebilirsiniz.
+          {girisMetni}
         </div>
       </td></tr>
 
@@ -462,8 +480,12 @@ public sealed class EmailService : IEmailService
 </html>";
     }
 
-    private static string SifreSifirlamaHtmlSablonu(string ilkAd, string link)
+    private static string SifreSifirlamaHtmlSablonu(string ilkAd, string link, string girisMetni, string mailImza)
     {
+        var imzaBlok = string.IsNullOrWhiteSpace(mailImza) ? "" : $@"
+        <p style='color:#3d2817;font-size:14px;margin:24px 0 0;text-align:center;'>
+          <strong style='font-family:Georgia,""Times New Roman"",serif;color:#c4704d;font-size:16px;'>{WebUtility.HtmlEncode(mailImza)}</strong>
+        </p>";
         return $@"<!DOCTYPE html>
 <html lang='tr'>
 <head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'></head>
@@ -477,8 +499,7 @@ public sealed class EmailService : IEmailService
           Şifre sıfırlama isteği
         </h1>
         <p style='color:#5d4a37;font-size:15px;line-height:1.7;margin:0 0 28px;text-align:center;'>
-          Merhaba {ilkAd}, hesabın için şifre sıfırlama talebi alındı.
-          Aşağıdaki bağlantı <strong>1 saat</strong> geçerli.
+          {girisMetni}
         </p>
         <div style='text-align:center;margin:0 0 28px;'>
           <a href='{link}' style='display:inline-block;background:#3d2817;color:#faf6ef;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:500;font-size:15px;'>
@@ -489,6 +510,7 @@ public sealed class EmailService : IEmailService
           Bu isteği sen yapmadıysan bu maili görmezden gelebilirsin —
           hesabın güvende, şifren değişmez.
         </p>
+        {imzaBlok}
         <hr style='border:none;border-top:1px solid #ebe3d4;margin:32px 0 16px;'>
         <p style='color:#9c8a73;font-size:11px;text-align:center;margin:0;'>
           <a href='https://notlar.dentlogicapp.com' style='color:#9c8a73;text-decoration:none;'>notlar.dentlogicapp.com</a>
@@ -505,7 +527,7 @@ public sealed class EmailService : IEmailService
     /// Hatırlatıcı maili — kısa odaklı kart + CTA, Davetiye gibi 7 maddeli uzun değil.
     /// </summary>
     private static string HatirlaticiHtmlSablonu(string aliciIlkAd, string notBaslik, string? notIcerik,
-        string? klasorAdi, string kimeMetin, DateTimeOffset hatirlatmaZamani, string notLink)
+        string? klasorAdi, string kimeMetin, string girisMetni, DateTimeOffset hatirlatmaZamani, string notLink)
     {
         // İçerik 400 karaktere kadar (önceki 200 çok azdı)
         var icerikKisa = string.IsNullOrWhiteSpace(notIcerik)
@@ -558,6 +580,13 @@ public sealed class EmailService : IEmailService
         </h1>
         <p style='color:#c4704d;font-size:13px;margin:0;font-style:italic;letter-spacing:0.04em;'>
           {kimeMetni(kimeMetin)}
+        </p>
+      </td></tr>
+
+      <!-- v19 4-B: tenant duzenlenebilir giris metni (mail_hatirlatma_giris_metni) -->
+      <tr><td style='padding:16px 40px 0;text-align:center;'>
+        <p style='color:#5d4a37;font-size:15px;line-height:1.7;margin:0;'>
+          {System.Net.WebUtility.HtmlEncode(girisMetni)}
         </p>
       </td></tr>
 

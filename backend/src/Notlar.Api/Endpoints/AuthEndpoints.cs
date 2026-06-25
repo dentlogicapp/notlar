@@ -201,7 +201,7 @@ public static class AuthEndpoints
 
             var frontend = cfg["FrontendBaseUrl"] ?? "http://localhost:3000";
             var link = $"{frontend}/sifre-sifirla?token={token}";
-            await email.SifreSifirlamaMailGonderAsync(user.Email, user.AdSoyad, link, ct);
+            await email.SifreSifirlamaMailGonderAsync(user.Email, user.AdSoyad, link, user.AktifIsletmeId, ct);
 
             await audit.YazAsync("sifre_sifirla_istegi", "kullanici", user.Id, aktorEmail: mail, ct: ct);
             return Results.Ok(new { mesaj = "Eğer hesap varsa, sıfırlama bağlantısı gönderildi." });

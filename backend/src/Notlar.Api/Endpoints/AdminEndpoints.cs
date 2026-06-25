@@ -267,7 +267,7 @@ public static class AdminEndpoints
 
             var frontend = cfg["FrontendBaseUrl"] ?? "http://localhost:3000";
             var link = $"{frontend}/sifre-sifirla?token={token}";
-            await email.SifreSifirlamaMailGonderAsync(user.Email, user.AdSoyad, link, ct);
+            await email.SifreSifirlamaMailGonderAsync(user.Email, user.AdSoyad, link, tenantId, ct);
 
             await audit.YazAsync("admin_sifre_sifirla", "kullanici", user.Id,
                 detay: $"Hedef: {user.Email}", ct: ct);
