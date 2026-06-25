@@ -95,7 +95,8 @@ export interface NotOlusturOnerisi {
   icerik?: string | null;
   klasorId?: string | null;
   hatirlatmaZamani?: string | null;
-  hatirlatmaKime?: HatirlatmaKime | null;
+  hatirlatmaKime?: HatirlatmaKime | null;       // DEPRECATED v19 P4
+  hatirlatmaAliciIdler?: string[] | null;       // v19 P4 - secili uye id'leri
   hatirlatmaSekli?: HatirlatmaSekli | null;
 }
 
@@ -105,7 +106,8 @@ export interface NotGuncelleOnerisi {
   klasorId?: string | null;
   degisiklikAciklamasi?: string | null;
   hatirlatmaZamani?: string | null;
-  hatirlatmaKime?: HatirlatmaKime | null;
+  hatirlatmaKime?: HatirlatmaKime | null;       // DEPRECATED v19 P4
+  hatirlatmaAliciIdler?: string[] | null;       // v19 P4 - secili uye id'leri
   hatirlatmaSekli?: HatirlatmaSekli | null;
   hatirlatmaSil?: boolean;
 }
