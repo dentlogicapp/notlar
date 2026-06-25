@@ -179,7 +179,7 @@ public sealed class EmailService : IEmailService
                     "Hatırlatmanın zamanı geldi.", "hatirlatma", isletmeId, runtime, htmlEncode: false, ct);
                 return HatirlaticiHtmlSablonu(ilkAd, dummyBaslik,
                     "Sunum dosyasını gözden geçir, slaytları güncelle ve ekibe paylaş.",
-                    "Projeler", "kendine hatırlattın", girisMetni,
+                    "Projeler", "Ayşe Y. hatırlatıcıyı kurdu · Ayşe Y., Mehmet K.'e hatırlatıldı", girisMetni,
                     DateTimeOffset.UtcNow.AddDays(1), "#onizleme");
             }
             case "eklendi":
@@ -710,13 +710,7 @@ public sealed class EmailService : IEmailService
 </html>";
     }
 
-    // Hatırlatma "kime" alt-metni — 4 doğru varyant
-    private static string kimeMetni(string kime) => kime switch
-    {
-        "Sen kurdun · Sana hatırlatıldı" => kime,
-        "Sen kurdun · Aşkına ve sana hatırlatıldı" => kime,
-        "Aşkın kurdu · Sana hatırlatıldı" => kime,
-        "Aşkın kurdu · Aşkına ve sana hatırlatıldı" => kime,
-        _ => "Hatırlatıcı"
-    };
+    // Hatırlatma "kime" alt-metni - v19: canli (kuran + alicilar). Kullanici adi XSS'e karsi HTML encode edilir.
+    private static string kimeMetni(string kime) =>
+        string.IsNullOrWhiteSpace(kime) ? "Hatırlatıcı" : WebUtility.HtmlEncode(kime);
 }

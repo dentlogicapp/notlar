@@ -182,10 +182,13 @@ function Icerik() {
   // v19 6c - Test maili: admin kendi adresine ornek davetiye alir
   const [testGonderiliyor, setTestGonderiliyor] = useState(false);
   const testMailGonder = async () => {
+    // imza alt-sekmesi mail tipi degil (tum maillerde imza); davet ile test edilir.
+    const tip = (mailAltSekme === "davetiye" || mailAltSekme === "imza") ? "davet" : mailAltSekme;
+    const etiket = MAIL_ALT_SEKMELER.find((s) => s.kod === mailAltSekme)?.etiket ?? "Örnek";
     setTestGonderiliyor(true);
     try {
-      const r = await metinApi.testMail();
-      toast.success(`Örnek davetiye gönderildi: ${r.email}`, { duration: 2500 });
+      const r = await metinApi.testMail(tip);
+      toast.success(`${etiket} test maili gönderildi: ${r.email}`, { duration: 2500 });
     } catch {
       toast.error("Test maili gönderilemedi, tekrar deneyin");
     } finally {
@@ -389,7 +392,7 @@ function Icerik() {
                   type="button"
                   onClick={testMailGonder}
                   disabled={testGonderiliyor}
-                  title="Davetiye mailini kendi adresine ornek gonder"
+                  title="Bu sekmenin mailini kendi adresine örnek gönder"
                   className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-clay-500 dark:text-ink-300 hover:text-terracotta disabled:opacity-50 transition-colors shrink-0"
                 >
                   {testGonderiliyor ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}

@@ -346,7 +346,8 @@ export const metinApi = {
     ),
   onboardingDurum: () => ist<OnboardingDurum>("/api/admin/metinler/onboarding-durum"),
   // v19 6c - admin kendi adresine ornek davetiye (test mail)
-  testMail: () => ist<{ gonderildi: boolean; email: string }>("/api/admin/metinler/test-mail", { method: "POST" }),
+  // v19 6c/Is1 - sekmeye gore test maili (davet|hatirlatma|eklendi|sifre)
+  testMail: (tip?: string) => ist<{ gonderildi: boolean; email: string; tip: string }>("/api/admin/metinler/test-mail", { method: "POST", body: JSON.stringify({ tip: tip ?? "davet" }) }),
   // v18 Asama 17-E - welcome/davetiye onizleme test maili
   onboardingTestMail: (email: string, ad?: string) =>
     ist<{ gonderildi: boolean }>("/api/admin/onboarding-test-mail", {

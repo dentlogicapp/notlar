@@ -92,18 +92,38 @@ public static class MetinlerEndpoints
             return Results.NoContent();
         });
 
-        // POST /test-mail -> v19 6c: admin kendi adresine ornek davetiye alir (gercek token/kullanici OLUSTURMAZ).
-        // Mevcut davetiye render'i (SifreBelirleMailGonderAsync) reuse; link dummy (sadece gorsel onizleme).
-        g.MapPost("/test-mail", async (HttpContext http, IUserContext uc, IEmailService email,
+        // POST /test-mail -> v19 6c/Is1: admin kendi adresine SEKME tipindeki ornek maili alir (token OLUSTURMAZ; link dummy).
+        g.MapPost("/test-mail", async (TestMailIstegi? req, HttpContext http, IUserContext uc, IEmailService email,
             IAuditService audit, CancellationToken ct) =>
         {
             if (uc.AktifIsletmeId is null || string.IsNullOrWhiteSpace(uc.Email)) return Results.Unauthorized();
             if (GoruntulemeYazmaYok(http) is { } engel) return engel;
 
-            var dummyLink = "https://notlar.dentlogicapp.com/giris?onizleme=1";
-            await email.SifreBelirleMailGonderAsync(uc.Email, "Test", dummyLink, uc.AktifIsletmeId.Value, ct);
-            await audit.YazAsync("test_mail_gonderildi", "isletme", uc.AktifIsletmeId, detay: uc.Email, ct: ct);
-            return Results.Ok(new { gonderildi = true, email = uc.Email });
+            var tip = string.IsNullOrWhiteSpace(req?.Tip) ? "davet" : req!.Tip!;
+            var isletmeId = uc.AktifIsletmeId.Value;
+            var link = "https://notlar.dentlogicapp.com/giris?onizleme=1";
+
+            switch (tip)
+            {
+                case "hatirlatma":
+                    await email.HatirlaticiMailGonderAsync(uc.Email, "Test", "Cuma toplantısı hazırlığı",
+                        "Sunum dosyasını gözden geçir, slaytları güncelle ve ekibe paylaş.",
+                        "Projeler", "Ayşe Y. hatırlatıcıyı kurdu · Ayşe Y., Mehmet K.'e hatırlatıldı",
+                        DateTimeOffset.UtcNow.AddDays(1), Guid.NewGuid(), isletmeId, ct);
+                    break;
+                case "eklendi":
+                    await email.MarkayaEklendiMailGonderAsync(uc.Email, "Test", link, isletmeId, ct);
+                    break;
+                case "sifre":
+                    await email.SifreSifirlamaMailGonderAsync(uc.Email, "Test", link, isletmeId, ct);
+                    break;
+                default: // davet
+                    await email.SifreBelirleMailGonderAsync(uc.Email, "Test", link, isletmeId, ct);
+                    break;
+            }
+
+            await audit.YazAsync("test_mail_gonderildi", "isletme", uc.AktifIsletmeId, detay: $"{uc.Email} ({tip})", ct: ct);
+            return Results.Ok(new { gonderildi = true, email = uc.Email, tip });
         });
 
         // POST /mail-onizle -> v19 4-B/Is2: canli HTML onizleme (gonderme yok). Body'deki degerler kaydedilmemis
@@ -177,3 +197,4 @@ public static class MetinlerEndpoints
 }
 
 public record MailOnizleIstegi(string Tip, Dictionary<string, string>? Degerler);
+public record TestMailIstegi(string? Tip);
