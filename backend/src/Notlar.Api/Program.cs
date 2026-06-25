@@ -245,7 +245,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization(opt =>
 {
-    opt.AddPolicy("AdminOnly", p => p.RequireRole("admin"));
+    // v19 G.5 - super_admin de admin yetkisine sahip: sistem yoneticisi tum tenant'larda admin
+    // islemleri yapabilir. (Onceki hal sadece Role="admin" idi; global Rol="kullanici" + tenant
+    // Rol="admin" olan super admin, eski JWT veya uye-olmayan-tenant goruntulemede 403 aliyordu.)
+    // Yazma islemleri ayrica endpoint icinde GoruntulemeYazmaYok ile korunur (goruntuleme modu = salt okuma).
+    opt.AddPolicy("AdminOnly", p => p.RequireAssertion(ctx =>
+        ctx.User.IsInRole("admin") || ctx.User.HasClaim("super_admin", "true")));
 });
 
 // CORS — env-driven
