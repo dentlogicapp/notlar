@@ -106,6 +106,19 @@ public static class MetinlerEndpoints
             return Results.Ok(new { gonderildi = true, email = uc.Email });
         });
 
+        // GET /mail-onizle?tip=davet|hatirlatma|eklendi|sifre -> v19 4-B: canli HTML onizleme (gonderme yok).
+        // Tenant'in kendi metinleriyle render eder; panelde iframe icine basilir.
+        g.MapGet("/mail-onizle", async (string tip, IUserContext uc, IEmailService email, CancellationToken ct) =>
+        {
+            if (uc.AktifIsletmeId is null) return Results.Unauthorized();
+            var gecerli = new[] { "davet", "hatirlatma", "eklendi", "sifre" };
+            if (string.IsNullOrWhiteSpace(tip) || !gecerli.Contains(tip))
+                return Results.BadRequest(new { hata = "GECERSIZ_TIP", mesaj = "tip: davet|hatirlatma|eklendi|sifre" });
+
+            var html = await email.MailOnizleHtmlAsync(uc.AktifIsletmeId.Value, tip, ct);
+            return Results.Content(html, "text/html; charset=utf-8");
+        });
+
         // GET /{anahtar}/versiyonlar -> son 10 versiyon
         g.MapGet("/{anahtar}/versiyonlar", async (string anahtar, IUserContext uc, IIsletmeMetinService svc, CancellationToken ct) =>
         {

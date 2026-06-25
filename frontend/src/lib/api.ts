@@ -353,6 +353,14 @@ export const metinApi = {
       method: "POST",
       body: JSON.stringify({ email, ad }),
     }),
+  // v19 4-B - gercek mail HTML onizleme (tip: davet|hatirlatma|eklendi|sifre). text/html doner, ist() degil.
+  mailOnizle: async (tip: string): Promise<string> => {
+    const res = await fetch(`${API}/api/admin/metinler/mail-onizle?tip=${encodeURIComponent(tip)}`, {
+      credentials: "include",
+    });
+    if (!res.ok) throw new Error("Önizleme alınamadı");
+    return res.text();
+  },
 };
 
 // v18 Asama 11/12 - AI taslak oneri (saglik durumu + taslak uretme). Saglayicidan habersiz.

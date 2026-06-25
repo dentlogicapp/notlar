@@ -15,6 +15,8 @@ public interface IEmailService
     Task MarkayaEklendiMailGonderAsync(string toEmail, string adSoyad, string girisLink, Guid isletmeId, CancellationToken ct = default);
     // v19 B5 - davet maili onizleme (gonderme yok, HTML render doner). markaAdi override (yeni tenant henuz yoksa).
     Task<string> DavetMailOnizleHtmlAsync(Guid isletmeId, string aliciAd, string? markaAdi, CancellationToken ct = default);
+    // v19 4-B - genel mail onizleme: tip = davet | hatirlatma | eklendi | sifre (gonderme yok, dummy verilerle render).
+    Task<string> MailOnizleHtmlAsync(Guid isletmeId, string tip, CancellationToken ct = default);
     Task SifreSifirlamaMailGonderAsync(string toEmail, string adSoyad, string link, Guid? isletmeId, CancellationToken ct = default);
     // v18 - hatirlatma konusu isletme_metinleri'nden render edilir; body (Asama 6 kapsami disi) korunur.
     Task HatirlaticiMailGonderAsync(string toEmail, string aliciAdSoyad, string notBaslik, string? notIcerik,
@@ -131,6 +133,58 @@ public sealed class EmailService : IEmailService
     {
         var (_, html, _, _) = await DavetMailRenderAsync(aliciAd, "#onizleme", isletmeId, ct, markaAdi);
         return html;
+    }
+
+    // v19 4-B - genel mail onizleme. Davet mevcut render'i reuse; diger 3 tip dummy verilerle sablonu
+    // dogrudan render eder (sablon tek kaynak; gonderim metodlariyla ayni sablonu cagirir, gonderme yok).
+    public async Task<string> MailOnizleHtmlAsync(Guid isletmeId, string tip, CancellationToken ct = default)
+    {
+        const string dummyAd = "Ayşe Yılmaz";
+        const string ilkAd = "Ayşe";
+
+        if (tip == "davet")
+        {
+            var (_, davetHtml, _, _) = await DavetMailRenderAsync(dummyAd, "#onizleme", isletmeId, ct);
+            return davetHtml;
+        }
+
+        var sozluk = SozlukYap(await _metin.TumunuGetirAsync(isletmeId, ct));
+        var runtime = new Dictionary<string, string>(StringComparer.Ordinal) { ["alici_ad"] = ilkAd };
+        var markaAdi = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MarkaAdi,
+            "Markanız", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
+        runtime["marka_adi"] = markaAdi;
+        var imza = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailImza,
+            "", "davetiye", isletmeId, runtime, htmlEncode: false, ct);
+
+        switch (tip)
+        {
+            case "hatirlatma":
+            {
+                const string dummyBaslik = "Cuma toplantısı hazırlığı";
+                runtime["not_basligi"] = dummyBaslik;
+                var girisMetni = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailHatirlatmaGirisMetni,
+                    "Hatırlatmanın zamanı geldi.", "hatirlatma", isletmeId, runtime, htmlEncode: false, ct);
+                return HatirlaticiHtmlSablonu(ilkAd, dummyBaslik,
+                    "Sunum dosyasını gözden geçir, slaytları güncelle ve ekibe paylaş.",
+                    "Projeler", "kendine hatırlattın", girisMetni,
+                    DateTimeOffset.UtcNow.AddDays(1), "#onizleme");
+            }
+            case "eklendi":
+            {
+                var girisMetni = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailEklendiGirisMetni,
+                    $"<strong>{WebUtility.HtmlEncode(markaAdi)}</strong> çalışma alanına eklendiniz. Mevcut e-posta adresiniz ve şifrenizle giriş yaparak bu çalışma alanına erişebilirsiniz.",
+                    "davetiye", isletmeId, runtime, htmlEncode: false, ct);
+                return MarkayaEklendiHtmlSablonu(ilkAd, "#onizleme", girisMetni, imza, markaAdi);
+            }
+            case "sifre":
+            {
+                var girisMetni = await CozVeyaFallbackAsync(sozluk, AnahtarKodu.MailSifreGirisMetni,
+                    "Şifreni sıfırlamak için aşağıdaki bağlantıyı kullan.", "sifre", isletmeId, runtime, htmlEncode: false, ct);
+                return SifreSifirlamaHtmlSablonu(ilkAd, "#onizleme", girisMetni, imza);
+            }
+            default:
+                throw new ArgumentException($"Bilinmeyen mail önizleme tipi: {tip}");
+        }
     }
 
     // Ortak davet maili render mantigi (gonder + onizleme paylasir; paralel yapi yok).

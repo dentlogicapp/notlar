@@ -40,15 +40,19 @@ const KATEGORI_BASLIK: Record<string, string> = {
 
 // v19 6c - Mail sekmesi alt-gruplari. Anahtar prefix ile eslesir (Sifir Sablon:
 // yeni mail_davetiye_* / mail_hatirlatma_* anahtari otomatik dogru gruba duser).
-type MailAltGrup = "davetiye" | "hatirlatma" | "imza";
+type MailAltGrup = "davetiye" | "hatirlatma" | "eklendi" | "sifre" | "imza";
 const MAIL_ALT_SEKMELER: { kod: MailAltGrup; etiket: string }[] = [
   { kod: "davetiye", etiket: "Davetiye" },
   { kod: "hatirlatma", etiket: "Hatırlatma" },
+  { kod: "eklendi", etiket: "Markaya Eklendi" },
+  { kod: "sifre", etiket: "Şifre Sıfırlama" },
   { kod: "imza", etiket: "İmza & Genel" },
 ];
 function mailAltGrup(anahtar: string): MailAltGrup {
   if (anahtar.startsWith("mail_davetiye")) return "davetiye";
   if (anahtar.startsWith("mail_hatirlatma")) return "hatirlatma";
+  if (anahtar.startsWith("mail_eklendi")) return "eklendi";
+  if (anahtar.startsWith("mail_sifre")) return "sifre";
   return "imza"; // mail_imza, mail_tonu, iletisim_email ve diger mail anahtarlari
 }
 

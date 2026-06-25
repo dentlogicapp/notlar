@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Clock } from "lucide-react";
 import { cozMetin } from "@/lib/useIsletmeMetinleri";
+import { metinApi } from "@/lib/api";
 import { sayacHesapla, hedefMsCoz, type SayacDurum } from "@/lib/sayac";
 
 // v18 - Live Preview: marka sayfasinda field duzenlenirken anlik dinamik onizleme.
@@ -10,6 +11,29 @@ import { sayacHesapla, hedefMsCoz, type SayacDurum } from "@/lib/sayac";
 export function LivePreview({ sekme, degerler, mailAltSekme = "davetiye" }: { sekme: string; degerler: Record<string, string>; mailAltSekme?: string }) {
   const [sk, setSk] = useState<SayacDurum>({ gecti: false, gun: 0, sa: 0, dk: 0, sn: 0 });
   const hedefMs = hedefMsCoz(degerler["sayac_hedef_tarihi"] ?? "");
+
+  // v19 4-B - gercek mail HTML onizleme (kayitli metinlerle, iframe). Alt-sekme degisince temizlenir.
+  const [gercekHtml, setGercekHtml] = useState<string | null>(null);
+  const [gercekYukleniyor, setGercekYukleniyor] = useState(false);
+  const [gercekHata, setGercekHata] = useState<string | null>(null);
+  useEffect(() => {
+    setGercekHtml(null);
+    setGercekHata(null);
+  }, [mailAltSekme]);
+
+  async function gercekOnizleAc() {
+    const tip = mailAltSekme === "davetiye" ? "davet" : mailAltSekme;
+    setGercekYukleniyor(true);
+    setGercekHata(null);
+    try {
+      const html = await metinApi.mailOnizle(tip);
+      setGercekHtml(html);
+    } catch {
+      setGercekHata("Önizleme alınamadı. Önce değişiklikleri kaydedin.");
+    } finally {
+      setGercekYukleniyor(false);
+    }
+  }
 
   useEffect(() => {
     if (hedefMs === null) return;
@@ -130,6 +154,37 @@ export function LivePreview({ sekme, degerler, mailAltSekme = "davetiye" }: { se
             : <p style={{ color: "#b8a890", fontSize: 12, textAlign: "center", margin: 0, fontStyle: "italic" }}>(imza girilmedi — varsayılan kullanılır)</p>}
         </>
       );
+    } else if (mailAltSekme === "eklendi") {
+      konu = c("mail_eklendi_konu") || `${markaAdi} ekibine eklendiniz`;
+      altNot = "Markaya eklendi maili - mevcut hesaba bilgilendirme";
+      const giris = c("mail_eklendi_giris_metni") || `<strong>${markaAdi}</strong> çalışma alanına eklendiniz. Mevcut hesabınızla giriş yapabilirsiniz.`;
+      govde = (
+        <>
+          {markaLogo}
+          <h3 style={{ fontFamily: "Georgia, serif", fontSize: 20, color: "#3d2817", margin: "6px 0 4px", textAlign: "center", fontWeight: 600 }}>Ayşe,</h3>
+          <p style={{ color: "#c4704d", fontSize: 12, textAlign: "center", margin: "0 0 10px", fontStyle: "italic" }}>ekibe eklendiniz</p>
+          <div style={{ color: "#5d4a37", fontSize: 12.5, lineHeight: 1.7, textAlign: "justify", margin: "10px 0 0" }} dangerouslySetInnerHTML={{ __html: giris }} />
+          <div style={{ textAlign: "center", margin: "18px 0 4px" }}>
+            <span style={{ display: "inline-block", background: "#3d2817", color: "#faf6ef", padding: "10px 22px", borderRadius: 8, fontSize: 12.5, fontWeight: 500 }}>Giriş Yap</span>
+          </div>
+          {imza && <p style={{ color: "#9c8a73", fontSize: 12, textAlign: "center", margin: "16px 0 0", fontStyle: "italic", whiteSpace: "pre-wrap" }}>{imza}</p>}
+        </>
+      );
+    } else if (mailAltSekme === "sifre") {
+      konu = c("mail_sifre_konu") || "Şifre Sıfırlama";
+      altNot = "Şifre sıfırlama maili önizleme";
+      const giris = c("mail_sifre_giris_metni") || "Şifreni sıfırlamak için aşağıdaki bağlantıyı kullan.";
+      govde = (
+        <>
+          {markaLogo}
+          <h3 style={{ fontFamily: "Georgia, serif", fontSize: 18, color: "#3d2817", margin: "6px 0 10px", textAlign: "center", fontWeight: 600 }}>Şifre sıfırlama isteği</h3>
+          <div style={{ color: "#5d4a37", fontSize: 12.5, lineHeight: 1.7, textAlign: "center", margin: 0 }} dangerouslySetInnerHTML={{ __html: giris }} />
+          <div style={{ textAlign: "center", margin: "18px 0 4px" }}>
+            <span style={{ display: "inline-block", background: "#3d2817", color: "#faf6ef", padding: "10px 22px", borderRadius: 8, fontSize: 12.5, fontWeight: 500 }}>Yeni Şifre Belirle</span>
+          </div>
+          {imza && <p style={{ color: "#9c8a73", fontSize: 12, textAlign: "center", margin: "16px 0 0", fontStyle: "italic", whiteSpace: "pre-wrap" }}>{imza}</p>}
+        </>
+      );
     } else {
       konu = c("mail_davetiye_konu") || "(mail konusu girilmedi)";
       altNot = "Davetiye maili — alıcının göreceği görünüm";
@@ -179,6 +234,26 @@ export function LivePreview({ sekme, degerler, mailAltSekme = "davetiye" }: { se
           </div>
         </div>
         <p className="text-[10px] italic text-clay-400 dark:text-ink-300">{altNot}</p>
+        {mailAltSekme !== "imza" && (
+          <div className="pt-1">
+            <button
+              onClick={gercekOnizleAc}
+              disabled={gercekYukleniyor}
+              className="text-[11px] font-medium text-clay-600 dark:text-ink-200 underline underline-offset-2 hover:text-clay-800 disabled:opacity-50"
+            >
+              {gercekYukleniyor ? "Yükleniyor..." : gercekHtml ? "Önizlemeyi yenile" : "Gerçek mail önizlemesi"}
+            </button>
+            {gercekHata && <p className="text-[10px] text-red-500 mt-1">{gercekHata}</p>}
+            {gercekHtml && (
+              <iframe
+                title="Gerçek mail önizleme"
+                srcDoc={gercekHtml}
+                className="w-full mt-2 rounded-lg border border-cream-300 dark:border-ink-700"
+                style={{ height: 420, background: "#fff" }}
+              />
+            )}
+          </div>
+        )}
       </div>
     );
   }
