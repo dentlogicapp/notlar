@@ -28,6 +28,10 @@ export function MetinAlani({
   const tarihMi = metin.anahtar === "sayac_hedef_tarihi";
   const genis = metin.tip === "body" || metin.tip === "metin";
   const minRows = genis ? 3 : 1;
+  // v19 Is3 - kutu ici soluk placeholder = VARSAYILAN deger (body HTML ise etiketler temizlenir).
+  // Varsayilan yoksa doldurma ipucuna (yonlendirme) duser. Alan altinda ayrica ipucu + "Varsayilan" satiri gosterilir.
+  const varsayilanDuz = (metin.varsayilan ?? "").replace(/<[^>]+>/g, "").trim();
+  const kutuPlaceholder = varsayilanDuz || metin.yonlendirme || "";
 
   // auto-resize: icerik kadar yukseklik (bos -> yonlendirme satiri, dolu -> tam okunur)
   useEffect(() => {
@@ -81,7 +85,7 @@ export function MetinAlani({
         <RichTextInput
           value={deger}
           onChange={(html) => onDegis(metin.anahtar, html)}
-          placeholder={metin.yonlendirme}
+          placeholder={kutuPlaceholder}
           hata={!!hata}
         />
       ) : (
@@ -89,24 +93,27 @@ export function MetinAlani({
           ref={taRef}
           rows={minRows}
           value={deger}
-          placeholder={metin.yonlendirme}
+          placeholder={kutuPlaceholder}
           onChange={(e) => onDegis(metin.anahtar, e.target.value)}
           className={ortakClass + " resize-y leading-relaxed overflow-hidden"}
         />
       )}
 
       <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 space-y-0.5">
           {hata ? (
             <p className="text-xs text-red-600 dark:text-red-400 leading-relaxed">{hata}</p>
           ) : (
             <>
+              {metin.yonlendirme && (
+                <p className="text-xs text-clay-400 dark:text-ink-300 leading-relaxed">{metin.yonlendirme}</p>
+              )}
               {metin.aciklama && (
                 <p className="text-xs text-clay-400 dark:text-ink-300 leading-relaxed">{metin.aciklama}</p>
               )}
-              {metin.varsayilan && metin.tip !== "body" && (
-                <p className="text-[11px] text-clay-400 dark:text-ink-300 italic mt-0.5 truncate">
-                  Varsayılan: "{metin.varsayilan}"
+              {varsayilanDuz && (
+                <p className="text-[11px] text-clay-400 dark:text-ink-300 italic leading-relaxed line-clamp-2">
+                  Varsayılan: "{varsayilanDuz}"
                 </p>
               )}
             </>
