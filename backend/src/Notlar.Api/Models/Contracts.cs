@@ -123,7 +123,14 @@ public sealed record NotYaniti(
     bool HatirlatmaGonderildiMi,
     // Kilit
     string? KilitSahibiAdi,
-    Guid? EskiKlasorId);
+    Guid? EskiKlasorId,
+    // v19 - read receipts: avatar yigini + yeni/degisen tespiti (BenimSonGorme < GuncellemeZamani -> degismis)
+    int OkuyanSayisi,
+    IReadOnlyList<NotOkuyanYaniti> Okuyanlar,
+    DateTimeOffset? BenimSonGorme);
+
+// v19 - not okuyan ozeti (avatar yigini icin)
+public sealed record NotOkuyanYaniti(Guid KullaniciId, string AdSoyad, DateTimeOffset OkunmaZamani);
 
 public sealed record NotGecmisiYaniti(
     Guid Id, string Eylem, string? Aciklama,

@@ -12,6 +12,7 @@ public sealed class AppDbContext : DbContext
     public DbSet<Klasor> Klasorler => Set<Klasor>();
     public DbSet<Not> Notlar => Set<Not>();
     public DbSet<NotGecmisi> NotGecmisleri => Set<NotGecmisi>();
+    public DbSet<NotOkunma> NotOkunmalari => Set<NotOkunma>();  // v19 - read receipts
     public DbSet<DenetimGunlugu> DenetimGunlukleri => Set<DenetimGunlugu>();
     public DbSet<Bildirim> Bildirimler => Set<Bildirim>();
     // v15 — Multi-tenant
@@ -263,6 +264,18 @@ public sealed class AppDbContext : DbContext
              .HasForeignKey(x => x.IsletmeId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne<Kullanici>().WithMany()
              .HasForeignKey(x => x.OlusturanKullaniciId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // v19 - not_okunmalari (read receipts). UNIQUE(NotId,KullaniciId) -> bir kullanici bir notu bir kez.
+        m.Entity<NotOkunma>(e =>
+        {
+            e.ToTable("not_okunmalari");
+            e.HasKey(x => x.Id);
+            e.HasOne(x => x.Not).WithMany().HasForeignKey(x => x.NotId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Kullanici).WithMany().HasForeignKey(x => x.KullaniciId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Isletme>().WithMany().HasForeignKey(x => x.IsletmeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.NotId, x.KullaniciId }).IsUnique();
+            e.HasIndex(x => x.IsletmeId);
         });
     }
 }

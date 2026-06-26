@@ -620,6 +620,19 @@ using (var scope = app.Services.CreateScope())
             CREATE INDEX IF NOT EXISTS ""IX_isletme_metin_versiyonlari_kayit""
                 ON isletme_metin_versiyonlari (""IsletmeId"", ""Anahtar"", ""Versiyon"" DESC);
 
+            -- 16b. v19 not_okunmalari (read receipts). UNIQUE(NotId,KullaniciId): bir kullanici bir notu bir kez.
+            CREATE TABLE IF NOT EXISTS not_okunmalari (
+                ""Id"" uuid PRIMARY KEY,
+                ""IsletmeId"" uuid NOT NULL REFERENCES isletmeler(""Id"") ON DELETE CASCADE,
+                ""NotId"" uuid NOT NULL REFERENCES notlar(""Id"") ON DELETE CASCADE,
+                ""KullaniciId"" uuid NOT NULL REFERENCES kullanicilar(""Id"") ON DELETE CASCADE,
+                ""OkunmaZamani"" timestamptz NOT NULL DEFAULT now()
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS ""IX_not_okunmalari_NotId_KullaniciId""
+                ON not_okunmalari (""NotId"", ""KullaniciId"");
+            CREATE INDEX IF NOT EXISTS ""IX_not_okunmalari_IsletmeId""
+                ON not_okunmalari (""IsletmeId"");
+
             -- 17a. v18 mail_tonu katalog guvence (Asama 11 seed ile ayni, idempotent emniyet)
             INSERT INTO metin_anahtarlari (
                 ""Id"",""Anahtar"",""Etiket"",""Yonlendirme"",""Aciklama"",""Tip"",""Zorunlu"",""DesteklenenPlaceholderlar"",""Sira"",""Kategori"",""Deprecated"",""OlusturmaZamani"",""GuncellemeZamani""

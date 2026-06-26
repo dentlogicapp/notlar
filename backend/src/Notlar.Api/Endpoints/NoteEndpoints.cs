@@ -50,6 +50,24 @@ public static class NoteEndpoints
                     .ToDictionaryAsync(u => u.Id, u => u.AdSoyad, ct)
                 : new Dictionary<Guid, string>();
 
+            // v19 - read receipts: tum notlarin okuyanlari tek toplu sorguda (N+1 yok)
+            var notIds = notlar.Select(n => n.Id).ToList();
+            var okumalar = await db.NotOkunmalari
+                .Where(o => notIds.Contains(o.NotId))
+                .Select(o => new { o.NotId, o.KullaniciId, o.Kullanici.AdSoyad, o.OkunmaZamani })
+                .ToListAsync(ct);
+            var okuyanByNot = okumalar
+                .GroupBy(o => o.NotId)
+                .ToDictionary(
+                    grp => grp.Key,
+                    grp => (IReadOnlyList<NotOkuyanYaniti>)grp
+                        .OrderByDescending(x => x.OkunmaZamani)
+                        .Select(x => new NotOkuyanYaniti(x.KullaniciId, x.AdSoyad, x.OkunmaZamani))
+                        .ToList());
+            var benimOkumalarim = okumalar
+                .Where(o => o.KullaniciId == uc.KullaniciId)
+                .ToDictionary(o => o.NotId, o => o.OkunmaZamani);
+
             var list = notlar.Select(n =>
             {
                 string? sahibi = null;
@@ -60,7 +78,9 @@ public static class NoteEndpoints
                 {
                     kilitSahipleri.TryGetValue(n.KilitKullaniciId.Value, out sahibi);
                 }
-                return MapYanit(n, sahibi);
+                okuyanByNot.TryGetValue(n.Id, out var oks);
+                DateTimeOffset? benim = benimOkumalarim.TryGetValue(n.Id, out var bv) ? bv : null;
+                return MapYanit(n, sahibi, oks, benim);
             }).ToList();
 
             return Results.Ok(list);
@@ -498,9 +518,30 @@ public static class NoteEndpoints
                 .ToListAsync(ct);
             return Results.Ok(list);
         });
+
+        // v19 - read receipt: notu okundu isaretle (scroll ile gorununce). Upsert: OkunmaZamani=now.
+        g.MapPost("/{id:guid}/okundu", async (Guid id, AppDbContext db, IUserContext uc, CancellationToken ct) =>
+        {
+            if (uc.AktifIsletmeId is null || uc.KullaniciId is null) return Results.Unauthorized();
+            var tenantId = uc.AktifIsletmeId.Value;
+            var kid = uc.KullaniciId.Value;
+
+            // Tenant izolasyon: not bu tenant'a ait mi
+            var notVar = await db.Notlar.AnyAsync(n => n.Id == id && n.IsletmeId == tenantId, ct);
+            if (!notVar) return Results.NotFound();
+
+            var mevcut = await db.NotOkunmalari.FirstOrDefaultAsync(o => o.NotId == id && o.KullaniciId == kid, ct);
+            if (mevcut is null)
+                db.NotOkunmalari.Add(new NotOkunma { IsletmeId = tenantId, NotId = id, KullaniciId = kid, OkunmaZamani = DateTimeOffset.UtcNow });
+            else
+                mevcut.OkunmaZamani = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync(ct);
+            return Results.Ok(new { ok = true });
+        });
     }
 
-    private static NotYaniti MapYanit(Not n, string? kilitSahibiAdi = null) => new(
+    private static NotYaniti MapYanit(Not n, string? kilitSahibiAdi = null,
+        IReadOnlyList<NotOkuyanYaniti>? okuyanlar = null, DateTimeOffset? benimSonGorme = null) => new(
         n.Id, n.Baslik, n.Icerik, n.Tamamlandi,
         n.TamamlanmaAciklamasi, n.TamamlanmaZamani,
         n.TamamlayanKullanici?.AdSoyad,
@@ -513,5 +554,8 @@ public static class NoteEndpoints
         n.HatirlatmaSekli,
         n.HatirlatmaGonderildiMi,
         kilitSahibiAdi,
-        n.EskiKlasorId);
+        n.EskiKlasorId,
+        okuyanlar?.Count ?? 0,
+        okuyanlar ?? Array.Empty<NotOkuyanYaniti>(),
+        benimSonGorme);
 }
