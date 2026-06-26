@@ -94,7 +94,7 @@ export function TamamlaDialog({
       qc.invalidateQueries({ queryKey: ["klasorler"] }); // v12 — Tamamlananlar sayısı anlık güncellensin
       setAciklama("");
       onOpenChange(false);
-      toast.success("Tamamlandı 🤍");
+      toast.success("Tamamlandı");
     },
     onError: (err: Error) => toast.error(err.message),
   });
