@@ -64,3 +64,20 @@ public sealed class AiKullanilamazException : Exception
     public AiKullanilamazException(string kod, string? mesaj = null)
         : base(mesaj ?? kod) => Kod = kod;
 }
+
+/// <summary>
+/// v19 - Serbest prompt ile mail metni uretimi baglami (Inline AI Compose).
+/// Sadece super admin, mail field'larinda (kategori=mail) kullanilir. Cikti DUZ METIN (JSON degil)
+/// - streaming (B1) ile token token akar, tek oneri olarak diff onizlemeye (B3) gider.
+/// Etiket/Yonlendirme/Tip = baglam farkindaligi (B2): AI alanin ne oldugunu bilir.
+/// </summary>
+public sealed record SerbestUretBaglam(
+    string Prompt,            // kullanicinin serbest istegi
+    string Anahtar,           // mail metin anahtari (orn. mail_davetiye_konu)
+    string Etiket,            // anahtarin UI etiketi (B2 baglam)
+    string? Yonlendirme,      // anahtarin ipucu/placeholder (B2 baglam)
+    string Tip,               // 'subject' | 'body' (karakter limiti icin)
+    string MarkaAdi,          // tenant marka adi
+    string? MevcutMetin,      // field'in mevcut degeri (varsa: gelistir/degistir)
+    string? Ton,              // ton ipucu (B5 chip): null | samimi | resmi | ...
+    string? Uzunluk);         // uzunluk ipucu (B5 chip): null | kisa | orta | uzun

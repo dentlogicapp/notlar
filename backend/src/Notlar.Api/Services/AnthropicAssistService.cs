@@ -93,6 +93,15 @@ public sealed class AnthropicAssistService : IAiAssistService
         return ParseTutarlilik(text);
     }
 
+    // v19 - Serbest prompt ile mail metni uretimi (Inline AI Compose). Duz metin doner, parse YOK.
+    public async Task<string> SerbestUretAsync(SerbestUretBaglam baglam, CancellationToken ct = default)
+    {
+        var ayar = await AyarGetirAsync(ct);
+        var maxTokens = baglam.Tip == "subject" ? 120 : 1000;
+        var text = await MesajGonderAsync(PromptBuilder.SerbestUretSistem(), PromptBuilder.SerbestUret(baglam), maxTokens, 0.8, ayar, ct);
+        return text.Trim();
+    }
+
     // --- helper ---
 
     private async Task<AiAyari> AyarGetirAsync(CancellationToken ct)

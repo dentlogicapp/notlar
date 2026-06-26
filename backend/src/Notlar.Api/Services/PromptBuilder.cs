@@ -105,4 +105,41 @@ public static class PromptBuilder
         sb.AppendLine("Yanıt JSON: {\"skor\": 7.2, \"tutarli\": false, \"sorunlar\": [{\"anahtar\": \"...\", \"mevcut\": \"...\", \"sorun\": \"...\", \"oneri\": \"...\"}]}");
         return sb.ToString();
     }
+
+    // v19 - Serbest prompt ile mail metni uretimi (Inline AI Compose).
+    // DIGER promptlardan farkli: JSON DEGIL duz metin doner (streaming B1 ile token token akar,
+    // tek oneri olarak diff onizlemeye B3 gider). System mesaji cikti disiplinini dayatir.
+    public static string SerbestUretSistem() =>
+        "Sen Türkçe mail metni yazarsın. Bir SaaS platformunun süper yöneticisi için mail içeriği " +
+        "üretiyorsun. SADECE istenen metni üret: açıklama ekleme, başlık koyma, tırnak içine alma, " +
+        "JSON kullanma. Çıktın doğrudan mail alanına yapıştırılabilecek temiz bir metin olmalı. " +
+        "Placeholder'ları ({{alici_ad}} gibi) olduğu gibi koru.";
+
+    public static string SerbestUret(SerbestUretBaglam b)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("Aşağıdaki mail alanı için metin üret:");
+        sb.AppendLine($"- Alan: {b.Etiket} ({b.Tip})");
+        if (!string.IsNullOrWhiteSpace(b.Yonlendirme))
+            sb.AppendLine($"- Alanın amacı: {b.Yonlendirme}");
+        sb.AppendLine($"- Marka: {b.MarkaAdi}");
+        if (!string.IsNullOrWhiteSpace(b.Ton))
+            sb.AppendLine($"- Ton: {b.Ton}");
+        if (!string.IsNullOrWhiteSpace(b.Uzunluk))
+            sb.AppendLine($"- Uzunluk: {b.Uzunluk}");
+        if (!string.IsNullOrWhiteSpace(b.MevcutMetin))
+        {
+            sb.AppendLine();
+            sb.AppendLine($"Mevcut metin (isteğe göre geliştir veya değiştir): \"{b.MevcutMetin}\"");
+        }
+        sb.AppendLine();
+        sb.AppendLine($"İstek: {b.Prompt}");
+        sb.AppendLine();
+        sb.AppendLine("Karakter sınırı:");
+        sb.AppendLine("- subject (konu): en fazla 80 karakter, tek satır");
+        sb.AppendLine("- body (gövde): en fazla 800 karakter");
+        sb.AppendLine();
+        sb.AppendLine("Sadece metni döndür, başka hiçbir şey yazma.");
+        return sb.ToString();
+    }
 }

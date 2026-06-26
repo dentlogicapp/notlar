@@ -20,6 +20,7 @@ public interface IAiAssistService
     Task<TaslakSonucu> TaslakOnerAsync(string anahtar, AiTaslakBaglam baglam, CancellationToken ct = default);
     Task<TaslakSonucu> YenidenYazAsync(string mevcut, AiYenidenYazModu modu, CancellationToken ct = default);
     Task<AiTutarlilikRaporu> TutarlilikKontrolAsync(Guid isletmeId, CancellationToken ct = default);
+    Task<string> SerbestUretAsync(SerbestUretBaglam baglam, CancellationToken ct = default);  // v19 - Inline AI Compose (duz metin doner)
 }
 
 /// <summary>
@@ -169,6 +170,30 @@ public abstract class OpenAiUyumluAssistService : IAiAssistService
 
         var json = await IsteVeHamYanitAl(body, ayar, ct);
         return ParseTutarlilik(json);
+    }
+
+    // v19 - Serbest prompt ile mail metni uretimi (Inline AI Compose).
+    // DIGER metodlardan farkli: response_format EKLENMEZ (JSON mode yok), cikti duz metin,
+    // parse edilmez. subject kisa (120 token) / body uzun (1000 token).
+    public async Task<string> SerbestUretAsync(SerbestUretBaglam baglam, CancellationToken ct = default)
+    {
+        var ayar = await AyarGetirAsync(ct);
+        if (!ayar.Aktif) throw new AiKullanilamazException("AI_LLM_KAPALI");
+
+        var maxTokens = baglam.Tip == "subject" ? 120 : 1000;
+        var body = new
+        {
+            model = ayar.ModelId,
+            messages = new[]
+            {
+                new { role = "system", content = PromptBuilder.SerbestUretSistem() },
+                new { role = "user", content = PromptBuilder.SerbestUret(baglam) }
+            },
+            temperature = 0.8,
+            max_tokens = maxTokens
+        };
+        var json = await IsteVeHamYanitAl(body, ayar, ct);
+        return IcerikCek(json).Trim();
     }
 
     // Ortak: istek gonder + oneri listesini parse et + telemetri (taslak/yeniden-yaz)

@@ -97,6 +97,52 @@ public static class AiAssistEndpoints
                 return Results.Json(new { hata = ex.Kod, mesaj = "AI su an kullanilamiyor." }, statusCode: 503);
             }
         });
+
+        // v19 - Serbest prompt ile mail metni uretimi (Inline AI Compose). Cikti duz metin (tek oneri).
+        g.MapPost("/serbest-uret", async (SerbestUretIstegi req, AppDbContext db, IUserContext uc,
+            IAiAssistServiceFactory factory, IIsletmeMetinService metinSvc, CancellationToken ct) =>
+        {
+            if (uc.AktifIsletmeId is null) return Results.Unauthorized();
+            var tid = uc.AktifIsletmeId.Value;
+
+            if (string.IsNullOrWhiteSpace(req.Prompt))
+                return Results.BadRequest(new { hata = "PROMPT_ZORUNLU", mesaj = "Prompt bos olamaz." });
+
+            var katalog = await db.MetinAnahtarlari
+                .FirstOrDefaultAsync(a => a.Anahtar == req.Anahtar && !a.Deprecated, ct);
+            if (katalog is null)
+                return Results.NotFound(new { hata = "ANAHTAR_BULUNAMADI", mesaj = "Metin anahtari bulunamadi." });
+
+            // Defense in depth: serbest uretim YALNIZ mail kategorisinde (maliyet + kapsam koruma).
+            // Frontend butonu zaten sadece mail'de gosterir; bu backend ikinci kale.
+            if (katalog.Kategori != "mail")
+                return Results.Json(new { hata = "KATEGORI_DESTEKLENMIYOR", mesaj = "Serbest uretim yalniz mail alanlarinda kullanilabilir." }, statusCode: 403);
+
+            var metinler = await metinSvc.TumunuGetirAsync(tid, ct);
+            var markaAdi = metinler.FirstOrDefault(m => m.Anahtar == "marka_adi")?.Icerik ?? "";
+
+            var baglam = new SerbestUretBaglam(
+                req.Prompt,
+                katalog.Anahtar,
+                katalog.Etiket,
+                katalog.Yonlendirme,
+                katalog.Tip,
+                markaAdi,
+                req.MevcutMetin,
+                req.Ton,
+                req.Uzunluk);
+
+            try
+            {
+                var servis = await factory.ServisGetirAsync(ct);
+                var metin = await servis.SerbestUretAsync(baglam, ct);
+                return Results.Ok(new { metin });
+            }
+            catch (AiKullanilamazException ex)
+            {
+                return Results.Json(new { hata = ex.Kod, mesaj = "AI su an kullanilamiyor." }, statusCode: 503);
+            }
+        });
     }
 
     private static IReadOnlyList<string> PlaceholderListesi(string jsonb)
@@ -111,3 +157,6 @@ public sealed record TaslakOnerIstegi(string Anahtar, string? Ton, string? Uzunl
 
 // v18 Asama 11.6 - Dokumantasyon oner istegi (super admin metin-anahtari formu; tenant/DB lookup yok).
 public sealed record DokumantasyonOnerIstegi(string AnahtarKodu, string? Etiket, string? Tip, string? Kategori, string? HedefAlan);
+
+// v19 - Serbest prompt ile mail metni uretimi istegi (Inline AI Compose). Anahtar + serbest prompt + opsiyonel ton/uzunluk/mevcut.
+public sealed record SerbestUretIstegi(string Anahtar, string Prompt, string? Ton, string? Uzunluk, string? MevcutMetin);
