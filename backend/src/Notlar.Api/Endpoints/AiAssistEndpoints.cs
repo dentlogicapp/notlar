@@ -151,6 +151,51 @@ public static class AiAssistEndpoints
                 return Results.Json(new { hata = ex.Kod, mesaj = "AI su an kullanilamiyor." }, statusCode: 503);
             }
         });
+
+        // v19 - Serbest uretim STREAMING (SSE). Token token "data: <json-string>" akar, sonda "data: [DONE]".
+        // Non-streaming /serbest-uret korunur (fallback). Ayni whitelist + tenant baglam.
+        g.MapPost("/serbest-uret-akis", async (SerbestUretIstegi req, HttpContext http, AppDbContext db, IUserContext uc,
+            IAiAssistServiceFactory factory, IIsletmeMetinService metinSvc, CancellationToken ct) =>
+        {
+            if (uc.AktifIsletmeId is null) { http.Response.StatusCode = 401; return; }
+            var tid = uc.AktifIsletmeId.Value;
+
+            if (string.IsNullOrWhiteSpace(req.Prompt) || !AiIzinliAnahtarlar.Contains(req.Anahtar))
+            {
+                http.Response.StatusCode = 400;
+                return;
+            }
+
+            var katalog = await db.MetinAnahtarlari.FirstOrDefaultAsync(a => a.Anahtar == req.Anahtar && !a.Deprecated, ct);
+            if (katalog is null) { http.Response.StatusCode = 404; return; }
+
+            var metinler = await metinSvc.TumunuGetirAsync(tid, ct);
+            var markaAdi = metinler.FirstOrDefault(m => m.Anahtar == "marka_adi")?.Icerik ?? "";
+
+            var baglam = new SerbestUretBaglam(
+                req.Prompt, katalog.Anahtar, katalog.Etiket, katalog.Yonlendirme,
+                katalog.Tip, markaAdi, req.MevcutMetin, req.Ton, req.Uzunluk);
+
+            http.Response.Headers.Append("Content-Type", "text/event-stream");
+            http.Response.Headers.Append("Cache-Control", "no-cache");
+            http.Response.Headers.Append("X-Accel-Buffering", "no"); // nginx ara belleklemesini kapat
+
+            try
+            {
+                var servis = await factory.ServisGetirAsync(ct);
+                await foreach (var token in servis.SerbestUretAkisAsync(baglam, ct))
+                {
+                    await http.Response.WriteAsync($"data: {JsonSerializer.Serialize(token)}\n\n", ct);
+                    await http.Response.Body.FlushAsync(ct);
+                }
+                await http.Response.WriteAsync("data: [DONE]\n\n", ct);
+            }
+            catch (AiKullanilamazException ex)
+            {
+                await http.Response.WriteAsync($"event: hata\ndata: {JsonSerializer.Serialize(new { hata = ex.Kod })}\n\n", ct);
+            }
+            await http.Response.Body.FlushAsync(ct);
+        });
     }
 
     private static IReadOnlyList<string> PlaceholderListesi(string jsonb)

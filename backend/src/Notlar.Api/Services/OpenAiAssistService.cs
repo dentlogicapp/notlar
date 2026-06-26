@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -21,6 +22,7 @@ public interface IAiAssistService
     Task<TaslakSonucu> YenidenYazAsync(string mevcut, AiYenidenYazModu modu, CancellationToken ct = default);
     Task<AiTutarlilikRaporu> TutarlilikKontrolAsync(Guid isletmeId, CancellationToken ct = default);
     Task<string> SerbestUretAsync(SerbestUretBaglam baglam, CancellationToken ct = default);  // v19 - Inline AI Compose (duz metin doner)
+    IAsyncEnumerable<string> SerbestUretAkisAsync(SerbestUretBaglam baglam, CancellationToken ct = default);  // v19 - streaming (token token akar)
 }
 
 /// <summary>
@@ -194,6 +196,73 @@ public abstract class OpenAiUyumluAssistService : IAiAssistService
         };
         var json = await IsteVeHamYanitAl(body, ayar, ct);
         return IcerikCek(json).Trim();
+    }
+
+    // v19 - Serbest uretim STREAMING (token token). stream=true; SSE satirlari "data: {...delta.content}".
+    // Non-streaming SerbestUretAsync'e dokunulmaz; bu ek yol. Hata SendAsync oncesinde yakalanir (yield disi).
+    public async IAsyncEnumerable<string> SerbestUretAkisAsync(SerbestUretBaglam baglam, [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        var ayar = await AyarGetirAsync(ct);
+        if (!ayar.Aktif) throw new AiKullanilamazException("AI_LLM_KAPALI");
+
+        var maxTokens = baglam.Tip == "subject" ? 120 : 1000;
+        var body = new
+        {
+            model = ayar.ModelId,
+            messages = new[]
+            {
+                new { role = "system", content = PromptBuilder.SerbestUretSistem() },
+                new { role = "user", content = PromptBuilder.SerbestUret(baglam) }
+            },
+            temperature = 0.8,
+            max_tokens = maxTokens,
+            stream = true
+        };
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        cts.CancelAfter(ayar.TimeoutMs);
+        HttpResponseMessage response;
+        try
+        {
+            var req = RequestHazirla(HttpMethod.Post, "/chat/completions", body, ayar);
+            response = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            throw new AiKullanilamazException("AI_LLM_TIMEOUT");
+        }
+        catch (HttpRequestException ex)
+        {
+            _log.LogWarning(ex, "AI baglanti hatasi (akis): {Saglayici}", SaglayiciAdi);
+            throw new AiKullanilamazException("AI_BAGLANTI_HATASI");
+        }
+
+        await HataKontrolEt(response);
+
+        using var stream = await response.Content.ReadAsStreamAsync(cts.Token);
+        using var reader = new StreamReader(stream);
+        string? line;
+        while ((line = await reader.ReadLineAsync(cts.Token)) is not null)
+        {
+            if (!line.StartsWith("data: ")) continue;
+            var veri = line["data: ".Length..].Trim();
+            if (veri == "[DONE]") break;
+            var token = DeltaCek(veri);
+            if (!string.IsNullOrEmpty(token)) yield return token;
+        }
+    }
+
+    // OpenAI stream delta: {"choices":[{"delta":{"content":"..."}}]}. Bozuk parca -> bos (akis kesilmez).
+    private static string DeltaCek(string veri)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(veri);
+            var choices = doc.RootElement.GetProperty("choices");
+            if (choices.GetArrayLength() == 0) return "";
+            return choices[0].GetProperty("delta").TryGetProperty("content", out var c) ? c.GetString() ?? "" : "";
+        }
+        catch { return ""; }
     }
 
     // Ortak: istek gonder + oneri listesini parse et + telemetri (taslak/yeniden-yaz)

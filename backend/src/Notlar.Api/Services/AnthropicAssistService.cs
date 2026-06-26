@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
@@ -100,6 +101,70 @@ public sealed class AnthropicAssistService : IAiAssistService
         var maxTokens = baglam.Tip == "subject" ? 120 : 1000;
         var text = await MesajGonderAsync(PromptBuilder.SerbestUretSistem(), PromptBuilder.SerbestUret(baglam), maxTokens, 0.8, ayar, ct);
         return text.Trim();
+    }
+
+    // v19 - Serbest uretim STREAMING (token token). Anthropic SSE: "data: {...content_block_delta...delta.text}".
+    public async IAsyncEnumerable<string> SerbestUretAkisAsync(SerbestUretBaglam baglam, [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        var ayar = await AyarGetirAsync(ct);
+        var maxTokens = baglam.Tip == "subject" ? 120 : 1000;
+        var body = new
+        {
+            model = ayar.ModelId,
+            max_tokens = maxTokens,
+            temperature = 0.8,
+            system = PromptBuilder.SerbestUretSistem(),
+            messages = new[] { new { role = "user", content = PromptBuilder.SerbestUret(baglam) } },
+            stream = true
+        };
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        cts.CancelAfter(ayar.TimeoutMs);
+        HttpResponseMessage response;
+        try
+        {
+            var req = new HttpRequestMessage(HttpMethod.Post, "https://api.anthropic.com/v1/messages")
+            {
+                Content = JsonContent.Create(body)
+            };
+            AuthEkle(req, ayar);
+            response = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            throw new AiKullanilamazException("AI_LLM_TIMEOUT");
+        }
+        catch (HttpRequestException ex)
+        {
+            _log.LogWarning(ex, "AI baglanti hatasi (akis): {Saglayici}", SaglayiciAdi);
+            throw new AiKullanilamazException("AI_BAGLANTI_HATASI");
+        }
+
+        HataKontrolEt(response);
+
+        using var stream = await response.Content.ReadAsStreamAsync(cts.Token);
+        using var reader = new StreamReader(stream);
+        string? line;
+        while ((line = await reader.ReadLineAsync(cts.Token)) is not null)
+        {
+            if (!line.StartsWith("data: ")) continue;
+            var veri = line["data: ".Length..].Trim();
+            var token = DeltaCek(veri);
+            if (!string.IsNullOrEmpty(token)) yield return token;
+        }
+    }
+
+    // Anthropic stream delta: {"type":"content_block_delta","delta":{"type":"text_delta","text":"..."}}
+    private static string DeltaCek(string veri)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(veri);
+            var root = doc.RootElement;
+            if (!root.TryGetProperty("type", out var t) || t.GetString() != "content_block_delta") return "";
+            return root.GetProperty("delta").TryGetProperty("text", out var x) ? x.GetString() ?? "" : "";
+        }
+        catch { return ""; }
     }
 
     // --- helper ---
