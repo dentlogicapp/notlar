@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -108,7 +110,7 @@ public static class AiAssistEndpoints
 
         // v19 - Serbest prompt ile mail metni uretimi (Inline AI Compose). Cikti duz metin (tek oneri).
         g.MapPost("/serbest-uret", async (SerbestUretIstegi req, AppDbContext db, IUserContext uc,
-            IAiAssistServiceFactory factory, IIsletmeMetinService metinSvc, CancellationToken ct) =>
+            IAiAssistServiceFactory factory, IIsletmeMetinService metinSvc, IAuditService audit, CancellationToken ct) =>
         {
             if (uc.AktifIsletmeId is null) return Results.Unauthorized();
             var tid = uc.AktifIsletmeId.Value;
@@ -148,8 +150,19 @@ public static class AiAssistEndpoints
 
             try
             {
+                var basla = Stopwatch.GetTimestamp();
                 var servis = await factory.ServisGetirAsync(ct);
                 var metin = await servis.SerbestUretAsync(baglam, ct);
+                var sure = (long)Stopwatch.GetElapsedTime(basla).TotalMilliseconds;
+                // Telemetri: append-only denetim_gunlukleri (Bolum 3 - ayri tablo yok). Token tahmini ~karakter/4.
+                await audit.YazAsync("ai_serbest_uretildi", "ai_telemetri", null,
+                    degisenAlanlar: JsonSerializer.Serialize(new
+                    {
+                        saglayici = servis.SaglayiciAdi,
+                        anahtar = req.Anahtar,
+                        tokenTahmini = (metin?.Length ?? 0) / 4,
+                        sureMs = sure
+                    }), ct: ct);
                 return Results.Ok(new { metin });
             }
             catch (AiKullanilamazException ex)
@@ -161,7 +174,7 @@ public static class AiAssistEndpoints
         // v19 - Serbest uretim STREAMING (SSE). Token token "data: <json-string>" akar, sonda "data: [DONE]".
         // Non-streaming /serbest-uret korunur (fallback). Ayni whitelist + tenant baglam.
         g.MapPost("/serbest-uret-akis", async (SerbestUretIstegi req, HttpContext http, AppDbContext db, IUserContext uc,
-            IAiAssistServiceFactory factory, IIsletmeMetinService metinSvc, CancellationToken ct) =>
+            IAiAssistServiceFactory factory, IIsletmeMetinService metinSvc, IAuditService audit, CancellationToken ct) =>
         {
             if (uc.AktifIsletmeId is null) { http.Response.StatusCode = 401; return; }
             var tid = uc.AktifIsletmeId.Value;
@@ -193,19 +206,56 @@ public static class AiAssistEndpoints
 
             try
             {
+                var basla = Stopwatch.GetTimestamp();
+                var sb = new StringBuilder();
                 var servis = await factory.ServisGetirAsync(ct);
                 await foreach (var token in servis.SerbestUretAkisAsync(baglam, ct))
                 {
+                    sb.Append(token);
                     await http.Response.WriteAsync($"data: {JsonSerializer.Serialize(token)}\n\n", ct);
                     await http.Response.Body.FlushAsync(ct);
                 }
                 await http.Response.WriteAsync("data: [DONE]\n\n", ct);
+                var sure = (long)Stopwatch.GetElapsedTime(basla).TotalMilliseconds;
+                // Telemetri: streaming basariyla tamamlandiysa yaz (kismi/hatali akis sayilmaz). Token ~karakter/4.
+                await audit.YazAsync("ai_serbest_uretildi", "ai_telemetri", null,
+                    degisenAlanlar: JsonSerializer.Serialize(new
+                    {
+                        saglayici = servis.SaglayiciAdi,
+                        anahtar = req.Anahtar,
+                        tokenTahmini = sb.Length / 4,
+                        sureMs = sure
+                    }), ct: ct);
             }
             catch (AiKullanilamazException ex)
             {
                 await http.Response.WriteAsync($"event: hata\ndata: {JsonSerializer.Serialize(new { hata = ex.Kod })}\n\n", ct);
             }
             await http.Response.Body.FlushAsync(ct);
+        });
+
+        // v19 - AI kullanim/maliyet sayaci (bu ay). Telemetri append-only denetim_gunluklerinden okunur (Bolum 3).
+        g.MapGet("/kullanim", async (AppDbContext db, CancellationToken ct) =>
+        {
+            var simdi = DateTimeOffset.UtcNow;
+            var ayBasi = new DateTimeOffset(simdi.Year, simdi.Month, 1, 0, 0, 0, TimeSpan.Zero);
+            var kayitlar = await db.DenetimGunlukleri
+                .Where(d => d.Olay == "ai_serbest_uretildi" && d.Zaman >= ayBasi)
+                .Select(d => d.DegisenAlanlar)
+                .ToListAsync(ct);
+            long token = 0;
+            foreach (var j in kayitlar)
+            {
+                if (string.IsNullOrWhiteSpace(j)) continue;
+                try
+                {
+                    using var doc = JsonDocument.Parse(j);
+                    if (doc.RootElement.TryGetProperty("tokenTahmini", out var t) && t.TryGetInt64(out var tv))
+                        token += tv;
+                }
+                catch { /* bozuk JSON telemetriyi atla, sayim devam */ }
+            }
+            return Results.Ok(new { buAyCagri = kayitlar.Count, buAyTokenTahmini = token });
         });
     }
 

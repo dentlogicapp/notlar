@@ -370,6 +370,8 @@ export const metinApi = {
 // v18 Asama 11/12 - AI taslak oneri (saglik durumu + taslak uretme). Saglayicidan habersiz.
 export const aiApi = {
   saglik: () => ist<{ saglikli: boolean }>("/api/super-admin/ai-assist/saglik"),
+  // v19 - AI kullanim/maliyet sayaci (bu ay cagri + token tahmini).
+  kullanim: () => ist<{ buAyCagri: number; buAyTokenTahmini: number }>("/api/super-admin/ai-assist/kullanim"),
   taslakOner: (govde: { anahtar: string; ton?: string; uzunluk?: string; etkinlikTanimi?: string }) =>
     ist<TaslakSonucu>("/api/super-admin/ai-assist/taslak-oner", {
       method: "POST",

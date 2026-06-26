@@ -7,12 +7,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ChevronLeft, Loader2, Save, Plug, CheckCircle2, XCircle } from "lucide-react";
+import { ChevronLeft, Loader2, Save, Plug, CheckCircle2, XCircle, Activity } from "lucide-react";
 import { CountdownWidget } from "@/components/CountdownWidget";
 import { UserMenu } from "@/components/UserMenu";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
-import { aiAyarApi } from "@/lib/api";
+import { aiAyarApi, aiApi } from "@/lib/api";
 import { tarihFormat } from "@/lib/utils";
 
 const SAGLAYICILAR = [
@@ -47,6 +47,13 @@ export default function Page() {
   const { data: ayar, isLoading } = useQuery({
     queryKey: ["ai-ayar"],
     queryFn: aiAyarApi.getAyar,
+    retry: false,
+  });
+
+  // v19 - AI kullanim/maliyet sayaci (bu ay)
+  const { data: kullanim } = useQuery({
+    queryKey: ["ai-kullanim"],
+    queryFn: aiApi.kullanim,
     retry: false,
   });
 
@@ -155,6 +162,21 @@ export default function Page() {
             {ayar.sonSaglikKontrol && (
               <span className="text-clay-400 dark:text-ink-300">son kontrol: {tarihFormat(ayar.sonSaglikKontrol)}</span>
             )}
+          </div>
+        )}
+
+        {/* v19 - AI kullanim/maliyet sayaci (bu ay) */}
+        {kullanim && (
+          <div className="flex items-center gap-3 rounded-xl border border-cream-300 dark:border-ink-700/60 bg-white/40 dark:bg-ink-800/30 px-4 py-3">
+            <Activity className="h-5 w-5 text-terracotta shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-clay-700 dark:text-ink-100">
+                Bu ay <strong>{kullanim.buAyCagri}</strong> AI metin üretimi
+              </p>
+              <p className="text-xs text-clay-400 dark:text-ink-300">
+                ~{kullanim.buAyTokenTahmini.toLocaleString("tr-TR")} token (tahmini) · her ayın 1'inde sıfırlanır
+              </p>
+            </div>
           </div>
         )}
 
