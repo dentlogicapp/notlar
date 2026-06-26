@@ -494,7 +494,7 @@ public static class NoteEndpoints
                 .Select(gec => new NotGecmisiYaniti(
                     gec.Id, gec.Eylem, gec.Aciklama,
                     gec.EskiDeger, gec.YeniDeger,
-                    gec.YapanKullanici.AdSoyad, gec.YapilisZamani))
+                    gec.YapanKullanici != null ? gec.YapanKullanici.AdSoyad : "", gec.YapilisZamani))
                 .ToListAsync(ct);
             return Results.Ok(list);
         });
