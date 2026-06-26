@@ -144,7 +144,7 @@ export function KlasorDuzenleDialog({
 
   useEffect(() => {
     if (open && lock.kilitSahibi) {
-      toast.error(`${lock.kilitSahibi} şu anda bu klasörü düzenliyor. Lütfen birkaç saniye sonra tekrar dene 🤍`);
+      toast.error(`${lock.kilitSahibi} şu anda bu klasörü düzenliyor. Lütfen birkaç saniye sonra tekrar dene`);
       onOpenChange(false);
     }
   }, [open, lock.kilitSahibi, onOpenChange]);

@@ -20,7 +20,7 @@ const fraunces = Fraunces({
 
 export const metadata: Metadata = {
   title: "Planlama Defterimiz",
-  description: "Birlikte yapılacaklar, birlikte tamamlanacaklar 🤍",
+  description: "Birlikte yapılacaklar, birlikte tamamlanacaklar",
 };
 
 export default function RootLayout({

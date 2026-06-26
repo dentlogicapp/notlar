@@ -75,7 +75,7 @@ function Icerik() {
       qc.invalidateQueries({ queryKey: ["users"] });
       qc.invalidateQueries({ queryKey: ["notlar"] });
       qc.invalidateQueries({ queryKey: ["klasorler"] });
-      toast.success("Kullanıcı silindi 🤍");
+      toast.success("Kullanıcı silindi");
       setSilDialogKullanici(null);
     },
     onError: (err: Error) => toast.error(err.message),

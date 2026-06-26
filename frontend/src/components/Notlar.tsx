@@ -80,7 +80,7 @@ export function TamamlaDialog({
 
   useEffect(() => {
     if (open && lock.kilitSahibi) {
-      toast.error(`${lock.kilitSahibi} şu anda bu notu düzenliyor. Lütfen birkaç saniye sonra tekrar dene 🤍`);
+      toast.error(`${lock.kilitSahibi} şu anda bu notu düzenliyor. Lütfen birkaç saniye sonra tekrar dene`);
       onOpenChange(false);
     }
   }, [open, lock.kilitSahibi, onOpenChange]);
@@ -148,7 +148,7 @@ export function DuzenleDialog({
   // Başkası düzenliyorsa toast + kapat
   useEffect(() => {
     if (open && lock.kilitSahibi) {
-      toast.error(`${lock.kilitSahibi} şu anda bu notu düzenliyor. Lütfen birkaç saniye sonra tekrar dene 🤍`);
+      toast.error(`${lock.kilitSahibi} şu anda bu notu düzenliyor. Lütfen birkaç saniye sonra tekrar dene`);
       onOpenChange(false);
     }
   }, [open, lock.kilitSahibi, onOpenChange]);
