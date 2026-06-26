@@ -110,10 +110,20 @@ public static class PromptBuilder
     // DIGER promptlardan farkli: JSON DEGIL duz metin doner (streaming B1 ile token token akar,
     // tek oneri olarak diff onizlemeye B3 gider). System mesaji cikti disiplinini dayatir.
     public static string SerbestUretSistem() =>
-        "Sen Türkçe mail metni yazarsın. Bir SaaS platformunun süper yöneticisi için mail içeriği " +
-        "üretiyorsun. SADECE istenen metni üret: açıklama ekleme, başlık koyma, tırnak içine alma, " +
-        "JSON kullanma. Çıktın doğrudan mail alanına yapıştırılabilecek temiz bir metin olmalı. " +
-        "Placeholder'ları ({{alici_ad}} gibi) olduğu gibi koru.";
+        "Sen Türkçe mail metni yazarsın. Bir SaaS platformunun (Not ve Planlama Defteri) süper yöneticisi " +
+        "için mail içeriği üretiyorsun. SADECE istenen metni üret: açıklama ekleme, başlık koyma, tırnak " +
+        "içine alma, JSON kullanma. Çıktın doğrudan mail alanına yapıştırılabilecek temiz bir metin olmalı. " +
+        "Placeholder'ları ({{alici_ad}} gibi) olduğu gibi koru.\n\n" +
+        "Sistemin GERÇEK özellikleri (SADECE bunlardan bahsedebilirsin, BAŞKA özellik UYDURMA):\n" +
+        "- Not ekleme: başlık ve açıklama ile not oluşturma\n" +
+        "- Notu tamamlama: tamamlarken \"nasıl tamamlandı\" açıklaması yazma\n" +
+        "- Not düzenleme: başlık, içerik veya klasörü değiştirme (kalem ikonu)\n" +
+        "- Hatırlatıcı kurma: tarih/saat seçip uygulama içi veya e-posta bildirimi\n" +
+        "- Not geçmişi: kim ne zaman ne değiştirdi takibi (göz ikonu)\n" +
+        "- Klasörler: konuları gruplama (Projeler, Toplantılar gibi)\n" +
+        "- Ekip: üye davet ederek paylaşımlı çalışma\n" +
+        "Bu listede OLMAYAN hiçbir özellikten bahsetme. Özellikle proje yönetimi, görev atama, " +
+        "zaman/süre takibi, raporlama, analiz, gösterge paneli gibi UYDURMA özellikleri ASLA yazma.";
 
     public static string SerbestUret(SerbestUretBaglam b)
     {
@@ -132,6 +142,20 @@ public static class PromptBuilder
             sb.AppendLine();
             sb.AppendLine($"Mevcut metin (isteğe göre geliştir veya değiştir): \"{b.MevcutMetin}\"");
         }
+        if (b.DigerMetinler is { Count: > 0 })
+        {
+            sb.AppendLine();
+            sb.AppendLine("Tenant'in dolu diger metinleri (ton ve uslup tutarliligi icin referans; kopyalama, ilham al):");
+            foreach (var m in b.DigerMetinler)
+                sb.AppendLine($"- {m}");
+        }
+        if (b.Anahtar == "mail_davetiye_rehber")
+        {
+            sb.AppendLine();
+            sb.AppendLine("BİÇİM: Bu bir kullanım rehberidir. Düz paragraf yığma; maddeli ve zengin HTML üret.");
+            sb.AppendLine("Her madde için tam olarak şu yapıyı kullan: <p><strong>1. Başlık</strong><br>Açıklama cümlesi.</p>");
+            sb.AppendLine("Maddeleri sırayla numaralandır ve sistemin yukarıda verilen GERÇEK özelliklerini adım adım anlat.");
+        }
         if (b.Anahtar.StartsWith("mail_"))
         {
             sb.AppendLine();
@@ -141,10 +165,13 @@ public static class PromptBuilder
         sb.AppendLine();
         sb.AppendLine($"İstek: {b.Prompt}");
         sb.AppendLine();
-        sb.AppendLine("Karakter sınırı:");
-        sb.AppendLine("- subject (konu): en fazla 80 karakter, tek satır");
-        sb.AppendLine("- body (gövde): en fazla 800 karakter");
-        sb.AppendLine();
+        if (b.Anahtar != "mail_davetiye_rehber")
+        {
+            sb.AppendLine("Karakter sınırı:");
+            sb.AppendLine("- subject (konu): en fazla 80 karakter, tek satır");
+            sb.AppendLine("- body (gövde): en fazla 800 karakter");
+            sb.AppendLine();
+        }
         sb.AppendLine("Sadece metni döndür, başka hiçbir şey yazma.");
         return sb.ToString();
     }

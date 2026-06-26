@@ -60,7 +60,10 @@ export function AiComposePopover({
   const [yeniHtml, setYeniHtml] = useState<string | null>(null);
   const [onizlemeYukleniyor, setOnizlemeYukleniyor] = useState(false);
 
-  const mevcutDuz = duzMetin(mevcutDeger);
+  const rehberMi = anahtar === "mail_davetiye_rehber";
+  // Rehber alani zengin HTML icerir; AI'nin mevcut bicimi referans almasi icin HTML korunur.
+  // Diger alanlar (giris, dashboard) duz metin gonderilir.
+  const mevcutGonder = rehberMi ? (mevcutDeger ?? "").trim() : duzMetin(mevcutDeger);
 
   async function uret() {
     if (!prompt.trim()) {
@@ -79,7 +82,7 @@ export function AiComposePopover({
           prompt: prompt.trim(),
           ton: ton ?? undefined,
           uzunluk: uzunluk ?? undefined,
-          mevcutMetin: mevcutDuz || undefined,
+          mevcutMetin: mevcutGonder || undefined,
         },
         (token) => setSonuc((prev) => (prev ?? "") + token),
       );
@@ -207,7 +210,7 @@ export function AiComposePopover({
                 <Loader2 className="h-3.5 w-3.5 animate-spin text-terracotta" /> AI yazıyor...
               </p>
               <div className="rounded-lg border border-terracotta/40 bg-terracotta/5 px-3 py-2 text-sm text-clay-900 dark:text-ink-50 min-h-[72px] whitespace-pre-wrap">
-                {sonuc}
+                {rehberMi ? duzMetin(sonuc) : sonuc}
                 <span className="inline-block w-1.5 h-4 bg-terracotta/60 animate-pulse ml-0.5 align-middle" />
               </div>
             </div>
@@ -249,7 +252,7 @@ export function AiComposePopover({
                   <div className="space-y-1">
                     <span className="text-[11px] uppercase tracking-wide text-clay-400 dark:text-ink-300">Mevcut</span>
                     <div className="rounded-lg border border-cream-300 dark:border-ink-700/60 bg-cream-50/50 dark:bg-ink-900/40 px-3 py-2 text-sm text-clay-500 dark:text-ink-300 min-h-[72px] whitespace-pre-wrap">
-                      {mevcutDuz ? placeholderCoz(mevcutDuz, aliciAd) : <span className="italic text-clay-400">(boş)</span>}
+                      {mevcutGonder ? placeholderCoz(mevcutGonder, aliciAd) : <span className="italic text-clay-400">(boş)</span>}
                     </div>
                   </div>
                   <div className="space-y-1">

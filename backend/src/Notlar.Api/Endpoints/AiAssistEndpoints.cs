@@ -128,6 +128,11 @@ public static class AiAssistEndpoints
 
             var metinler = await metinSvc.TumunuGetirAsync(tid, ct);
             var markaAdi = metinler.FirstOrDefault(m => m.Anahtar == "marka_adi")?.Icerik ?? "";
+            var digerMetinler = metinler
+                .Where(m => !string.IsNullOrWhiteSpace(m.Icerik) && m.Anahtar != "marka_adi" && m.Anahtar != katalog.Anahtar)
+                .Select(m => m.Icerik!.Length > 180 ? m.Icerik![..180] + "..." : m.Icerik!)
+                .Take(12)
+                .ToList();
 
             var baglam = new SerbestUretBaglam(
                 req.Prompt,
@@ -138,7 +143,8 @@ public static class AiAssistEndpoints
                 markaAdi,
                 req.MevcutMetin,
                 req.Ton,
-                req.Uzunluk);
+                req.Uzunluk,
+                digerMetinler);
 
             try
             {
@@ -171,10 +177,15 @@ public static class AiAssistEndpoints
 
             var metinler = await metinSvc.TumunuGetirAsync(tid, ct);
             var markaAdi = metinler.FirstOrDefault(m => m.Anahtar == "marka_adi")?.Icerik ?? "";
+            var digerMetinler = metinler
+                .Where(m => !string.IsNullOrWhiteSpace(m.Icerik) && m.Anahtar != "marka_adi" && m.Anahtar != katalog.Anahtar)
+                .Select(m => m.Icerik!.Length > 180 ? m.Icerik![..180] + "..." : m.Icerik!)
+                .Take(12)
+                .ToList();
 
             var baglam = new SerbestUretBaglam(
                 req.Prompt, katalog.Anahtar, katalog.Etiket, katalog.Yonlendirme,
-                katalog.Tip, markaAdi, req.MevcutMetin, req.Ton, req.Uzunluk);
+                katalog.Tip, markaAdi, req.MevcutMetin, req.Ton, req.Uzunluk, digerMetinler);
 
             http.Response.Headers.Append("Content-Type", "text/event-stream");
             http.Response.Headers.Append("Cache-Control", "no-cache");

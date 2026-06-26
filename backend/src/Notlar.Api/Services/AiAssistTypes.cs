@@ -80,4 +80,5 @@ public sealed record SerbestUretBaglam(
     string MarkaAdi,          // tenant marka adi
     string? MevcutMetin,      // field'in mevcut degeri (varsa: gelistir/degistir)
     string? Ton,              // ton ipucu (B5 chip): null | samimi | resmi | ...
-    string? Uzunluk);         // uzunluk ipucu (B5 chip): null | kisa | orta | uzun
+    string? Uzunluk,          // uzunluk ipucu (B5 chip): null | kisa | orta | uzun
+    IReadOnlyList<string>? DigerMetinler = null);  // v19 - tenant'in dolu diger metinleri (ton tutarliligi + gercek baglam)
