@@ -114,6 +114,17 @@ export interface Not {
   // Kilit
   kilitSahibiAdi: string | null;
   eskiKlasorId: string | null;
+  // v19 - read receipts
+  okuyanSayisi: number;
+  okuyanlar: NotOkuyan[];
+  benimSonGorme: string | null;
+}
+
+// v19 - not okuyan ozeti (avatar yigini icin)
+export interface NotOkuyan {
+  kullaniciId: string;
+  adSoyad: string;
+  okunmaZamani: string;
 }
 
 export interface NotGecmisi {

@@ -5,11 +5,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
-  Eye, Pencil, Trash2, Plus, History, CheckCircle2, Loader2, FolderHeart, Tag, Bell, Lock, AlertTriangle
+  Eye, Pencil, Trash2, Plus, History, CheckCircle2, Loader2, FolderHeart, Tag, Bell, Lock, AlertTriangle, Users
 } from "lucide-react";
 import { notApi, klasorApi, isletmeApi } from "@/lib/api";
+import { useBen } from "@/lib/useBen";
 import { useIsletmeMetinleri, metinDeger } from "@/lib/useIsletmeMetinleri";
 import { useEditLock } from "@/lib/useEditLock";
 import { Button } from "./ui/button";
@@ -549,6 +550,52 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
     .map((id) => tenantUyeler?.find((u) => u.kullaniciId === id)?.adSoyad)
     .filter((x): x is string => Boolean(x));
 
+  // v19 - read receipts (Faz 3)
+  const { data: ben } = useBen();
+  const [gorulduOptimistic, setGorulduOptimistic] = useState(false);
+  const [okuyanlarAcik, setOkuyanlarAcik] = useState(false);
+  const kartRef = useRef<HTMLDivElement>(null);
+  const okunduGonderildiRef = useRef(false);
+
+  // yeni/degisen: hic gormedim VEYA son gormemden sonra guncellendi (tamamlanmamis notlar)
+  const yeniVeyaDegismis = !not.tamamlandi && !gorulduOptimistic && (
+    not.benimSonGorme === null ||
+    new Date(not.benimSonGorme).getTime() < new Date(not.guncellemeZamani).getTime()
+  );
+
+  // optimistic okuyan: gorulduysem ve listede yoksam kendimi aninda ekle (avatar)
+  const okuyanlarGosterilen = (() => {
+    const temel = not.okuyanlar ?? [];
+    if (gorulduOptimistic && ben && !temel.some((o) => o.kullaniciId === ben.id)) {
+      return [{ kullaniciId: ben.id, adSoyad: ben.adSoyad, okunmaZamani: new Date().toISOString() }, ...temel];
+    }
+    return temel;
+  })();
+
+  const okunduMut = useMutation({ mutationFn: () => notApi.okundu(not.id) });
+
+  // kart ekranin %60'i kadar gorununce okundu isaretle (yeni/degisen ise, bir kez)
+  useEffect(() => {
+    const el = kartRef.current;
+    if (!el) return;
+    const gormeli = not.benimSonGorme === null ||
+      new Date(not.benimSonGorme).getTime() < new Date(not.guncellemeZamani).getTime();
+    if (!gormeli || not.tamamlandi) return;
+    const obs = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting && !okunduGonderildiRef.current) {
+          okunduGonderildiRef.current = true;
+          setGorulduOptimistic(true);
+          okunduMut.mutate();
+          obs.disconnect();
+        }
+      }
+    }, { threshold: 0.6 });
+    obs.observe(el);
+    return () => obs.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [not.id, not.benimSonGorme, not.guncellemeZamani, not.tamamlandi]);
+
   const yenidenAc = useMutation({
     mutationFn: () => notApi.yenidenAc(not.id),
     onSuccess: () => {
@@ -572,10 +619,12 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
 
   return (
     <div
+      ref={kartRef}
       data-not-id={not.id}
       className={cn(
         "kart p-3 sm:p-4 group transition-all hover:shadow-md",
-        not.tamamlandi && "bg-cream-200 dark:bg-ink-800/40 border-cream-300 dark:border-ink-700"
+        not.tamamlandi && "bg-cream-200 dark:bg-ink-800/40 border-cream-300 dark:border-ink-700",
+        yeniVeyaDegismis && "ring-2 ring-terracotta/60 border-terracotta/40 shadow-sm"
       )}>
       <div className="flex items-start gap-2.5 sm:gap-3">
         <Checkbox
@@ -698,6 +747,53 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
               </button>
             </div>
 
+            {okuyanlarGosterilen.length > 0 && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setOkuyanlarAcik((v) => !v)}
+                  aria-label={`${okuyanlarGosterilen.length} kişi gördü`}
+                  className="flex items-center gap-1 px-1 py-0.5 rounded-md hover:bg-cream-200 dark:hover:bg-ink-800 transition-colors"
+                >
+                  <span className="flex -space-x-1.5">
+                    {okuyanlarGosterilen.slice(0, 3).map((o) => (
+                      <span
+                        key={o.kullaniciId}
+                        title={o.adSoyad}
+                        className="h-5 w-5 rounded-full bg-terracotta/15 text-terracotta text-[9px] font-semibold inline-flex items-center justify-center ring-1 ring-white dark:ring-ink-900"
+                      >
+                        {bastari(o.adSoyad)}
+                      </span>
+                    ))}
+                  </span>
+                  {okuyanlarGosterilen.length > 3 && (
+                    <span className="text-[10px] text-clay-400 dark:text-ink-300">+{okuyanlarGosterilen.length - 3}</span>
+                  )}
+                </button>
+                {okuyanlarAcik && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setOkuyanlarAcik(false)} />
+                    <div className="absolute z-50 top-full left-0 mt-1.5 w-52 p-3 rounded-xl bg-white dark:bg-ink-800 border border-cream-300 dark:border-ink-700 shadow-lg text-left">
+                      <p className="text-[11px] font-semibold text-clay-700 dark:text-ink-100 flex items-center gap-1.5 mb-2">
+                        <Users className="h-3 w-3 text-terracotta" strokeWidth={2.5} /> Görüldü
+                      </p>
+                      <div className="space-y-1.5">
+                        {okuyanlarGosterilen.map((o) => (
+                          <div key={o.kullaniciId} className="flex items-center gap-2">
+                            <span className="h-5 w-5 rounded-full bg-terracotta/15 text-terracotta text-[9px] font-semibold inline-flex items-center justify-center shrink-0">
+                              {bastari(o.adSoyad)}
+                            </span>
+                            <span className="text-[11px] text-clay-600 dark:text-ink-200 flex-1 truncate">{o.adSoyad}</span>
+                            <span className="text-[10px] text-clay-400 dark:text-ink-400 shrink-0">{gorelizamandan(o.okunmaZamani)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
             <span className="text-clay-300 dark:text-ink-400 hidden sm:inline">·</span>
 
             <span className="inline-flex items-center gap-1 text-clay-400 dark:text-ink-300 ml-auto sm:ml-0">
@@ -764,6 +860,10 @@ export function NotListesi({
 
   const aktif = data.filter((n) => !n.tamamlandi);
   const tamamlanan = data.filter((n) => n.tamamlandi);
+  // v19 - yeni/degisen not sayisi (rozet): hic gormedigim veya son gormemden sonra guncellenen
+  const yeniSayisi = aktif.filter((n) =>
+    n.benimSonGorme === null || new Date(n.benimSonGorme).getTime() < new Date(n.guncellemeZamani).getTime()
+  ).length;
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -771,6 +871,11 @@ export function NotListesi({
         <section>
           <h3 className="text-[11px] sm:text-xs uppercase tracking-wider text-clay-400 dark:text-ink-300 mb-2 sm:mb-2.5 px-1">
             Bekleyen · {aktif.length}
+            {yeniSayisi > 0 && (
+              <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full bg-terracotta/15 text-terracotta text-[10px] font-semibold normal-case tracking-normal">
+                {yeniSayisi} yeni
+              </span>
+            )}
           </h3>
           <div className="space-y-2">
             {aktif.map((n) => <NotKart key={n.id} not={n} klasorBadgeGoster={klasorBadgeGoster} />)}

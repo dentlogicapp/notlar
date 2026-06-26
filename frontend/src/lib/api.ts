@@ -130,6 +130,8 @@ export const notApi = {
     ist<Not>(`/api/notlar/${id}/tamamla`, { method: "POST", body: JSON.stringify({ tamamlanmaAciklamasi }) }),
   yenidenAc: (id: string) =>
     ist<Not>(`/api/notlar/${id}/yeniden-ac`, { method: "POST" }),
+  okundu: (id: string) =>  // v19 - read receipt: scroll ile gorununce okundu isaretle
+    ist<{ ok: boolean }>(`/api/notlar/${id}/okundu`, { method: "POST" }),
   remove: (id: string) => ist<void>(`/api/notlar/${id}`, { method: "DELETE" }),
   geriYukle: (id: string) =>
     ist<Not>(`/api/notlar/${id}/geri-yukle`, { method: "POST" }),
