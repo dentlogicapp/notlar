@@ -70,7 +70,7 @@ export default function TenantSecSayfasi() {
               disabled={sec.isPending || !u.aktif}
               className="kart w-full p-5 sm:p-6 flex items-center gap-4 hover:border-terracotta/40 transition-colors text-left group disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <div className="text-3xl shrink-0">{u.markaEmoji || "🤍"}</div>
+              <div className="text-3xl shrink-0">{u.markaEmoji || "🏢"}</div>
               <div className="flex-1 min-w-0">
                 <div className="font-display text-lg text-clay-900 dark:text-ink-50 truncate">
                   {u.markaAdi}

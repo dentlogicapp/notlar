@@ -120,10 +120,9 @@ export function MailOnizleme({ mailImza, mailTonu }: {
   return (
     <div className="rounded-xl overflow-hidden border border-[#ebe3d4]" style={{ background: "#faf6ef" }}>
       <div className="bg-white mx-3 my-3 rounded-2xl border border-[#ebe3d4] px-5 py-5 text-center">
-        <div className="text-2xl leading-none" style={{ color: "#c4704d" }}>♡</div>
-        <p className="mt-3 text-[13px] leading-relaxed" style={{ color: "#5d4a37" }}>{selam}</p>
+        <p className="text-[13px] leading-relaxed" style={{ color: "#5d4a37" }}>{selam}</p>
         <div className="my-3 border-t border-[#ebe3d4]" />
-        <p className="text-[13px]" style={{ color: "#3d2817" }}>{mailImza || "🤍 İmza"}</p>
+        <p className="text-[13px]" style={{ color: "#3d2817" }}>{mailImza || "İmza"}</p>
         <p className="mt-3 text-[10px]" style={{ color: "#9c8a73" }}>Planlama Defterimiz · notlar.dentlogicapp.com</p>
       </div>
     </div>
