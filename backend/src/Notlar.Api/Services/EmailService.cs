@@ -358,7 +358,7 @@ public sealed class EmailService : IEmailService
             var sec = ssl ? MailKit.Security.SecureSocketOptions.StartTls
                           : MailKit.Security.SecureSocketOptions.None;
             await smtp.ConnectAsync(host, port, sec, ct);
-            if (!string.IsNullOrEmpty(user))
+            if (!string.IsNullOrEmpty(user) && !string.IsNullOrEmpty(pass))
                 await smtp.AuthenticateAsync(user, pass, ct);
             await smtp.SendAsync(msg, ct);
             await smtp.DisconnectAsync(true, ct);
