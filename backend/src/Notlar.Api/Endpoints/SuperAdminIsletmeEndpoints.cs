@@ -268,7 +268,7 @@ public static class SuperAdminIsletmeEndpoints
         // Cascade (DB FK): notlar/klasorler/not_gecmisi/bildirimler/uyelikler/metinler/versiyonlar otomatik silinir.
         // Ic audit (denetim_gunlukleri IsletmeId=tenant) FK SET NULL oldugu icin manuel silinir (DB sismesi sifir).
         // Yetim kullanicilar (super_admin degil + baska tenant uyesi degil) silinir.
-        g.MapDelete("/{id:guid}/kalici-sil", async (Guid id, IsletmeKaliciSilIstegi req, AppDbContext db,
+        g.MapPost("/{id:guid}/kalici-sil", async (Guid id, IsletmeKaliciSilIstegi req, AppDbContext db,
             IUserContext uc, IAuditService audit, IOperasyonelBildirimGonderici bildirim, CancellationToken ct) =>
         {
             var isletme = await db.Isletmeler.FirstOrDefaultAsync(x => x.Id == id, ct);

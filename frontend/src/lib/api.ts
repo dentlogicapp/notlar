@@ -448,7 +448,7 @@ export const superAdminIsletmeApi = {
     ist<{ ok: boolean }>(`/api/super-admin/isletmeler/${id}`, { method: "DELETE" }),
   // v19 - kalici (hard) silme. Marka adi teyidi zorunlu; sadece copteki (soft-silinmis) tenant'ta calisir.
   kaliciSil: (id: string, markaAdiTeyit: string) =>
-    ist<{ ok: boolean; silinenYetimKullanici: number }>(`/api/super-admin/isletmeler/${id}/kalici-sil`, { method: "DELETE", body: JSON.stringify({ markaAdiTeyit }) }),
+    ist<{ ok: boolean; silinenYetimKullanici: number }>(`/api/super-admin/isletmeler/${id}/kalici-sil`, { method: "POST", body: JSON.stringify({ markaAdiTeyit }) }),
 };
 
 // v19 P4 - super admin yonetimi (/api/super-admin/yoneticiler)
