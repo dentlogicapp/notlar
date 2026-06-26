@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Sparkles, Loader2, Check, X, RefreshCw, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { aiAyarApi } from "@/lib/api";
+import { aiApi } from "@/lib/api";
 
 // v19 - Inline AI Compose modal. Sadece super admin + mail alanlarinda acilir (MetinAlani karar verir).
 // Akis: serbest prompt + ton/uzunluk chip (B5) -> serbest-uret -> diff onizleme (B3) -> field'a uygula.
@@ -47,7 +47,7 @@ export function AiComposePopover({
     setUretiliyor(true);
     setHata(null);
     try {
-      const sonucGovde = await aiAyarApi.serbestUret({
+      const sonucGovde = await aiApi.serbestUret({
         anahtar,
         prompt: prompt.trim(),
         ton: ton ?? undefined,
