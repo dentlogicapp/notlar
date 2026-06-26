@@ -517,12 +517,37 @@ function KlasorBadge({ klasorAdi }: { klasorAdi: string | null }) {
 }
 
 // Tek not kartı
+// madde 1 - hatirlatma sekli etiketleri (dokum popover'da gosterilir)
+const HATIRLATMA_SEKIL_ETIKET: Record<string, string> = {
+  uygulama: "Uygulama içi bildirim",
+  email: "E-posta",
+  her_ikisi: "Uygulama + E-posta",
+};
+
 export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBadgeGoster?: boolean }) {
   const qc = useQueryClient();
   const [tamamlaAcik, setTamamlaAcik] = useState(false);
   const [duzenleAcik, setDuzenleAcik] = useState(false);
   const [detayAcik, setDetayAcik] = useState(false);
   const [silAcik, setSilAcik] = useState(false);  // v12 — not silme onay dialog'u
+  const [hatirlatmaDokumAcik, setHatirlatmaDokumAcik] = useState(false);  // madde 1 - hatirlatma dokumu popover
+
+  // madde 1 - hatirlatma alici isimleri icin tenant uyeleri (cache paylasimli, tek istek; sadece hatirlatma varsa)
+  const { data: tenantUyeler } = useQuery({
+    queryKey: ["uyeler"],
+    queryFn: isletmeApi.uyeler,
+    enabled: !!not.hatirlatmaZamani,
+    staleTime: 60_000,
+  });
+  const hatirlatmaKisaTarih = not.hatirlatmaZamani
+    ? new Date(not.hatirlatmaZamani).toLocaleString("tr-TR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
+    : "";
+  const hatirlatmaTamTarih = not.hatirlatmaZamani
+    ? new Date(not.hatirlatmaZamani).toLocaleString("tr-TR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })
+    : "";
+  const hatirlatmaAlicilari = (not.hatirlatmaAliciIdler ?? [])
+    .map((id) => tenantUyeler?.find((u) => u.kullaniciId === id)?.adSoyad)
+    .filter((x): x is string => Boolean(x));
 
   const yenidenAc = useMutation({
     mutationFn: () => notApi.yenidenAc(not.id),
@@ -605,18 +630,45 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
                 <Eye className="h-3.5 w-3.5" />
               </button>
               {not.hatirlatmaZamani && (
-                <span
-                  aria-label={`Hatırlatıcı: ${new Date(not.hatirlatmaZamani).toLocaleString("tr-TR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}`}
-                  title={`Hatırlatıcı: ${new Date(not.hatirlatmaZamani).toLocaleString("tr-TR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}`}
-                  className={cn(
-                    "p-1.5 rounded-md transition-colors inline-flex items-center",
-                    not.hatirlatmaGonderildiMi
-                      ? "text-clay-400 dark:text-ink-300"
-                      : "text-terracotta"
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setHatirlatmaDokumAcik((v) => !v)}
+                    aria-label={`Hatırlatıcı: ${hatirlatmaTamTarih}${hatirlatmaAlicilari.length ? `, kimlere: ${hatirlatmaAlicilari.join(", ")}` : ""}`}
+                    className={cn(
+                      "flex flex-col items-center px-1.5 py-1 rounded-md transition-colors hover:bg-cream-200 dark:hover:bg-ink-800",
+                      not.hatirlatmaGonderildiMi ? "text-clay-400 dark:text-ink-300" : "text-terracotta"
+                    )}
+                  >
+                    <Bell className="h-3.5 w-3.5" fill={not.hatirlatmaGonderildiMi ? "none" : "currentColor"} strokeWidth={2} />
+                    <span className="text-[9px] leading-none mt-0.5 font-medium whitespace-nowrap">{hatirlatmaKisaTarih}</span>
+                  </button>
+                  {hatirlatmaDokumAcik && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setHatirlatmaDokumAcik(false)} />
+                      <div className="absolute z-50 top-full left-1/2 -translate-x-1/2 mt-1.5 w-52 p-3 rounded-xl bg-white dark:bg-ink-800 border border-cream-300 dark:border-ink-700 shadow-lg text-left">
+                        <p className="text-[11px] font-semibold text-clay-700 dark:text-ink-100 flex items-center gap-1.5">
+                          <Bell className="h-3 w-3 text-terracotta" strokeWidth={2.5} /> Hatırlatıcı
+                        </p>
+                        <p className="text-[11px] text-clay-600 dark:text-ink-200 mt-1.5">{hatirlatmaTamTarih}</p>
+                        {hatirlatmaAlicilari.length > 0 && (
+                          <p className="text-[11px] text-clay-500 dark:text-ink-300 mt-1.5 leading-relaxed">
+                            <span className="text-clay-400 dark:text-ink-400">Kimlere: </span>
+                            {hatirlatmaAlicilari.join(", ")}
+                          </p>
+                        )}
+                        {not.hatirlatmaSekli && HATIRLATMA_SEKIL_ETIKET[not.hatirlatmaSekli] && (
+                          <p className="text-[10px] text-clay-400 dark:text-ink-400 mt-1.5">
+                            {HATIRLATMA_SEKIL_ETIKET[not.hatirlatmaSekli]}
+                          </p>
+                        )}
+                        {not.hatirlatmaGonderildiMi && (
+                          <p className="text-[10px] text-clay-400 dark:text-ink-400 mt-1 italic">Gönderildi</p>
+                        )}
+                      </div>
+                    </>
                   )}
-                >
-                  <Bell className="h-3.5 w-3.5" fill={not.hatirlatmaGonderildiMi ? "none" : "currentColor"} strokeWidth={2} />
-                </span>
+                </div>
               )}
               {not.kilitSahibiAdi ? (
                 <span
