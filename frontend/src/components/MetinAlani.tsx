@@ -9,6 +9,7 @@ import { KarakterSayaci } from "./KarakterSayaci";
 import { VersiyonGecmisi } from "./VersiyonGecmisi";
 import { AiComposePopover } from "./AiComposePopover";
 import { authApi } from "@/lib/api";
+import { aiAlanConfig } from "@/lib/aiAlanlar";
 
 // v18 - Katalog-driven tek metin alani. tip -> uygun input; etiket/yonlendirme/aciklama katalogtan.
 // sayac_hedef_tarihi -> datetime-local (ozel). DIGER TUM alanlar (baslik/konu/govde dahil, uzunluk
@@ -36,10 +37,11 @@ export function MetinAlani({
   const varsayilanDuz = (metin.varsayilan ?? "").replace(/<[^>]+>/g, "").trim();
   const kutuPlaceholder = varsayilanDuz || metin.yonlendirme || "";
 
-  // v19 - AI Compose: ✨ buton SADECE super admin + mail kategorisinde (defense in depth + maliyet koruma).
+  // v19 - AI Compose: ✨ buton SADECE super admin + izinli 3 alanda (whitelist, defense in depth).
   // ben React Query cache'inden gelir (AuthGuard zaten cekti, tekrar fetch yok).
   const { data: ben } = useQuery<Ben>({ queryKey: ["ben"], queryFn: authApi.ben, staleTime: 5 * 60_000 });
-  const aiGoster = (ben?.superAdmin ?? false) && metin.kategori === "mail";
+  const aiConfig = aiAlanConfig(metin.anahtar);
+  const aiGoster = (ben?.superAdmin ?? false) && aiConfig !== null;
   const [aiAcik, setAiAcik] = useState(false);
 
   // auto-resize: icerik kadar yukseklik (bos -> yonlendirme satiri, dolu -> tam okunur)
@@ -141,11 +143,15 @@ export function MetinAlani({
         {!tarihMi && <span data-tour-step="karakter-sayaci"><KarakterSayaci mevcut={deger.length} tip={metin.tip} karakterLimiti={metin.karakterLimiti} /></span>}
       </div>
 
-      {aiAcik && (
+      {aiAcik && aiConfig && (
         <AiComposePopover
           anahtar={metin.anahtar}
           etiket={metin.etiket}
+          tip={metin.tip}
           mevcutDeger={deger}
+          varsayilanPrompt={aiConfig.varsayilanPrompt}
+          mailTip={aiConfig.mailTip}
+          aliciAd={ben?.adSoyad ?? "Musa Deveci"}
           onUygula={(yeni) => onDegis(metin.anahtar, yeni)}
           onKapat={() => setAiAcik(false)}
         />

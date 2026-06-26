@@ -132,6 +132,12 @@ public static class PromptBuilder
             sb.AppendLine();
             sb.AppendLine($"Mevcut metin (isteğe göre geliştir veya değiştir): \"{b.MevcutMetin}\"");
         }
+        if (b.Anahtar.StartsWith("mail_"))
+        {
+            sb.AppendLine();
+            sb.AppendLine("ÖNEMLİ: Hitap satırı (örn. \"Merhaba {{alici_ad}},\") ve imza bloğu (örn. \"Saygılarımla, ... Ekibi\") EKLEME.");
+            sb.AppendLine("Bunlar mail şablonunda otomatik bulunur; tekrar yazarsan mailde çift görünür. SADECE gövde içeriğini üret.");
+        }
         sb.AppendLine();
         sb.AppendLine($"İstek: {b.Prompt}");
         sb.AppendLine();

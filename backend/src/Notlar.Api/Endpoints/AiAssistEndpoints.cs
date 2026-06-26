@@ -12,6 +12,14 @@ namespace Notlar.Api.Endpoints;
 // IAiAssistService.TaslakOnerAsync) kullanir; paralel yapi YOK. Saglayicidan habersiz (OpenAI/lokal fark etmez).
 public static class AiAssistEndpoints
 {
+    // v19 - AI serbest uretim YALNIZ bu 3 alanda acik (super admin karari; maliyet + kapsam koruma).
+    private static readonly HashSet<string> AiIzinliAnahtarlar = new()
+    {
+        "mail_davetiye_giris_metni",     // Davet Maili Giris Metni
+        "mail_davetiye_rehber",          // Davet Maili Rehber Icerigi
+        "dashboard_karsilama_alt_metin", // Dashboard Karsilama Alt Metni
+    };
+
     public static void MapAiAssistEndpoints(this WebApplication app)
     {
         // v18 Asama 11.5 - AI sadece super admin (maliyet kontrolu). Tenant erisimi yok (RequireSuperAdmin -> 403).
@@ -113,10 +121,10 @@ public static class AiAssistEndpoints
             if (katalog is null)
                 return Results.NotFound(new { hata = "ANAHTAR_BULUNAMADI", mesaj = "Metin anahtari bulunamadi." });
 
-            // Defense in depth: serbest uretim YALNIZ mail kategorisinde (maliyet + kapsam koruma).
-            // Frontend butonu zaten sadece mail'de gosterir; bu backend ikinci kale.
-            if (katalog.Kategori != "mail")
-                return Results.Json(new { hata = "KATEGORI_DESTEKLENMIYOR", mesaj = "Serbest uretim yalniz mail alanlarinda kullanilabilir." }, statusCode: 403);
+            // Defense in depth: serbest uretim YALNIZ izinli 3 alanda (maliyet + kapsam koruma).
+            // Frontend butonu zaten sadece bu alanlarda gosterir; bu backend ikinci kale.
+            if (!AiIzinliAnahtarlar.Contains(req.Anahtar))
+                return Results.Json(new { hata = "ALAN_DESTEKLENMIYOR", mesaj = "Bu alanda AI metin uretimi kullanilamaz." }, statusCode: 403);
 
             var metinler = await metinSvc.TumunuGetirAsync(tid, ct);
             var markaAdi = metinler.FirstOrDefault(m => m.Anahtar == "marka_adi")?.Icerik ?? "";
