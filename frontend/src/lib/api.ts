@@ -428,7 +428,7 @@ export const aiApi = {
 
 // v19 Asama 8 - Super admin tenant yonetimi (/api/super-admin/isletmeler)
 export const superAdminIsletmeApi = {
-  list: () => ist<IsletmeOzet[]>("/api/super-admin/isletmeler"),
+  list: (silinmis?: boolean) => ist<IsletmeOzet[]>(`/api/super-admin/isletmeler${silinmis ? "?silinmis=true" : ""}`),
   get: (id: string) => ist<IsletmeDetay>(`/api/super-admin/isletmeler/${id}`),
   olustur: (data: { markaAdi: string; markaEmoji?: string; kullanimModu: string }) =>
     ist<IsletmeOzet>("/api/super-admin/isletmeler", { method: "POST", body: JSON.stringify(data) }),
@@ -446,6 +446,9 @@ export const superAdminIsletmeApi = {
     ist<{ html: string }>("/api/super-admin/isletmeler/davet-onizle", { method: "POST", body: JSON.stringify(data) }),
   sil: (id: string) =>
     ist<{ ok: boolean }>(`/api/super-admin/isletmeler/${id}`, { method: "DELETE" }),
+  // v19 - kalici (hard) silme. Marka adi teyidi zorunlu; sadece copteki (soft-silinmis) tenant'ta calisir.
+  kaliciSil: (id: string, markaAdiTeyit: string) =>
+    ist<{ ok: boolean; silinenYetimKullanici: number }>(`/api/super-admin/isletmeler/${id}/kalici-sil`, { method: "DELETE", body: JSON.stringify({ markaAdiTeyit }) }),
 };
 
 // v19 P4 - super admin yonetimi (/api/super-admin/yoneticiler)

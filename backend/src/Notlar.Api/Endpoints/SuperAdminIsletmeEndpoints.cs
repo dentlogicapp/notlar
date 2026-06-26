@@ -23,12 +23,14 @@ public static class SuperAdminIsletmeEndpoints
             .RequireSuperAdmin();
 
         // GET liste - B1 zengin response + B3 saglik skoru (toplu sorgular, N+1 yok)
-        g.MapGet("", async (AppDbContext db, CancellationToken ct) =>
+        // v19 - ?silinmis=true: cop kutusu (kalici silme oncesi soft-silinmis tenant'lar).
+        g.MapGet("", async (AppDbContext db, bool? silinmis, CancellationToken ct) =>
         {
             var esik30 = DateTimeOffset.UtcNow.AddDays(-30);
+            var copModu = silinmis == true;
 
             var isletmeler = await db.Isletmeler
-                .Where(i => !i.Silindi)
+                .Where(i => copModu ? i.Silindi : !i.Silindi)
                 .OrderByDescending(i => i.OlusturmaZamani)
                 .ToListAsync(ct);
 
@@ -261,6 +263,72 @@ public static class SuperAdminIsletmeEndpoints
             return Results.Ok(new { ok = true });
         });
 
+        // DELETE /{id}/kalici-sil - HARD delete (geri alinamaz). On kosul: tenant zaten copte (Silindi=true).
+        // Iki asamali silme: once DELETE /{id} (cope at), sonra bu (kalici). Kaza korumasi + marka adi teyidi.
+        // Cascade (DB FK): notlar/klasorler/not_gecmisi/bildirimler/uyelikler/metinler/versiyonlar otomatik silinir.
+        // Ic audit (denetim_gunlukleri IsletmeId=tenant) FK SET NULL oldugu icin manuel silinir (DB sismesi sifir).
+        // Yetim kullanicilar (super_admin degil + baska tenant uyesi degil) silinir.
+        g.MapDelete("/{id:guid}/kalici-sil", async (Guid id, IsletmeKaliciSilIstegi req, AppDbContext db,
+            IUserContext uc, IAuditService audit, IOperasyonelBildirimGonderici bildirim, CancellationToken ct) =>
+        {
+            var isletme = await db.Isletmeler.FirstOrDefaultAsync(x => x.Id == id, ct);
+            if (isletme is null)
+                return Results.NotFound(new { hata = "ISLETME_BULUNAMADI", mesaj = "Isletme bulunamadi." });
+
+            // Defense 1: once cope atilmis olmali (iki asamali kaza korumasi)
+            if (!isletme.Silindi)
+                return Results.BadRequest(new { hata = "ONCE_COPE_AT", mesaj = "Kalici silmeden once tenant cope atilmali." });
+
+            // Defense 2: marka adi teyidi (yanlis tenant silme korumasi)
+            if (!string.Equals(req.MarkaAdiTeyit?.Trim(), isletme.MarkaAdi, StringComparison.Ordinal))
+                return Results.BadRequest(new { hata = "TEYIT_ESLESMEDI", mesaj = "Marka adi teyidi eslesmedi." });
+
+            // Defense 3: super admin kendi aktif tenant'ini kalici silemez (oturum bozulmasin)
+            if (uc.AktifIsletmeId == id)
+                return Results.BadRequest(new { hata = "AKTIF_TENANT_SILINEMEZ", mesaj = "Kendi aktif tenant'ini kalici silemezsin." });
+
+            // Yetim kullanici tespiti - tenant silinmeden ONCE uyelikten okunur (sonra uyelik cascade gider)
+            var uyeIds = await db.IsletmeUyelikleri
+                .Where(u => u.IsletmeId == id)
+                .Select(u => u.KullaniciId).ToListAsync(ct);
+            var yetimler = await db.Kullanicilar
+                .Where(k => uyeIds.Contains(k.Id) && !k.SuperAdmin
+                    && !db.IsletmeUyelikleri.Any(u => u.KullaniciId == k.Id && u.IsletmeId != id))
+                .ToListAsync(ct);
+
+            var markaAdi = isletme.MarkaAdi;
+
+            // Atomik: tek transaction, iki SaveChanges. RESTRICT sirasi: once tenant cascade, sonra yetim kullanici.
+            await using var tx = await db.Database.BeginTransactionAsync(ct);
+
+            // 1) Ic audit kayitlari (FK SET NULL - cascade etmez, manuel sil; DB sismesi sifir)
+            var icAuditler = await db.DenetimGunlukleri.Where(d => d.IsletmeId == id).ToListAsync(ct);
+            db.DenetimGunlukleri.RemoveRange(icAuditler);
+
+            // 2) AktifIsletmeId bu tenant olan kullanicilari temizle (FK constraint yok ama defansif - login drift onleme)
+            var aktifBunlar = await db.Kullanicilar.Where(k => k.AktifIsletmeId == id).ToListAsync(ct);
+            foreach (var k in aktifBunlar) k.AktifIsletmeId = null;
+
+            // 3) Tenant sil -> DB FK cascade tum tenant-scoped tablolari temizler
+            db.Isletmeler.Remove(isletme);
+            await db.SaveChangesAsync(ct);
+
+            // 4) Yetim kullanicilar (artik not/klasor/uyelik yok -> RESTRICT temiz; AuthToken/Bildirim/Cihaz cascade)
+            if (yetimler.Count > 0)
+            {
+                db.Kullanicilar.RemoveRange(yetimler);
+                await db.SaveChangesAsync(ct);
+            }
+
+            await tx.CommitAsync(ct);
+
+            // Silme eyleminin izi: super admin audit (IsletmeId null - tenant-bagimsiz, KALIR). Ic audit zaten silindi.
+            await audit.YazAsync("tenant_kalici_silindi", hedefTip: "isletme", hedefId: id,
+                degisenAlanlar: System.Text.Json.JsonSerializer.Serialize(new { markaAdi, silinenYetimKullanici = yetimler.Count }), ct: ct);
+
+            return Results.Ok(new { ok = true, silinenYetimKullanici = yetimler.Count });
+        });
+
         // POST /{id}/admin-ata - tenant'a admin ata. AdminEndpoints CREATE pattern reuse; fark: path tenant + Rol sabit admin.
         g.MapPost("/{id:guid}/admin-ata", async (Guid id, IsletmeAdminAtaIstegi req, AppDbContext db,
             IEmailService email, IAuditService audit, IConfiguration cfg, CancellationToken ct) =>
@@ -458,6 +526,7 @@ public record IsletmeOlusturIstegi(string MarkaAdi, string? MarkaEmoji, string K
 public record DavetOnizleIstegi(string? MarkaAdi, string? AdminAd);  // v19 B5
 
 public record IsletmeAdminAtaIstegi(string Email, string AdSoyad, string Cinsiyet);
+public record IsletmeKaliciSilIstegi(string? MarkaAdiTeyit);  // v19 - hard delete onayi (marka adi yazarak teyit)
 // v19 - super admin tenant detayindan uye guncelleme (email DEGISMEZ)
 public record IsletmeUyeGuncelleIstegi(string AdSoyad, string Cinsiyet);
 
