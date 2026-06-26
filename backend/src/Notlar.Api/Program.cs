@@ -44,6 +44,8 @@ builder.Services.AddSingleton<IApiKeyKripto, DataProtectionApiKeyKripto>();
 // v17 - AI Strategy Pattern (HttpClient typed + IMemoryCache 60sn + saglayici factory)
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient<OpenAiAssistService>();
+builder.Services.AddHttpClient<AnthropicAssistService>();  // v19 - Anthropic concrete
+builder.Services.AddHttpClient<LokalLlmAssistService>();   // v19 - Lokal LLM concrete
 builder.Services.AddScoped<IAiAssistServiceFactory, AiAssistServiceFactory>();
 // v17 - Runtime placeholder cozucu (G.4 minimal iskelet, stateless singleton)
 builder.Services.AddSingleton<ISablonResolver, SablonResolver>();

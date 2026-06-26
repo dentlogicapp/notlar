@@ -17,8 +17,8 @@ import { tarihFormat } from "@/lib/utils";
 
 const SAGLAYICILAR = [
   { value: "openai", etiket: "OpenAI", disabled: false },
-  { value: "anthropic", etiket: "Anthropic (yakinda)", disabled: true },
-  { value: "lokal", etiket: "Lokal LLM (yakinda)", disabled: true },
+  { value: "anthropic", etiket: "Anthropic (Claude)", disabled: false },
+  { value: "lokal", etiket: "Lokal LLM (LM Studio / Ollama)", disabled: false },
 ] as const;
 
 const schema = z.object({
@@ -174,10 +174,14 @@ export default function Page() {
 
         <div className="space-y-1">
           <Label>Model</Label>
-          <select {...register("modelId")} className="w-full rounded-xl border border-cream-300 dark:border-ink-700/60 bg-white/60 dark:bg-ink-800/40 px-3 py-2 text-sm">
-            <option value="">Model sec...</option>
-            {modeller.map((m) => <option key={m.id} value={m.id}>{m.etiket}</option>)}
-          </select>
+          {saglayici === "lokal" ? (
+            <Input {...register("modelId")} placeholder="orn. llama-3.1-8b-instruct" autoComplete="off" />
+          ) : (
+            <select {...register("modelId")} className="w-full rounded-xl border border-cream-300 dark:border-ink-700/60 bg-white/60 dark:bg-ink-800/40 px-3 py-2 text-sm">
+              <option value="">Model sec...</option>
+              {modeller.map((m) => <option key={m.id} value={m.id}>{m.etiket}</option>)}
+            </select>
+          )}
           {errors.modelId && <p className="text-sm text-red-500">{errors.modelId.message}</p>}
         </div>
 

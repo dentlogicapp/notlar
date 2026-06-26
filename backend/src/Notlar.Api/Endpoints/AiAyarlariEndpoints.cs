@@ -142,7 +142,12 @@ public static class AiAyarlariEndpoints
                     new { id = "gpt-4o", etiket = "GPT-4o (yuksek kalite)" },
                     new { id = "gpt-4-turbo", etiket = "GPT-4 Turbo (legacy)" }
                 },
-                // anthropic/lokal v17'de placeholder - model listesi gelecek surumde doldurulur
+                "anthropic" => new object[]
+                {
+                    new { id = "claude-haiku-4-5-20251001", etiket = "Claude Haiku 4.5 (hizli + ucuz, onerilen)" },
+                    new { id = "claude-sonnet-4-6", etiket = "Claude Sonnet 4.6 (yuksek kalite)" }
+                },
+                // lokal: model adi LM Studio/Ollama'dan gelir, tenant elle girer (frontend serbest input)
                 _ => Array.Empty<object>()
             };
             return Results.Ok(new { saglayici = s, modeller });

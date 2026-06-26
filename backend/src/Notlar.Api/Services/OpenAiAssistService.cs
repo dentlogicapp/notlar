@@ -48,7 +48,22 @@ public abstract class OpenAiUyumluAssistService : IAiAssistService
     public abstract string SaglayiciAdi { get; }
 
     protected abstract string BaseUrlBelirle(AiAyari ayar);
-    protected abstract HttpRequestMessage RequestHazirla(HttpMethod method, string path, object? body, AiAyari ayar);
+
+    // OpenAI uyumlu varsayilan istek: Bearer auth opsiyonel (ApiKeyEncrypted varsa eklenir).
+    // LM Studio/Ollama gibi lokal sunucular auth gerektirmez -> ApiKeyEncrypted null kalir, header eklenmez.
+    // Farkli auth/endpoint kullanan saglayicilar (Anthropic: x-api-key) bunu override eder.
+    protected virtual HttpRequestMessage RequestHazirla(HttpMethod method, string path, object? body, AiAyari ayar)
+    {
+        var req = new HttpRequestMessage(method, $"{BaseUrlBelirle(ayar)}{path}");
+        if (!string.IsNullOrEmpty(ayar.ApiKeyEncrypted))
+        {
+            var apiKey = _kripto.Coz(ayar.ApiKeyEncrypted);
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+        }
+        if (body is not null)
+            req.Content = JsonContent.Create(body);
+        return req;
+    }
 
     // ai_ayarlari singleton oku (tek satir). Yoksa AI kapali say.
     protected async Task<AiAyari> AyarGetirAsync(CancellationToken ct)
@@ -279,17 +294,5 @@ public sealed class OpenAiAssistService : OpenAiUyumluAssistService
     public override string SaglayiciAdi => "openai";
 
     protected override string BaseUrlBelirle(AiAyari ayar) => "https://api.openai.com/v1";
-
-    protected override HttpRequestMessage RequestHazirla(HttpMethod method, string path, object? body, AiAyari ayar)
-    {
-        var req = new HttpRequestMessage(method, $"{BaseUrlBelirle(ayar)}{path}");
-        if (!string.IsNullOrEmpty(ayar.ApiKeyEncrypted))
-        {
-            var apiKey = _kripto.Coz(ayar.ApiKeyEncrypted);
-            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-        }
-        if (body is not null)
-            req.Content = JsonContent.Create(body);
-        return req;
-    }
+    // RequestHazirla override edilmez: base virtual default (Bearer opsiyonel) OpenAI icin yeterli.
 }

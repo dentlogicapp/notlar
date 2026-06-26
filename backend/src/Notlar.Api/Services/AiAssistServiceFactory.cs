@@ -45,8 +45,8 @@ public sealed class AiAssistServiceFactory : IAiAssistServiceFactory
         return saglayici switch
         {
             "openai" => _sp.GetRequiredService<OpenAiAssistService>(),
-            // "anthropic" => _sp.GetRequiredService<AnthropicAssistService>(),  // gelecek surum
-            // "lokal"     => _sp.GetRequiredService<LokalLlmAssistService>(),    // gelecek surum
+            "anthropic" => _sp.GetRequiredService<AnthropicAssistService>(),
+            "lokal" => _sp.GetRequiredService<LokalLlmAssistService>(),
             _ => throw new AiKullanilamazException("AI_SAGLAYICI_HENUZ_DESTEKLENMIYOR")
         };
     }
