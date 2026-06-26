@@ -381,6 +381,12 @@ export const aiApi = {
       method: "POST",
       body: JSON.stringify(govde),
     }),
+  // v19 - Inline AI Compose: serbest prompt ile mail metni uret (duz metin doner, tek oneri).
+  serbestUret: (govde: { anahtar: string; prompt: string; ton?: string; uzunluk?: string; mevcutMetin?: string }) =>
+    ist<{ metin: string }>("/api/super-admin/ai-assist/serbest-uret", {
+      method: "POST",
+      body: JSON.stringify(govde),
+    }),
 };
 
 // v19 Asama 8 - Super admin tenant yonetimi (/api/super-admin/isletmeler)

@@ -1,11 +1,14 @@
 "use client";
 
-import { useRef, useEffect } from "react";
-import type { MetinBirlesik } from "@/lib/types";
-import { RotateCcw } from "lucide-react";
+import { useRef, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import type { MetinBirlesik, Ben } from "@/lib/types";
+import { RotateCcw, Sparkles } from "lucide-react";
 import { RichTextInput } from "./RichTextInput";
 import { KarakterSayaci } from "./KarakterSayaci";
 import { VersiyonGecmisi } from "./VersiyonGecmisi";
+import { AiComposePopover } from "./AiComposePopover";
+import { authApi } from "@/lib/api";
 
 // v18 - Katalog-driven tek metin alani. tip -> uygun input; etiket/yonlendirme/aciklama katalogtan.
 // sayac_hedef_tarihi -> datetime-local (ozel). DIGER TUM alanlar (baslik/konu/govde dahil, uzunluk
@@ -32,6 +35,12 @@ export function MetinAlani({
   // Varsayilan yoksa doldurma ipucuna (yonlendirme) duser. Alan altinda ayrica ipucu + "Varsayilan" satiri gosterilir.
   const varsayilanDuz = (metin.varsayilan ?? "").replace(/<[^>]+>/g, "").trim();
   const kutuPlaceholder = varsayilanDuz || metin.yonlendirme || "";
+
+  // v19 - AI Compose: ✨ buton SADECE super admin + mail kategorisinde (defense in depth + maliyet koruma).
+  // ben React Query cache'inden gelir (AuthGuard zaten cekti, tekrar fetch yok).
+  const { data: ben } = useQuery<Ben>({ queryKey: ["ben"], queryFn: authApi.ben, staleTime: 5 * 60_000 });
+  const aiGoster = (ben?.superAdmin ?? false) && metin.kategori === "mail";
+  const [aiAcik, setAiAcik] = useState(false);
 
   // auto-resize: icerik kadar yukseklik (bos -> yonlendirme satiri, dolu -> tam okunur)
   useEffect(() => {
@@ -68,6 +77,16 @@ export function MetinAlani({
               className="flex items-center gap-1 text-xs text-clay-400 dark:text-ink-300 hover:text-terracotta transition-colors"
             >
               <RotateCcw className="h-3 w-3" /> Varsayılana döndür
+            </button>
+          )}
+          {aiGoster && (
+            <button
+              type="button"
+              onClick={() => setAiAcik(true)}
+              title="AI ile metin uret"
+              className="flex items-center gap-1 text-xs text-terracotta hover:text-terracotta/80 transition-colors"
+            >
+              <Sparkles className="h-3.5 w-3.5" /> AI
             </button>
           )}
           <VersiyonGecmisi anahtar={metin.anahtar} onDon={(ic) => onDegis(metin.anahtar, ic)} />
@@ -121,6 +140,16 @@ export function MetinAlani({
         </div>
         {!tarihMi && <span data-tour-step="karakter-sayaci"><KarakterSayaci mevcut={deger.length} tip={metin.tip} karakterLimiti={metin.karakterLimiti} /></span>}
       </div>
+
+      {aiAcik && (
+        <AiComposePopover
+          anahtar={metin.anahtar}
+          etiket={metin.etiket}
+          mevcutDeger={deger}
+          onUygula={(yeni) => onDegis(metin.anahtar, yeni)}
+          onKapat={() => setAiAcik(false)}
+        />
+      )}
     </div>
   );
 }
