@@ -69,19 +69,23 @@ export function AiComposePopover({
     }
     setUretiliyor(true);
     setHata(null);
-    setSonuc(null);
+    setSonuc("");
     setYeniHtml(null);
+    setMevcutHtml(null);
     try {
-      const govde = await aiApi.serbestUret({
-        anahtar,
-        prompt: prompt.trim(),
-        ton: ton ?? undefined,
-        uzunluk: uzunluk ?? undefined,
-        mevcutMetin: mevcutDuz || undefined,
-      });
-      setSonuc(govde.metin);
+      await aiApi.serbestUretAkis(
+        {
+          anahtar,
+          prompt: prompt.trim(),
+          ton: ton ?? undefined,
+          uzunluk: uzunluk ?? undefined,
+          mevcutMetin: mevcutDuz || undefined,
+        },
+        (token) => setSonuc((prev) => (prev ?? "") + token),
+      );
     } catch {
       setHata("AI şu an metin üretemedi. Sağlayıcı ayarını ve bağlantıyı kontrol et.");
+      setSonuc(null);
     } finally {
       setUretiliyor(false);
     }
@@ -89,7 +93,7 @@ export function AiComposePopover({
 
   // Mail onizleme: sonuc gelince mevcut + yeni mail HTML render (yalniz mailTip dolu alanlarda).
   useEffect(() => {
-    if (!sonuc || !mailTip) return;
+    if (!sonuc || !mailTip || uretiliyor) return;
     let iptal = false;
     setOnizlemeYukleniyor(true);
     (async () => {
@@ -111,7 +115,7 @@ export function AiComposePopover({
     return () => {
       iptal = true;
     };
-  }, [sonuc, mailTip, anahtar]);
+  }, [sonuc, mailTip, anahtar, uretiliyor]);
 
   const placeholderlar = sonuc ? placeholderlariBul(sonuc) : [];
 
@@ -196,8 +200,21 @@ export function AiComposePopover({
             )}
           </Button>
 
-          {/* Onizleme */}
-          {sonuc && (
+          {/* Streaming: canli yazim (token token akar) */}
+          {uretiliyor && sonuc !== null && (
+            <div className="space-y-2 pt-2 border-t border-cream-200 dark:border-ink-800">
+              <p className="text-xs font-medium text-clay-700 dark:text-ink-100 flex items-center gap-2">
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-terracotta" /> AI yazıyor...
+              </p>
+              <div className="rounded-lg border border-terracotta/40 bg-terracotta/5 px-3 py-2 text-sm text-clay-900 dark:text-ink-50 min-h-[72px] whitespace-pre-wrap">
+                {sonuc}
+                <span className="inline-block w-1.5 h-4 bg-terracotta/60 animate-pulse ml-0.5 align-middle" />
+              </div>
+            </div>
+          )}
+
+          {/* Bitince: onizleme (mail iframe / metin diff) */}
+          {!uretiliyor && sonuc && (
             <div className="space-y-2 pt-2 border-t border-cream-200 dark:border-ink-800">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-medium text-clay-700 dark:text-ink-100">

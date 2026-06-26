@@ -387,6 +387,41 @@ export const aiApi = {
       method: "POST",
       body: JSON.stringify(govde),
     }),
+  // v19 - Inline AI Compose STREAMING: token token akar (SSE). onToken her parcada cagrilir; [DONE] ile biter.
+  serbestUretAkis: async (
+    govde: { anahtar: string; prompt: string; ton?: string; uzunluk?: string; mevcutMetin?: string },
+    onToken: (token: string) => void,
+  ): Promise<void> => {
+    const res = await fetch(`${API}/api/super-admin/ai-assist/serbest-uret-akis`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(govde),
+    });
+    if (!res.ok || !res.body) throw new Error("AI akisi baslatilamadi");
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const bloklar = buffer.split("\n\n");
+      buffer = bloklar.pop() ?? "";
+      for (const blok of bloklar) {
+        const satir = blok.trim();
+        if (satir.startsWith("event: hata")) throw new Error("AI_HATA");
+        if (!satir.startsWith("data: ")) continue;
+        const veri = satir.slice(6);
+        if (veri === "[DONE]") return;
+        try {
+          onToken(JSON.parse(veri) as string);
+        } catch {
+          /* bozuk parca atlanir */
+        }
+      }
+    }
+  },
 };
 
 // v19 Asama 8 - Super admin tenant yonetimi (/api/super-admin/isletmeler)
