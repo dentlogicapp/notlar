@@ -102,7 +102,7 @@ export function TamamlaDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Tamamlandı olarak işaretle</DialogTitle>
           <DialogDescription>
@@ -244,7 +244,7 @@ export function DuzenleDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Notu Düzenle</DialogTitle>
         </DialogHeader>
@@ -655,12 +655,15 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
 
           {/* İçerik — kart enini kaplar, iki yana yaslı, satır kırılmaları doğal */}
           {not.icerik && (
-            <p className={cn(
-              "text-[13px] sm:text-sm mt-1.5 leading-relaxed text-justify hyphens-auto break-words whitespace-pre-wrap",
-              not.tamamlandi ? "text-clay-400 dark:text-ink-300" : "text-clay-600 dark:text-ink-100"
-            )}>
-              {not.icerik}
-            </p>
+            <div className="flex gap-1.5 mt-1.5">
+              <span aria-hidden className="shrink-0 select-none text-[13px] sm:text-sm leading-relaxed text-clay-400 dark:text-ink-300">-</span>
+              <p className={cn(
+                "flex-1 min-w-0 text-[13px] sm:text-sm leading-relaxed text-justify hyphens-auto break-words whitespace-pre-wrap",
+                not.tamamlandi ? "text-clay-400 dark:text-ink-300" : "text-clay-600 dark:text-ink-100"
+              )}>
+                {not.icerik}
+              </p>
+            </div>
           )}
 
           {/* Tamamlanma açıklaması varsa terracotta vurgulu blok */}
