@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { notApi, klasorApi, isletmeApi } from "@/lib/api";
 import { useBen } from "@/lib/useBen";
+import { akisBaglan } from "@/lib/akis";
 import { useIsletmeMetinleri, metinDeger } from "@/lib/useIsletmeMetinleri";
 import { useEditLock } from "@/lib/useEditLock";
 import { Button } from "./ui/button";
@@ -794,21 +795,19 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
               </div>
             )}
 
-            <span className="text-clay-300 dark:text-ink-400 hidden sm:inline">·</span>
-
-            <span className="inline-flex items-center gap-1 text-clay-400 dark:text-ink-300 ml-auto sm:ml-0">
-              <span className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded-full bg-clay-200 dark:bg-ink-700 text-clay-700 dark:text-ink-100 inline-flex items-center justify-center text-[8px] sm:text-[9px] font-medium">
-                {bastari(not.olusturanAdSoyad)}
+            {/* SAG grup: olusturan + zaman; ml-auto ile tum notlarda ayni hizada saga yaslanir */}
+            <div className="flex items-center gap-1.5 ml-auto text-clay-400 dark:text-ink-300">
+              <span className="inline-flex items-center gap-1">
+                <span className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded-full bg-clay-200 dark:bg-ink-700 text-clay-700 dark:text-ink-100 inline-flex items-center justify-center text-[8px] sm:text-[9px] font-medium">
+                  {bastari(not.olusturanAdSoyad)}
+                </span>
+                {not.olusturanAdSoyad.split(" ")[0]}
               </span>
-              {not.olusturanAdSoyad.split(" ")[0]}
-            </span>
-            <span className="text-clay-300 dark:text-ink-400">·</span>
-            <span
-              className="text-clay-400 dark:text-ink-300"
-              title={`Oluşturma: ${tarihFormat(not.olusturmaZamani)}`}
-            >
-              {gorelizamandan(not.guncellemeZamani)}
-            </span>
+              <span className="text-clay-300 dark:text-ink-400">·</span>
+              <span title={`Oluşturma: ${tarihFormat(not.olusturmaZamani)}`}>
+                {gorelizamandan(not.guncellemeZamani)}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -833,6 +832,7 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
 export function NotListesi({
   klasorId, klasorBadgeGoster = true, sadeceBekleyen = false
 }: { klasorId?: string | null; klasorBadgeGoster?: boolean; sadeceBekleyen?: boolean }) {
+  const qc = useQueryClient();
   const { data, isLoading, error } = useQuery({
     queryKey: ["notlar", { klasor: klasorId, silindi: false, bekleyen: sadeceBekleyen }],
     queryFn: () => notApi.list({
@@ -842,6 +842,20 @@ export function NotListesi({
     }),
     refetchInterval: 15_000,
   });
+
+  // v19 Faz 3 Adim 2 - canli okundu: tenant akisina baglan, not_okundu olayinda listeyi tazele
+  useEffect(() => {
+    const kapat = akisBaglan(
+      (o) => {
+        if (o.olay === "not_okundu") {
+          qc.invalidateQueries({ queryKey: ["notlar"] });
+        }
+      },
+      undefined,
+      "/api/notlar/akis"
+    );
+    return kapat;
+  }, [qc]);
 
   if (isLoading) {
     return <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-clay-400 dark:text-ink-300" /></div>;

@@ -73,5 +73,46 @@ public static class AkisEndpoints
                 yayinci.Cik(id);
             }
         }).RequireSuperAdmin();
+
+        // v19 Faz 3 Adim 2 - tenant-scoped not akisi (read receipts canli). Sadece kendi isletme olaylari.
+        app.MapGet("/api/notlar/akis", async (HttpContext http, IAkisYayinci yayinci, IUserContext uc, CancellationToken ct) =>
+        {
+            if (uc.AktifIsletmeId is null) { http.Response.StatusCode = 401; return; }
+            var tenantId = uc.AktifIsletmeId.Value;
+
+            http.Response.Headers.Append("Content-Type", "text/event-stream");
+            http.Response.Headers.Append("Cache-Control", "no-cache");
+            http.Response.Headers.Append("X-Accel-Buffering", "no");
+            await http.Response.WriteAsync(": baglandi\n\n", ct);
+            await http.Response.Body.FlushAsync(ct);
+
+            var (id, reader) = yayinci.AboneOl();
+            try
+            {
+                while (!ct.IsCancellationRequested)
+                {
+                    using var hbCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                    hbCts.CancelAfter(TimeSpan.FromSeconds(30));
+                    AkisOlayi olay;
+                    try { olay = await reader.ReadAsync(hbCts.Token); }
+                    catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+                    {
+                        await http.Response.WriteAsync(": heartbeat\n\n", ct);
+                        await http.Response.Body.FlushAsync(ct);
+                        continue;
+                    }
+                    catch (ChannelClosedException) { break; }
+
+                    // TENANT IZOLASYON: sadece kendi isletme olaylari client'a gecer
+                    if (olay.IsletmeId != tenantId) continue;
+
+                    var json = JsonSerializer.Serialize(olay, JsonAyar);
+                    await http.Response.WriteAsync($"data: {json}\n\n", ct);
+                    await http.Response.Body.FlushAsync(ct);
+                }
+            }
+            catch (OperationCanceledException) { }
+            finally { yayinci.Cik(id); }
+        }).RequireAuthorization();
     }
 }

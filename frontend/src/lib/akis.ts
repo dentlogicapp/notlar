@@ -20,10 +20,11 @@ export type AkisOlayi = {
  */
 export function akisBaglan(
   onOlay: (o: AkisOlayi) => void,
-  onDurum?: (bagli: boolean) => void
+  onDurum?: (bagli: boolean) => void,
+  yol: string = "/api/super-admin/akis"
 ): () => void {
   const base = process.env.NEXT_PUBLIC_API_BASE ?? "";
-  const es = new EventSource(`${base}/api/super-admin/akis`, { withCredentials: true });
+  const es = new EventSource(`${base}${yol}`, { withCredentials: true });
 
   es.onopen = () => onDurum?.(true);
   es.onmessage = (e) => {

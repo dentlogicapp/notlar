@@ -520,7 +520,7 @@ public static class NoteEndpoints
         });
 
         // v19 - read receipt: notu okundu isaretle (scroll ile gorununce). Upsert: OkunmaZamani=now.
-        g.MapPost("/{id:guid}/okundu", async (Guid id, AppDbContext db, IUserContext uc, CancellationToken ct) =>
+        g.MapPost("/{id:guid}/okundu", async (Guid id, AppDbContext db, IUserContext uc, IAkisYayinci yayinci, CancellationToken ct) =>
         {
             if (uc.AktifIsletmeId is null || uc.KullaniciId is null) return Results.Unauthorized();
             var tenantId = uc.AktifIsletmeId.Value;
@@ -536,6 +536,13 @@ public static class NoteEndpoints
             else
                 mevcut.OkunmaZamani = DateTimeOffset.UtcNow;
             await db.SaveChangesAsync(ct);
+
+            // v19 Faz 3 Adim 2 - canli okundu: tenant akisina yayinla (esin ekrani aninda gunceller)
+            yayinci.Yayinla(new AkisOlayi(
+                Olay: "not_okundu", HedefTip: "not", HedefId: id, IsletmeId: tenantId,
+                AktorEmail: uc.Email, AktorAdSoyad: uc.AdSoyad,
+                Detay: null, DegisenAlanlar: null, Zaman: DateTimeOffset.UtcNow));
+
             return Results.Ok(new { ok = true });
         });
     }
