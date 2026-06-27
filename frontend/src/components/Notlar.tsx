@@ -636,24 +636,22 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
           className="mt-0.5 shrink-0"
         />
         <div className="flex-1 min-w-0">
-          {/* Üst satır: başlık (sol) + oluşturan bilgisi (sağ üste sabit) */}
-          <div className="flex items-start justify-between gap-2">
-            <h4 className={cn(
-              "flex-1 min-w-0 text-sm sm:text-[15px] leading-snug font-medium break-words text-justify hyphens-auto",
-              not.tamamlandi ? "line-through text-clay-400 dark:text-ink-300" : "text-clay-900 dark:text-ink-50"
-            )}>
-              {not.baslik}
-            </h4>
-            {/* Oluşturan: avatar + ilk ad + zaman; sağ üste sabit (mobilde ad gizli, kompakt) */}
-            <div className="flex items-center gap-1.5 shrink-0 text-[11px] text-clay-400 dark:text-ink-300">
-              <span className="h-4 w-4 rounded-full bg-clay-200 dark:bg-ink-700 text-clay-700 dark:text-ink-100 inline-flex items-center justify-center text-[8px] font-medium">
-                {bastari(not.olusturanAdSoyad)}
-              </span>
-              <span className="hidden sm:inline">{not.olusturanAdSoyad.split(" ")[0]}</span>
-              <span className="text-clay-300 dark:text-ink-400 hidden sm:inline">·</span>
-              <span title={`Oluşturma: ${tarihFormat(not.olusturmaZamani)}`}>{gorelizamandan(not.guncellemeZamani)}</span>
-            </div>
+          {/* Üst satır: oluşturan bilgisi (başlığın bir üstünde, sağa yaslı; başlığı daraltmaz). Sıra: avatar, ad, zaman */}
+          <div className="flex items-center justify-end gap-1.5 mb-1 text-[11px] text-clay-400 dark:text-ink-300">
+            <span className="h-4 w-4 rounded-full bg-clay-200 dark:bg-ink-700 text-clay-700 dark:text-ink-100 inline-flex items-center justify-center text-[8px] font-medium shrink-0">
+              {bastari(not.olusturanAdSoyad)}
+            </span>
+            <span className="truncate">{not.olusturanAdSoyad.split(" ")[0]}</span>
+            <span className="text-clay-300 dark:text-ink-400">·</span>
+            <span className="shrink-0" title={`Oluşturma: ${tarihFormat(not.olusturmaZamani)}`}>{gorelizamandan(not.guncellemeZamani)}</span>
           </div>
+          {/* Başlık: tam genişlik, daralmaz */}
+          <h4 className={cn(
+            "text-sm sm:text-[15px] leading-snug font-medium break-words text-justify hyphens-auto",
+            not.tamamlandi ? "line-through text-clay-400 dark:text-ink-300" : "text-clay-900 dark:text-ink-50"
+          )}>
+            {not.baslik}
+          </h4>
 
           {/* İçerik — kart enini kaplar, iki yana yaslı, satır kırılmaları doğal */}
           {not.icerik && (
@@ -693,7 +691,7 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
                 <Eye className="h-3.5 w-3.5" />
               </button>
               {not.hatirlatmaZamani && (
-                <div className="relative">
+                <div className="relative order-first">
                   <button
                     type="button"
                     onClick={() => setHatirlatmaDokumAcik((v) => !v)}
