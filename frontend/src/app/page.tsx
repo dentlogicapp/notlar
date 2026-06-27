@@ -83,11 +83,11 @@ function Icerik() {
 
       <div className="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-10 space-y-5 sm:space-y-8">
         {/* Karşılama */}
-        <section className="animate-fade-in pr-0 md:pr-48 lg:pr-64">
+        <section className="animate-fade-in">
           <p className="font-display text-2xl sm:text-3xl md:text-4xl text-clay-900 dark:text-ink-50 leading-tight">
             {karsilamaBasligi}
           </p>
-          <p className="text-clay-500 dark:text-ink-200 mt-1.5 sm:mt-2 italic text-[13px] sm:text-[15px] md:text-base leading-relaxed">
+          <p className="text-clay-500 dark:text-ink-200 mt-1.5 sm:mt-2 italic text-[13px] sm:text-[15px] md:text-base leading-relaxed text-justify hyphens-auto">
             {karsilamaAltMetni}
           </p>
         </section>
