@@ -587,9 +587,10 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
       for (const e of entries) {
         if (e.isIntersecting && !okunduGonderildiRef.current) {
           okunduGonderildiRef.current = true;
-          setGorulduOptimistic(true);
           okunduMut.mutate();
           obs.disconnect();
+          // vurgu kullanici tarafindan fark edilsin: 2.5sn belirgin kalir, sonra yumusak soner
+          setTimeout(() => setGorulduOptimistic(true), 2500);
         }
       }
     }, { threshold: 0.6 });
@@ -624,9 +625,9 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
       ref={kartRef}
       data-not-id={not.id}
       className={cn(
-        "kart p-3 sm:p-4 group transition-all hover:shadow-md",
+        "kart p-3 sm:p-4 group transition-all duration-500 hover:shadow-md",
         not.tamamlandi && "bg-cream-200 dark:bg-ink-800/40 border-cream-300 dark:border-ink-700",
-        yeniVeyaDegismis && "ring-2 ring-terracotta/60 border-terracotta/40 shadow-sm"
+        yeniVeyaDegismis && "ring-2 ring-terracotta border-terracotta bg-terracotta/[0.05] shadow-md"
       )}>
       <div className="flex items-start gap-2.5 sm:gap-3">
         <Checkbox
@@ -682,8 +683,8 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
               <KlasorBadge klasorAdi={not.klasorAdi} />
             )}
 
-            {/* Aksiyon ikon grubu — kompakt, mobilde de görünür */}
-            <div className="flex items-center gap-0 -my-1">
+            {/* Aksiyon ikon grubu - sag kenara sabit (ml-auto + order-last): klasor uzunlugundan bagimsiz, her notta ayni X konumu */}
+            <div className="flex items-center gap-0 -my-1 ml-auto order-last">
               <button
                 onClick={() => setDetayAcik(true)}
                 aria-label="Detay"
@@ -761,7 +762,7 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
             </div>
 
             {okuyanlarGosterilen.length > 0 && (
-              <div className="relative ml-auto">
+              <div className="relative order-2">
                 <button
                   type="button"
                   onClick={() => setOkuyanlarAcik((v) => !v)}
