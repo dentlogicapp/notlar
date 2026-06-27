@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type KeyboardEvent } from "react";
 import {
   Eye, Pencil, Trash2, Plus, History, CheckCircle2, Loader2, FolderHeart, Tag, Bell, Lock, AlertTriangle, Users
 } from "lucide-react";
@@ -154,9 +154,40 @@ export function DuzenleDialog({
   }, [open, lock.kilitSahibi, onOpenChange]);
 
   const [baslik, setBaslik] = useState(not.baslik);
-  const [icerik, setIcerik] = useState(not.icerik ?? "");
+  const [icerik, setIcerik] = useState(not.icerik ? icerikTireli(not.icerik) : "");
   const [klasorId, setKlasorId] = useState<string | null>(not.klasorId);
   const [aciklama, setAciklama] = useState("");
+
+  // Icerik value-managed tire: her madde "- " ile baslar; Enter yeni madde acar, satir basi "- " silinemez
+  function icerikKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
+    const ta = e.currentTarget;
+    const { selectionStart, selectionEnd, value } = ta;
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const yeni = value.slice(0, selectionStart) + "\n- " + value.slice(selectionEnd);
+      setIcerik(yeni);
+      const pos = selectionStart + 3;  // "\n- " = 3 karakter
+      requestAnimationFrame(() => { ta.selectionStart = ta.selectionEnd = pos; });
+      return;
+    }
+    if (e.key === "Backspace" && selectionStart === selectionEnd) {
+      const satirBasi = value.lastIndexOf("\n", selectionStart - 1) + 1;
+      const tireVar = value.slice(satirBasi, satirBasi + 2) === "- ";
+      // imlec satir basindaki "- " icinde/hemen sonrasinda mi
+      if (tireVar && selectionStart > satirBasi && selectionStart <= satirBasi + 2) {
+        e.preventDefault();
+        if (satirBasi === 0) return;                                             // ilk satir tiresi silinmez
+        const yeni = value.slice(0, satirBasi - 1) + value.slice(satirBasi + 2); // "\n- " kaldir, onceki satira birles
+        setIcerik(yeni);
+        const pos = satirBasi - 1;
+        requestAnimationFrame(() => { ta.selectionStart = ta.selectionEnd = pos; });
+      }
+    }
+  }
+
+  function icerikFocus() {
+    if (icerik === "") setIcerik("- ");  // bos icerikte ilk madde tiresi
+  }
 
   // Hatırlatıcı state — mevcutsa yükle, yoksa kapalı başla
   const [hatirlaticiAcik, setHatirlaticiAcik] = useState<boolean>(not.hatirlatmaZamani !== null);
@@ -187,7 +218,11 @@ export function DuzenleDialog({
   const m = useMutation({
     mutationFn: () => {
       const baslikTrim = baslik.trim();
-      const icerikTrim = icerik.trim() || null;
+      const icerikTrim = icerik
+        .split("\n")
+        .filter((s) => s.replace(/^-\s*/, "").trim() !== "")  // tire sonrasi bos satirlari at
+        .join("\n")
+        .trim() || null;
       const aciklamaTrim = aciklama.trim() || null;
 
       if (hatirlaticiAcik) {
@@ -258,7 +293,9 @@ export function DuzenleDialog({
             <Textarea
               id="icerik" value={icerik}
               onChange={(e) => setIcerik(e.target.value)}
-              placeholder="Detay yaz..."
+              onKeyDown={icerikKeyDown}
+              onFocus={icerikFocus}
+              placeholder="Her satır bir madde; başına otomatik - gelir"
             />
           </div>
           <div>
@@ -524,6 +561,18 @@ const HATIRLATMA_SEKIL_ETIKET: Record<string, string> = {
   her_ikisi: "Uygulama + E-posta",
 };
 
+// icerik her satirini "- madde" formatina normalize eder (cift tire onler; tire'siz eski notlara otomatik ekler)
+function icerikTireli(icerik: string): string {
+  return icerik
+    .split("\n")
+    .map((satir) => {
+      const bossuz = satir.trimStart();
+      if (bossuz === "") return satir;                       // bos satir dokunma
+      return bossuz.startsWith("- ") ? satir : `- ${satir}`; // zaten tireli ise koru, degilse ekle
+    })
+    .join("\n");
+}
+
 // madde 5 - aksiyon ikonlari icin ortak touch target: mobilde >=44px (kazara dokunma onleme), desktopta kompakt 36px
 const IKON_BUTON = "min-w-[44px] min-h-[44px] sm:min-w-[36px] sm:min-h-[36px] inline-flex items-center justify-center rounded-md transition-colors";
 
@@ -653,17 +702,14 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
             {not.baslik}
           </h4>
 
-          {/* İçerik — kart enini kaplar, iki yana yaslı, satır kırılmaları doğal */}
+          {/* İçerik — her satır "- madde" (eski/yeni notlar tutarlı), iki yana yaslı */}
           {not.icerik && (
-            <div className="flex gap-1.5 mt-1.5">
-              <span aria-hidden className="shrink-0 select-none text-[13px] sm:text-sm leading-relaxed text-clay-400 dark:text-ink-300">-</span>
-              <p className={cn(
-                "flex-1 min-w-0 text-[13px] sm:text-sm leading-relaxed text-justify hyphens-auto break-words whitespace-pre-wrap",
-                not.tamamlandi ? "text-clay-400 dark:text-ink-300" : "text-clay-600 dark:text-ink-100"
-              )}>
-                {not.icerik}
-              </p>
-            </div>
+            <p className={cn(
+              "text-[13px] sm:text-sm mt-1.5 leading-relaxed text-justify hyphens-auto break-words whitespace-pre-wrap",
+              not.tamamlandi ? "text-clay-400 dark:text-ink-300" : "text-clay-600 dark:text-ink-100"
+            )}>
+              {icerikTireli(not.icerik)}
+            </p>
           )}
 
           {/* Tamamlanma açıklaması varsa terracotta vurgulu blok */}
@@ -947,8 +993,8 @@ function NotSilDialog({
           {not.icerik && (
             <div className="rounded-lg border border-cream-300 dark:border-ink-700 bg-cream-50 dark:bg-ink-900 px-3 py-2">
               <p className="text-[11px] uppercase tracking-wider text-clay-400 dark:text-ink-300 mb-1">İçerik önizleme</p>
-              <p className="text-sm text-clay-700 dark:text-ink-100 line-clamp-3 leading-relaxed">
-                {not.icerik}
+              <p className="text-sm text-clay-700 dark:text-ink-100 line-clamp-3 leading-relaxed whitespace-pre-wrap">
+                {icerikTireli(not.icerik)}
               </p>
             </div>
           )}
