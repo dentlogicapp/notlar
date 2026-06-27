@@ -59,7 +59,6 @@ export function YeniNotFormu({ klasorId }: { klasorId?: string | null }) {
           {...register("baslik")}
           placeholder={notIpucu}
           disabled={m.isPending}
-          autoFocus
         />
         {errors.baslik && (
           <p className="text-xs text-red-600 mt-1.5 ml-1">{errors.baslik.message}</p>
@@ -117,7 +116,6 @@ export function TamamlaDialog({
             value={aciklama}
             onChange={(e) => setAciklama(e.target.value)}
             placeholder="Örn. Önemli bir gelişmeyi veya kararı buraya yaz."
-            autoFocus
           />
         </div>
         <div className="flex gap-2 justify-end pt-2">
@@ -253,7 +251,7 @@ export function DuzenleDialog({
         <div className="space-y-3">
           <div>
             <Label htmlFor="baslik">Başlık</Label>
-            <Input id="baslik" value={baslik} onChange={(e) => setBaslik(e.target.value)} autoFocus />
+            <Input id="baslik" value={baslik} onChange={(e) => setBaslik(e.target.value)} />
           </div>
           <div>
             <Label htmlFor="icerik">İçerik</Label>
@@ -637,13 +635,24 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
           className="mt-0.5 shrink-0"
         />
         <div className="flex-1 min-w-0">
-          {/* Üst satır: sadece başlık (klasör badge ve aksiyonlar alt satıra taşındı) */}
-          <h4 className={cn(
-            "text-sm sm:text-[15px] leading-snug font-medium break-words text-justify hyphens-auto",
-            not.tamamlandi ? "line-through text-clay-400 dark:text-ink-300" : "text-clay-900 dark:text-ink-50"
-          )}>
-            {not.baslik}
-          </h4>
+          {/* Üst satır: başlık (sol) + oluşturan bilgisi (sağ üste sabit) */}
+          <div className="flex items-start justify-between gap-2">
+            <h4 className={cn(
+              "flex-1 min-w-0 text-sm sm:text-[15px] leading-snug font-medium break-words text-justify hyphens-auto",
+              not.tamamlandi ? "line-through text-clay-400 dark:text-ink-300" : "text-clay-900 dark:text-ink-50"
+            )}>
+              {not.baslik}
+            </h4>
+            {/* Oluşturan: avatar + ilk ad + zaman; sağ üste sabit (mobilde ad gizli, kompakt) */}
+            <div className="flex items-center gap-1.5 shrink-0 text-[11px] text-clay-400 dark:text-ink-300">
+              <span className="h-4 w-4 rounded-full bg-clay-200 dark:bg-ink-700 text-clay-700 dark:text-ink-100 inline-flex items-center justify-center text-[8px] font-medium">
+                {bastari(not.olusturanAdSoyad)}
+              </span>
+              <span className="hidden sm:inline">{not.olusturanAdSoyad.split(" ")[0]}</span>
+              <span className="text-clay-300 dark:text-ink-400 hidden sm:inline">·</span>
+              <span title={`Oluşturma: ${tarihFormat(not.olusturmaZamani)}`}>{gorelizamandan(not.guncellemeZamani)}</span>
+            </div>
+          </div>
 
           {/* İçerik — kart enini kaplar, iki yana yaslı, satır kırılmaları doğal */}
           {not.icerik && (
@@ -667,7 +676,7 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
             </div>
           )}
 
-          {/* Alt satır: [Klasör] [👁][✏][🗑] · Avatar · Tarih  (mobilde de her zaman görünür) */}
+          {/* Alt satır: [Klasör] [aksiyon ikonlar] · okuyanlar (mobilde de görünür) */}
           <div className="flex items-center gap-1.5 sm:gap-2 mt-2.5 text-[11px] sm:text-xs flex-wrap">
             {klasorBadgeGoster && (
               <KlasorBadge klasorAdi={not.klasorAdi} />
@@ -678,7 +687,7 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
               <button
                 onClick={() => setDetayAcik(true)}
                 aria-label="Detay"
-                className={cn(IKON_BUTON, "text-clay-500 dark:text-ink-200 hover:text-terracotta hover:bg-cream-200 dark:hover:bg-ink-800 active:bg-cream-300 dark:active:bg-ink-700 dark:bg-ink-700")}
+                className={cn(IKON_BUTON, "text-clay-500 dark:text-ink-200 hover:text-terracotta hover:bg-cream-200 dark:hover:bg-ink-800 active:bg-cream-300 dark:active:bg-ink-700")}
               >
                 <Eye className="h-3.5 w-3.5" />
               </button>
@@ -736,7 +745,7 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
                 <button
                   onClick={() => setDuzenleAcik(true)}
                   aria-label="Düzenle"
-                  className={cn(IKON_BUTON, "text-clay-500 dark:text-ink-200 hover:text-clay-900 dark:hover:text-ink-50 hover:bg-cream-200 dark:hover:bg-ink-800 active:bg-cream-300 dark:active:bg-ink-700 dark:bg-ink-700")}
+                  className={cn(IKON_BUTON, "text-clay-500 dark:text-ink-200 hover:text-clay-900 dark:hover:text-ink-50 hover:bg-cream-200 dark:hover:bg-ink-800 active:bg-cream-300 dark:active:bg-ink-700")}
                 >
                   <Pencil className="h-3.5 w-3.5" />
                 </button>
@@ -752,7 +761,7 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
             </div>
 
             {okuyanlarGosterilen.length > 0 && (
-              <div className="relative">
+              <div className="relative ml-auto">
                 <button
                   type="button"
                   onClick={() => setOkuyanlarAcik((v) => !v)}
@@ -797,20 +806,6 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
                 )}
               </div>
             )}
-
-            {/* SAG grup: olusturan + zaman; ml-auto ile tum notlarda ayni hizada saga yaslanir */}
-            <div className="flex items-center gap-1.5 ml-auto text-clay-400 dark:text-ink-300">
-              <span className="inline-flex items-center gap-1">
-                <span className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded-full bg-clay-200 dark:bg-ink-700 text-clay-700 dark:text-ink-100 inline-flex items-center justify-center text-[8px] sm:text-[9px] font-medium">
-                  {bastari(not.olusturanAdSoyad)}
-                </span>
-                {not.olusturanAdSoyad.split(" ")[0]}
-              </span>
-              <span className="text-clay-300 dark:text-ink-400">·</span>
-              <span title={`Oluşturma: ${tarihFormat(not.olusturmaZamani)}`}>
-                {gorelizamandan(not.guncellemeZamani)}
-              </span>
-            </div>
           </div>
         </div>
       </div>
