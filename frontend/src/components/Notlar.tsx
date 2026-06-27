@@ -797,7 +797,7 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
             <span className="text-clay-300 dark:text-ink-400 hidden sm:inline">·</span>
 
             <span className="inline-flex items-center gap-1 text-clay-400 dark:text-ink-300 ml-auto sm:ml-0">
-              <span className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded-full bg-clay-200 text-clay-700 dark:text-ink-100 inline-flex items-center justify-center text-[8px] sm:text-[9px] font-medium">
+              <span className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded-full bg-clay-200 dark:bg-ink-700 text-clay-700 dark:text-ink-100 inline-flex items-center justify-center text-[8px] sm:text-[9px] font-medium">
                 {bastari(not.olusturanAdSoyad)}
               </span>
               {not.olusturanAdSoyad.split(" ")[0]}
