@@ -526,6 +526,9 @@ const HATIRLATMA_SEKIL_ETIKET: Record<string, string> = {
   her_ikisi: "Uygulama + E-posta",
 };
 
+// madde 5 - aksiyon ikonlari icin ortak touch target: mobilde >=44px (kazara dokunma onleme), desktopta kompakt 36px
+const IKON_BUTON = "min-w-[44px] min-h-[44px] sm:min-w-[36px] sm:min-h-[36px] inline-flex items-center justify-center rounded-md transition-colors";
+
 export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBadgeGoster?: boolean }) {
   const qc = useQueryClient();
   const [tamamlaAcik, setTamamlaAcik] = useState(false);
@@ -636,7 +639,7 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
         <div className="flex-1 min-w-0">
           {/* Üst satır: sadece başlık (klasör badge ve aksiyonlar alt satıra taşındı) */}
           <h4 className={cn(
-            "text-sm sm:text-[15px] leading-snug font-medium break-words",
+            "text-sm sm:text-[15px] leading-snug font-medium break-words text-justify hyphens-auto",
             not.tamamlandi ? "line-through text-clay-400 dark:text-ink-300" : "text-clay-900 dark:text-ink-50"
           )}>
             {not.baslik}
@@ -675,7 +678,7 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
               <button
                 onClick={() => setDetayAcik(true)}
                 aria-label="Detay"
-                className="p-1.5 rounded-md text-clay-500 dark:text-ink-200 hover:text-terracotta hover:bg-cream-200 dark:hover:bg-ink-800 active:bg-cream-300 dark:active:bg-ink-700 dark:bg-ink-700 transition-colors"
+                className={cn(IKON_BUTON, "text-clay-500 dark:text-ink-200 hover:text-terracotta hover:bg-cream-200 dark:hover:bg-ink-800 active:bg-cream-300 dark:active:bg-ink-700 dark:bg-ink-700")}
               >
                 <Eye className="h-3.5 w-3.5" />
               </button>
@@ -686,7 +689,7 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
                     onClick={() => setHatirlatmaDokumAcik((v) => !v)}
                     aria-label={`Hatırlatıcı: ${hatirlatmaTamTarih}${hatirlatmaAlicilari.length ? `, kimlere: ${hatirlatmaAlicilari.join(", ")}` : ""}`}
                     className={cn(
-                      "flex flex-col items-center px-1.5 py-1 rounded-md transition-colors hover:bg-cream-200 dark:hover:bg-ink-800",
+                      "flex flex-col items-center justify-center min-w-[44px] min-h-[44px] sm:min-w-[36px] sm:min-h-[36px] rounded-md transition-colors hover:bg-cream-200 dark:hover:bg-ink-800",
                       not.hatirlatmaGonderildiMi ? "text-clay-400 dark:text-ink-300" : "text-terracotta"
                     )}
                   >
@@ -733,7 +736,7 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
                 <button
                   onClick={() => setDuzenleAcik(true)}
                   aria-label="Düzenle"
-                  className="p-1.5 rounded-md text-clay-500 dark:text-ink-200 hover:text-clay-900 dark:hover:text-ink-50 hover:bg-cream-200 dark:hover:bg-ink-800 active:bg-cream-300 dark:active:bg-ink-700 dark:bg-ink-700 transition-colors"
+                  className={cn(IKON_BUTON, "text-clay-500 dark:text-ink-200 hover:text-clay-900 dark:hover:text-ink-50 hover:bg-cream-200 dark:hover:bg-ink-800 active:bg-cream-300 dark:active:bg-ink-700 dark:bg-ink-700")}
                 >
                   <Pencil className="h-3.5 w-3.5" />
                 </button>
@@ -742,7 +745,7 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
                 onClick={() => setSilAcik(true)}
                 aria-label="Sil"
                 disabled={sil.isPending || !!not.kilitSahibiAdi}
-                className="p-1.5 rounded-md text-clay-500 dark:text-ink-200 hover:text-red-600 hover:bg-red-50 active:bg-red-100 transition-colors disabled:opacity-40"
+                className={cn(IKON_BUTON, "text-clay-500 dark:text-ink-200 hover:text-red-600 hover:bg-red-50 active:bg-red-100 disabled:opacity-40")}
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
@@ -891,7 +894,7 @@ export function NotListesi({
               </span>
             )}
           </h3>
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {aktif.map((n) => <NotKart key={n.id} not={n} klasorBadgeGoster={klasorBadgeGoster} />)}
           </div>
         </section>
@@ -901,7 +904,7 @@ export function NotListesi({
           <h3 className="text-[11px] sm:text-xs uppercase tracking-wider text-clay-400 dark:text-ink-300 mb-2 sm:mb-2.5 px-1">
             Tamamlanan · {tamamlanan.length}
           </h3>
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {tamamlanan.map((n) => <NotKart key={n.id} not={n} klasorBadgeGoster={klasorBadgeGoster} />)}
           </div>
         </section>
