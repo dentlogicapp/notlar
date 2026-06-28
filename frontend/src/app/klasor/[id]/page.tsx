@@ -76,10 +76,9 @@ function Icerik({ params }: { params: Promise<{ id: string }> }) {
           <KlasorListesi aktifId={id} />
 
           <section className="min-w-0">
-            <h2 className="font-display text-xl text-clay-900 dark:text-ink-50 mb-4 px-1">Notlar</h2>
             {/* Bu klasör içinde klasör badge'i göstermeye gerek yok.
                 v19 B4 - sistem klasörü (Tamamlananlar) tamamlanan notları gösterir; normal klasör sadece bekleyen (tamamlanan Tamamlananlar'a taşınır). */}
-            <NotListesi klasorId={id} klasorBadgeGoster={false} sadeceBekleyen={!k?.sistemMi} />
+            <NotListesi klasorId={id} klasorBadgeGoster={false} sadeceBekleyen={!k?.sistemMi} baslik="Notlar" />
           </section>
         </div>
       </div>

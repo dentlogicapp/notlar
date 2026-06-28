@@ -44,7 +44,7 @@ export function ZamanPaneli() {
     <>
       {/* Tek panel: ustte sayac satiri (varsa), altinda saat&takvim. Kartlar icerige sigar, ortalanir.
           Mobilde sayfa ustu ortali, webde sag kose. Sayac yoksa o satir kalkar, saat&takvim yerinde kalir. */}
-      <div className="mx-4 mt-3 mb-1 md:mx-0 md:my-0 md:fixed md:top-4 md:right-4 md:z-40 flex flex-col gap-2 items-center md:items-end animate-fade-in">
+      <div className="mx-4 mt-3 mb-1 md:mx-0 md:my-0 md:fixed md:top-4 md:right-4 md:z-40 flex flex-col gap-2 items-stretch animate-fade-in">
         <CountdownWidget gomulu />
         <SaatTakvimKart />
       </div>

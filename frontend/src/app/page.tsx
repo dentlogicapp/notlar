@@ -102,8 +102,7 @@ function Icerik() {
           <KlasorListesi />
 
           <section className="min-w-0">
-            <h2 className="font-display text-lg sm:text-xl text-clay-900 dark:text-ink-50 mb-3 sm:mb-4 px-1">Tüm Notlar</h2>
-            <NotListesi klasorId={null} sadeceBekleyen />
+            <NotListesi klasorId={null} sadeceBekleyen baslik="Tüm Notlar" />
           </section>
         </div>
 

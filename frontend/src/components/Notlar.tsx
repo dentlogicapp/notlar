@@ -5,13 +5,14 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { useState, useEffect, useRef, type KeyboardEvent } from "react";
+import { useState, useEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
 import {
   Eye, Pencil, Trash2, Plus, History, CheckCircle2, Loader2, FolderHeart, Tag, Bell, Lock, AlertTriangle, Users
 } from "lucide-react";
 import { notApi, klasorApi, isletmeApi } from "@/lib/api";
 import { useBen } from "@/lib/useBen";
 import { akisBaglan } from "@/lib/akis";
+import { AramaKutusu } from "./AramaKutusu";
 import { useIsletmeMetinleri, metinDeger } from "@/lib/useIsletmeMetinleri";
 import { useEditLock } from "@/lib/useEditLock";
 import { Button } from "./ui/button";
@@ -876,9 +877,10 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
 
 // Not listesi
 export function NotListesi({
-  klasorId, klasorBadgeGoster = true, sadeceBekleyen = false
-}: { klasorId?: string | null; klasorBadgeGoster?: boolean; sadeceBekleyen?: boolean }) {
+  klasorId, klasorBadgeGoster = true, sadeceBekleyen = false, baslik
+}: { klasorId?: string | null; klasorBadgeGoster?: boolean; sadeceBekleyen?: boolean; baslik?: string }) {
   const qc = useQueryClient();
+  const [aramaTerimi, setAramaTerimi] = useState("");
   const { data, isLoading, error } = useQuery({
     queryKey: ["notlar", { klasor: klasorId, silindi: false, bekleyen: sadeceBekleyen }],
     queryFn: () => notApi.list({
@@ -903,29 +905,54 @@ export function NotListesi({
     return kapat;
   }, [qc]);
 
+  // Baslik + arama satiri - her durumda gorunur (yukleme/bos/sonuc dahil)
+  const baslikSatiri = baslik !== undefined ? (
+    <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4 px-1">
+      <h2 className="font-display text-lg sm:text-xl text-clay-900 dark:text-ink-50 shrink-0">{baslik}</h2>
+      <AramaKutusu deger={aramaTerimi} onDegis={setAramaTerimi} />
+    </div>
+  ) : null;
+  const sarmal = (ic: ReactNode) => <>{baslikSatiri}{ic}</>;
+
+  // Arama filtresi - baslik + icerik, Turkce buyuk/kucuk harfe duyarli
+  const aranan = aramaTerimi.trim().toLocaleLowerCase("tr-TR");
+  const filtreli = (data ?? []).filter((n) =>
+    !aranan ||
+    n.baslik.toLocaleLowerCase("tr-TR").includes(aranan) ||
+    (n.icerik?.toLocaleLowerCase("tr-TR").includes(aranan) ?? false)
+  );
+
   if (isLoading) {
-    return <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-clay-400 dark:text-ink-300" /></div>;
+    return sarmal(<div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-clay-400 dark:text-ink-300" /></div>);
   }
   if (error) {
-    return <div className="text-sm text-red-700 bg-rose-50 border border-rose-200 rounded-xl p-4">{(error as Error).message}</div>;
+    return sarmal(<div className="text-sm text-red-700 bg-rose-50 border border-rose-200 rounded-xl p-4">{(error as Error).message}</div>);
   }
   if (!data || data.length === 0) {
-    return (
+    return sarmal(
       <div className="text-center py-10 px-4">
         <p className="font-display text-2xl text-clay-300 dark:text-ink-400 italic">boş sayfa</p>
         <p className="text-sm text-clay-400 dark:text-ink-300 mt-2">Yukarıdaki kutudan ekle.</p>
       </div>
     );
   }
+  if (aranan && filtreli.length === 0) {
+    return sarmal(
+      <div className="text-center py-10 px-4">
+        <p className="font-display text-2xl text-clay-300 dark:text-ink-400 italic">eşleşen not yok</p>
+        <p className="text-sm text-clay-400 dark:text-ink-300 mt-2">&ldquo;{aramaTerimi}&rdquo; ifadesini içeren not bulunamadı.</p>
+      </div>
+    );
+  }
 
-  const aktif = data.filter((n) => !n.tamamlandi);
-  const tamamlanan = data.filter((n) => n.tamamlandi);
+  const aktif = filtreli.filter((n) => !n.tamamlandi);
+  const tamamlanan = filtreli.filter((n) => n.tamamlandi);
   // v19 - yeni/degisen not sayisi (rozet): hic gormedigim veya son gormemden sonra guncellenen
   const yeniSayisi = aktif.filter((n) =>
     n.benimSonGorme === null || new Date(n.benimSonGorme).getTime() < new Date(n.guncellemeZamani).getTime()
   ).length;
 
-  return (
+  return sarmal(
     <div className="space-y-4 sm:space-y-6">
       {aktif.length > 0 && (
         <section>
