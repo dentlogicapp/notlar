@@ -15,13 +15,14 @@ function tamTarih(d: Date): string {
 }
 
 export function TakvimModal({
-  acik, onOpenChange, notlar = [], tatilGunleri = new Set<string>(),
+  acik, onOpenChange, notlar = [], tatilAdlari = new Map<string, string>(),
 }: {
   acik: boolean;
   onOpenChange: (a: boolean) => void;
   notlar?: Not[];
-  tatilGunleri?: Set<string>;
+  tatilAdlari?: Map<string, string>;
 }) {
+  const tatilGunleri = new Set(tatilAdlari.keys());
   const [seciliGun, setSeciliGun] = useState<Date | null>(null);
   const [seciliNotId, setSeciliNotId] = useState<string | null>(null);
 
@@ -53,9 +54,16 @@ export function TakvimModal({
             {/* Secili gunun hatirlaticilari - takvim boyutu sabit kalir, baslik tam (kaydirma) */}
             {seciliGun && (
               <div className="rounded-xl border border-cream-300 dark:border-ink-700 bg-cream-50 dark:bg-ink-900 p-3 animate-fade-in">
-                <p className="text-[12px] font-semibold text-clay-700 dark:text-ink-50 mb-2">
-                  {tamTarih(seciliGun)}
-                </p>
+                <div className="mb-2">
+                  <p className="text-[12px] font-semibold text-clay-700 dark:text-ink-50">
+                    {tamTarih(seciliGun)}
+                  </p>
+                  {tatilAdlari.get(tarihAnahtar(seciliGun)) && (
+                    <p className="text-[11px] font-medium text-terracotta mt-0.5">
+                      {tatilAdlari.get(tarihAnahtar(seciliGun))}
+                    </p>
+                  )}
+                </div>
                 {seciliNotlar.length === 0 ? (
                   <p className="text-[12px] text-clay-400 dark:text-ink-300">Bu güne ait hatırlatıcı yok.</p>
                 ) : (

@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useBen } from "@/lib/useBen";
 
-// Saate gore selam: 05-12 Gunaydin, 12-18 Iyi gunler, 18-22 Iyi aksamlar, 22-05 Iyi geceler
+const AY_ADLARI = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+const GUN_TAM = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
+
 function selamMetni(saat: number): string {
   if (saat >= 5 && saat < 12) return "Günaydın";
   if (saat >= 12 && saat < 18) return "İyi günler";
@@ -12,14 +14,13 @@ function selamMetni(saat: number): string {
   return "İyi geceler";
 }
 
-export function AnalogSaat({ boyut = 120 }: { boyut?: number }) {
+export function AnalogSaat({ boyut = 116 }: { boyut?: number }) {
   const [now, setNow] = useState<Date | null>(null);
   const [selamGoster, setSelamGoster] = useState(false);
   const [selamFade, setSelamFade] = useState(false);
   const { data: ben } = useBen();
   const rafRef = useRef<number | null>(null);
 
-  // Canli saat - akan saniye icin requestAnimationFrame (yumusak ibre)
   useEffect(() => {
     const tik = () => {
       setNow(new Date());
@@ -29,7 +30,6 @@ export function AnalogSaat({ boyut = 120 }: { boyut?: number }) {
     return () => { if (rafRef.current !== null) cancelAnimationFrame(rafRef.current); };
   }, []);
 
-  // Selamlama - oturum basina bir kez, ~4.5sn gorunur sonra yumusak kaybolur
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (sessionStorage.getItem("selam_gosterildi") === "1") return;
@@ -40,80 +40,90 @@ export function AnalogSaat({ boyut = 120 }: { boyut?: number }) {
     return () => { clearTimeout(fadeZaman); clearTimeout(gizleZaman); };
   }, []);
 
-  if (!now) return <div style={{ width: boyut, height: boyut }} aria-hidden />;
+  if (!now) return <div style={{ width: boyut, height: boyut + 56 }} aria-hidden />;
 
   const sa = now.getHours();
   const dk = now.getMinutes();
   const sn = now.getSeconds();
   const ms = now.getMilliseconds();
 
-  // Ibre acilari (derece). Saniye ms ile yumusak akar.
-  const snAci = (sn + ms / 1000) * 6;          // 360/60
-  const dkAci = dk * 6 + sn * 0.1;             // dakika + saniye kaymasi
-  const saAci = (sa % 12) * 30 + dk * 0.5;     // saat + dakika kaymasi
+  const snAci = (sn + ms / 1000) * 6;
+  const dkAci = dk * 6 + sn * 0.1;
+  const saAci = (sa % 12) * 30 + dk * 0.5;
 
-  // Dijital saat - ayrac saniyenin yarisinda soner (yanip sonme)
   const ayracGorunur = ms < 500;
   const ssa = sa.toString().padStart(2, "0");
   const sdk = dk.toString().padStart(2, "0");
+  const tarihUst = `${now.getDate()} ${AY_ADLARI[now.getMonth()]} ${now.getFullYear()}`;
+  const gunAdi = GUN_TAM[now.getDay()];
 
-  const merkez = 50;
   const ibre = (aci: number, uzunluk: number) => {
     const rad = (aci - 90) * (Math.PI / 180);
-    return { x2: merkez + uzunluk * Math.cos(rad), y2: merkez + uzunluk * Math.sin(rad) };
+    return { x2: 50 + uzunluk * Math.cos(rad), y2: 50 + uzunluk * Math.sin(rad) };
   };
   const saIbre = ibre(saAci, 22);
-  const dkIbre = ibre(dkAci, 32);
-  const snIbre = ibre(snAci, 36);
+  const dkIbre = ibre(dkAci, 31);
+  const snIbre = ibre(snAci, 35);
 
   return (
-    <div className="relative flex flex-col items-center">
-      {/* Selamlama - kullaniciyi karsilar, sonra yumusak kaybolur */}
+    <div className="relative flex flex-col items-center gap-1.5">
+      {/* Selamlama - oturum basina bir kez, gorunup yumusak kaybolur */}
       {selamGoster && (
-        <div
-          className={cn(
-            "absolute -top-7 whitespace-nowrap text-[12px] sm:text-[13px] font-medium text-terracotta transition-opacity duration-700 pointer-events-none",
-            selamFade ? "opacity-0" : "opacity-100"
-          )}
-        >
+        <div className={cn(
+          "absolute -top-7 whitespace-nowrap text-[12px] sm:text-[13px] font-medium text-terracotta transition-opacity duration-700 pointer-events-none z-10",
+          selamFade ? "opacity-0" : "opacity-100"
+        )}>
           {selamMetni(sa)}{ben?.adSoyad ? `, ${ben.adSoyad.split(" ")[0]}` : ""}!
         </div>
       )}
 
-      <svg
-        width={boyut} height={boyut} viewBox="0 0 100 100"
-        role="img" aria-label={`Saat ${ssa}:${sdk}`}
-        className="select-none"
-      >
-        {/* Kadran */}
+      {/* Acik tarih - ust */}
+      <div className="text-center leading-tight">
+        <div className="text-[12px] font-semibold text-clay-700 dark:text-ink-50">{tarihUst}</div>
+        <div className="text-[11px] text-clay-400 dark:text-ink-300">{gunAdi}</div>
+      </div>
+
+      {/* Analog saat - tum rakamlar, dijital merkez yok */}
+      <svg width={boyut} height={boyut} viewBox="0 0 100 100" role="img" aria-label={`Saat ${ssa}:${sdk}`} className="select-none">
         <circle cx="50" cy="50" r="47" className="fill-cream-50 dark:fill-ink-900 stroke-cream-300 dark:stroke-ink-700" strokeWidth="1.5" />
-        {/* Saat tikleri (12 adet) */}
-        {Array.from({ length: 12 }).map((_, i) => {
-          const aci = i * 30 * (Math.PI / 180);
-          const dis = 44, ic = i % 3 === 0 ? 38 : 41;  // ana saatler daha uzun
+        {/* Dakika tikleri (ince) */}
+        {Array.from({ length: 60 }).map((_, i) => {
+          if (i % 5 === 0) return null;
+          const aci = i * 6 * (Math.PI / 180);
           return (
-            <line
-              key={i}
-              x1={50 + ic * Math.sin(aci)} y1={50 - ic * Math.cos(aci)}
-              x2={50 + dis * Math.sin(aci)} y2={50 - dis * Math.cos(aci)}
-              className={cn("stroke-clay-300 dark:stroke-ink-600", i % 3 === 0 && "stroke-clay-400 dark:stroke-ink-500")}
-              strokeWidth={i % 3 === 0 ? 2 : 1} strokeLinecap="round"
+            <line key={`t${i}`}
+              x1={50 + 45 * Math.sin(aci)} y1={50 - 45 * Math.cos(aci)}
+              x2={50 + 47 * Math.sin(aci)} y2={50 - 47 * Math.cos(aci)}
+              className="stroke-clay-200 dark:stroke-ink-700" strokeWidth="0.5"
             />
           );
         })}
-
-        {/* Dijital saat - kadran ortasinda, cercevesiz, ibre ekseninin altinda */}
-        <text x="50" y="70" textAnchor="middle" className="fill-clay-700 dark:fill-ink-100 font-display" style={{ fontSize: "11px", fontWeight: 600 }}>
-          {ssa}<tspan style={{ opacity: ayracGorunur ? 1 : 0.15 }}>:</tspan>{sdk}
-        </text>
-
+        {/* Saat rakamlari 1-12 */}
+        {Array.from({ length: 12 }).map((_, idx) => {
+          const i = idx + 1;
+          const aci = i * 30 * (Math.PI / 180);
+          return (
+            <text key={`r${i}`}
+              x={50 + 38 * Math.sin(aci)} y={50 - 38 * Math.cos(aci)}
+              textAnchor="middle" dominantBaseline="central"
+              className="fill-clay-600 dark:fill-ink-200 font-display"
+              style={{ fontSize: "9px", fontWeight: 600 }}
+            >
+              {i}
+            </text>
+          );
+        })}
         {/* Ibreler */}
         <line x1="50" y1="50" x2={saIbre.x2} y2={saIbre.y2} className="stroke-clay-700 dark:stroke-ink-100" strokeWidth="3" strokeLinecap="round" />
         <line x1="50" y1="50" x2={dkIbre.x2} y2={dkIbre.y2} className="stroke-clay-600 dark:stroke-ink-200" strokeWidth="2" strokeLinecap="round" />
         <line x1="50" y1="50" x2={snIbre.x2} y2={snIbre.y2} className="stroke-terracotta" strokeWidth="1" strokeLinecap="round" />
-        {/* Merkez nokta */}
         <circle cx="50" cy="50" r="2.5" className="fill-terracotta" />
       </svg>
+
+      {/* Buyuk dijital saat - alt */}
+      <div className="font-display font-semibold text-clay-900 dark:text-ink-50 tabular-nums leading-none" style={{ fontSize: "1.75rem" }}>
+        {ssa}<span style={{ opacity: ayracGorunur ? 1 : 0.2 }}>:</span>{sdk}
+      </div>
     </div>
   );
 }

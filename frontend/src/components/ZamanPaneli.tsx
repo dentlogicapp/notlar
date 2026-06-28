@@ -7,12 +7,11 @@ import { AnalogSaat } from "./AnalogSaat";
 import { MiniTakvim, tarihAnahtar } from "./MiniTakvim";
 import { TakvimModal } from "./TakvimModal";
 import { CountdownWidget } from "./CountdownWidget";
-import { tatilGunleriHesapla } from "@/lib/tatiller";
+import { tatilHaritasi } from "@/lib/tatiller";
 
 export function ZamanPaneli() {
   const [modalAcik, setModalAcik] = useState(false);
 
-  // Hatirlatici gunleri (takvim isaretleri icin)
   const { data: notlar } = useQuery({
     queryKey: ["notlar", { klasor: null, silindi: false, bekleyen: false }],
     queryFn: () => notApi.list({ silindi: false }),
@@ -21,12 +20,13 @@ export function ZamanPaneli() {
   const hatirlatmaGunleri = new Set(
     (notlar ?? []).filter((n) => n.hatirlatmaZamani).map((n) => tarihAnahtar(new Date(n.hatirlatmaZamani!)))
   );
-  const tatilGunleri = tatilGunleriHesapla();
+  const tatiller = tatilHaritasi();
+  const tatilGunleri = new Set(tatiller.keys());
 
-  // Saat + Takvim - tek blok, yan yana. Sayactan bagimsiz; sayac olsa da olmasa da ic duzeni ayni.
+  // Saat + Takvim tek blok. Icerik karti doldurur (sag/sol bosluk yok); sayactan bagimsiz.
   const SaatTakvimKart = () => (
-    <div className="kart px-4 py-3 flex items-center justify-center gap-3">
-      <AnalogSaat boyut={84} />
+    <div className="kart px-4 py-3 flex items-center gap-4">
+      <AnalogSaat boyut={108} />
       <div className="self-stretch border-l border-cream-200 dark:border-ink-700" />
       <button
         type="button"
@@ -41,14 +41,14 @@ export function ZamanPaneli() {
 
   return (
     <>
-      {/* Tek panel: ustte sayac satiri (varsa), altinda saat&takvim satiri.
-          Mobilde sayfa ustu, webde sag kose. Sayac yoksa o satir kalkar, saat&takvim ayni yerinde kalir. */}
-      <div className="mx-4 mt-3 mb-1 md:mx-0 md:my-0 md:fixed md:top-4 md:right-4 md:z-40 flex flex-col gap-2 items-stretch md:items-end animate-fade-in">
+      {/* Tek panel: ustte sayac satiri (varsa), altinda saat&takvim. Kartlar icerige sigar, ortalanir.
+          Mobilde sayfa ustu ortali, webde sag kose. Sayac yoksa o satir kalkar, saat&takvim yerinde kalir. */}
+      <div className="mx-4 mt-3 mb-1 md:mx-0 md:my-0 md:fixed md:top-4 md:right-4 md:z-40 flex flex-col gap-2 items-center md:items-end animate-fade-in">
         <CountdownWidget gomulu />
         <SaatTakvimKart />
       </div>
 
-      <TakvimModal acik={modalAcik} onOpenChange={setModalAcik} notlar={notlar ?? []} tatilGunleri={tatilGunleri} />
+      <TakvimModal acik={modalAcik} onOpenChange={setModalAcik} notlar={notlar ?? []} tatilAdlari={tatiller} />
     </>
   );
 }
