@@ -14,7 +14,7 @@ function selamMetni(saat: number): string {
   return "İyi geceler";
 }
 
-export function AnalogSaat({ boyut = 116 }: { boyut?: number }) {
+export function AnalogSaat({ boyut = 116, onTarihTikla }: { boyut?: number; onTarihTikla?: () => void }) {
   const [now, setNow] = useState<Date | null>(null);
   const [selamGoster, setSelamGoster] = useState(false);
   const [selamFade, setSelamFade] = useState(false);
@@ -77,11 +77,16 @@ export function AnalogSaat({ boyut = 116 }: { boyut?: number }) {
         </div>
       )}
 
-      {/* Acik tarih - ust */}
-      <div className="text-center leading-tight">
+      {/* Acik tarih - ust. Tiklanabilir: bugunu takvimde secili acar (kullanici icgudusel olarak tiklar). */}
+      <button
+        type="button"
+        onClick={onTarihTikla}
+        className="text-center leading-tight rounded-lg px-2 py-0.5 hover:bg-cream-100 dark:hover:bg-ink-800/50 transition-colors"
+        aria-label="Bugünü takvimde aç"
+      >
         <div className="text-[12px] font-semibold text-clay-700 dark:text-ink-50">{tarihUst}</div>
         <div className="text-[11px] text-clay-400 dark:text-ink-300">{gunAdi}</div>
-      </div>
+      </button>
 
       {/* Analog saat - tum rakamlar, dijital merkez yok */}
       <svg width={boyut} height={boyut} viewBox="0 0 100 100" role="img" aria-label={`Saat ${ssa}:${sdk}`} className="select-none">

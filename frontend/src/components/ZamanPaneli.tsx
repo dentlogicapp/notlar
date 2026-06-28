@@ -11,6 +11,7 @@ import { tatilHaritasi } from "@/lib/tatiller";
 
 export function ZamanPaneli() {
   const [modalAcik, setModalAcik] = useState(false);
+  const [modalBaslangic, setModalBaslangic] = useState<Date | null>(null);
 
   const { data: notlar } = useQuery({
     queryKey: ["notlar", { klasor: null, silindi: false, bekleyen: false }],
@@ -26,11 +27,11 @@ export function ZamanPaneli() {
   // Saat + Takvim tek blok. Icerik karti doldurur (sag/sol bosluk yok); sayactan bagimsiz.
   const SaatTakvimKart = () => (
     <div className="kart px-4 py-3 flex items-center gap-4">
-      <AnalogSaat boyut={108} />
+      <AnalogSaat boyut={108} onTarihTikla={() => { setModalBaslangic(new Date()); setModalAcik(true); }} />
       <div className="self-stretch border-l border-cream-200 dark:border-ink-700" />
       <button
         type="button"
-        onClick={() => setModalAcik(true)}
+        onClick={() => { setModalBaslangic(null); setModalAcik(true); }}
         className="rounded-lg p-1 hover:bg-cream-100 dark:hover:bg-ink-800/50 transition-colors"
         aria-label="Takvimi büyüt"
       >
@@ -48,7 +49,7 @@ export function ZamanPaneli() {
         <SaatTakvimKart />
       </div>
 
-      <TakvimModal acik={modalAcik} onOpenChange={setModalAcik} notlar={notlar ?? []} tatilAdlari={tatiller} />
+      <TakvimModal acik={modalAcik} onOpenChange={setModalAcik} notlar={notlar ?? []} tatilAdlari={tatiller} baslangicGun={modalBaslangic} />
     </>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { MiniTakvim, tarihAnahtar } from "./MiniTakvim";
@@ -15,16 +15,23 @@ function tamTarih(d: Date): string {
 }
 
 export function TakvimModal({
-  acik, onOpenChange, notlar = [], tatilAdlari = new Map<string, string>(),
+  acik, onOpenChange, notlar = [], tatilAdlari = new Map<string, string>(), baslangicGun = null,
 }: {
   acik: boolean;
   onOpenChange: (a: boolean) => void;
   notlar?: Not[];
   tatilAdlari?: Map<string, string>;
+  baslangicGun?: Date | null;
 }) {
   const tatilGunleri = new Set(tatilAdlari.keys());
   const [seciliGun, setSeciliGun] = useState<Date | null>(null);
   const [seciliNotId, setSeciliNotId] = useState<string | null>(null);
+
+  // Modal acilinca baslangic gunu sec (tarih tiklanarak acildiginda bugun); kapaninca temizle
+  useEffect(() => {
+    if (acik) setSeciliGun(baslangicGun ?? null);
+    else { setSeciliGun(null); setSeciliNotId(null); }
+  }, [acik, baslangicGun]);
 
   // hatirlatici olan gunler (isaret) + secili gunun notlari + acik not (id ile - duzenleme sonrasi guncel kalir)
   const hatirlatmaGunleri = new Set(
@@ -94,7 +101,7 @@ export function TakvimModal({
 
       {/* Not detayi - anasayfadaki birebir NotKart gorunumu, flu arka plan, tam etkilesimli */}
       <Dialog open={!!seciliNot} onOpenChange={(o) => { if (!o) setSeciliNotId(null); }}>
-        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-lg p-4">
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-lg p-4 overflow-y-visible">
           {seciliNot && <NotKart not={seciliNot} klasorBadgeGoster={false} />}
         </DialogContent>
       </Dialog>
