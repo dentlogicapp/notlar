@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { useIsletmeMetinleri, metinDeger } from "@/lib/useIsletmeMetinleri";
 import { sayacHesapla, hedefMsCoz, type SayacDurum } from "@/lib/sayac";
 
-export function CountdownWidget() {
+export function CountdownWidget({ gomulu = false }: { gomulu?: boolean } = {}) {
   const { data: metinler } = useIsletmeMetinleri();
   const [mount, setMount] = useState(false);
   const [k, setK] = useState<SayacDurum>({ gecti: false, gun: 0, sa: 0, dk: 0, sn: 0 });
@@ -54,6 +54,15 @@ export function CountdownWidget() {
       </div>
     </>
   );
+
+  // gomulu: ZamanPaneli icinde konumlandirilir; pozisyon wrapper'i yok, icerik (kalp dahil) aynen.
+  if (gomulu) {
+    return (
+      <div className="kart px-4 py-3 flex items-center justify-center gap-3 animate-fade-in">
+        <SayacIcerik />
+      </div>
+    );
+  }
 
   return (
     <>

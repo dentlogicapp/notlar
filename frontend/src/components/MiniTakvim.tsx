@@ -15,7 +15,6 @@ export function tarihAnahtar(d: Date): string {
   return `${y}-${m}-${g}`;
 }
 
-// Pazartesi=0 olacak sekilde haftanin gunu
 function pztBasli(jsGun: number): number {
   return (jsGun + 6) % 7;
 }
@@ -25,11 +24,13 @@ export function MiniTakvim({
   tatilGunleri = new Set<string>(),
   onGunTikla,
   buyuk = false,
+  salt = false,
 }: {
   hatirlatmaGunleri?: Set<string>;
   tatilGunleri?: Set<string>;
   onGunTikla?: (tarih: Date) => void;
   buyuk?: boolean;
+  salt?: boolean;
 }) {
   const bugun = new Date();
   const [gosterilen, setGosterilen] = useState(new Date(bugun.getFullYear(), bugun.getMonth(), 1));
@@ -47,51 +48,56 @@ export function MiniTakvim({
     setGosterilen(new Date(yil, ay + delta, 1));
   }
 
-  // grid hucreleri: ay basi bos + gunler
+  // HER ZAMAN 42 hucre (6 satir) - ay gecisinde boyut hic degismez
   const hucreler: (number | null)[] = [];
   for (let i = 0; i < ayBasiGun; i++) hucreler.push(null);
   for (let g = 1; g <= ayGunSayisi; g++) hucreler.push(g);
+  while (hucreler.length < 42) hucreler.push(null);
 
-  const hucreBoyut = buyuk ? "h-10 w-10 text-sm" : "h-7 w-7 text-[11px]";
+  const hucreBoyut = buyuk ? "h-10 w-10 text-sm" : salt ? "h-6 w-6 text-[10px]" : "h-7 w-7 text-[11px]";
 
   return (
     <div className="flex flex-col">
-      {/* Baslik: sol ok (onceki ay) - ay yil - sag ok (sonraki ay) */}
-      <div className="flex items-center justify-between mb-1.5">
-        <button
-          type="button" onClick={() => ayDegis(-1)}
-          aria-label={`Önceki ay: ${AY_ADLARI[oncekiAy]}`}
-          title={AY_ADLARI[oncekiAy]}
-          className="flex items-center justify-center h-7 w-7 rounded-md text-clay-400 dark:text-ink-300 hover:text-terracotta hover:bg-cream-200 dark:hover:bg-ink-800 transition-colors"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </button>
-        <span className={cn("font-display font-semibold text-clay-800 dark:text-ink-50", buyuk ? "text-base" : "text-[13px]")}>
+      {/* Baslik: salt modda sadece ay-yil; etkilesimli modda sol/sag ay oklari */}
+      <div className={cn("flex items-center mb-1.5", salt ? "justify-center" : "justify-between")}>
+        {!salt && (
+          <button
+            type="button" onClick={() => ayDegis(-1)}
+            aria-label={`Önceki ay: ${AY_ADLARI[oncekiAy]}`}
+            title={AY_ADLARI[oncekiAy]}
+            className="flex items-center justify-center h-7 w-7 rounded-md text-clay-400 dark:text-ink-300 hover:text-terracotta hover:bg-cream-200 dark:hover:bg-ink-800 transition-colors"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+        )}
+        <span className={cn("font-display font-semibold text-clay-800 dark:text-ink-50", buyuk ? "text-base" : salt ? "text-[12px]" : "text-[13px]")}>
           {AY_ADLARI[ay]} {yil}
         </span>
-        <button
-          type="button" onClick={() => ayDegis(1)}
-          aria-label={`Sonraki ay: ${AY_ADLARI[sonrakiAy]}`}
-          title={AY_ADLARI[sonrakiAy]}
-          className="flex items-center justify-center h-7 w-7 rounded-md text-clay-400 dark:text-ink-300 hover:text-terracotta hover:bg-cream-200 dark:hover:bg-ink-800 transition-colors"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </button>
+        {!salt && (
+          <button
+            type="button" onClick={() => ayDegis(1)}
+            aria-label={`Sonraki ay: ${AY_ADLARI[sonrakiAy]}`}
+            title={AY_ADLARI[sonrakiAy]}
+            className="flex items-center justify-center h-7 w-7 rounded-md text-clay-400 dark:text-ink-300 hover:text-terracotta hover:bg-cream-200 dark:hover:bg-ink-800 transition-colors"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
       {/* Gun basliklari */}
       <div className="grid grid-cols-7 gap-0.5 mb-1">
         {GUN_ADLARI.map((g, i) => (
-          <div key={g} className={cn("text-center text-[9px] font-medium", i >= 5 ? "text-terracotta/70" : "text-clay-400 dark:text-ink-300")}>
+          <div key={g} className={cn("text-center font-medium", salt ? "text-[8px]" : "text-[9px]", i >= 5 ? "text-terracotta/70" : "text-clay-400 dark:text-ink-300")}>
             {g}
           </div>
         ))}
       </div>
 
-      {/* Gun gridi - ay gecisinde yana kayma */}
+      {/* Gun gridi - ay gecisinde yana kayma (etkilesimli mod) */}
       <div
         key={`${yil}-${ay}`}
-        className={cn("grid grid-cols-7 gap-0.5", yon === "sag" ? "animate-slide-left" : yon === "sol" ? "animate-slide-right" : "")}
+        className={cn("grid grid-cols-7 gap-0.5", !salt && (yon === "sag" ? "animate-slide-left" : yon === "sol" ? "animate-slide-right" : ""))}
       >
         {hucreler.map((g, i) => {
           if (g === null) return <div key={`bos-${i}`} className={hucreBoyut} />;
@@ -101,31 +107,26 @@ export function MiniTakvim({
           const haftaSonu = i % 7 >= 5;
           const hatirlatmaVar = hatirlatmaGunleri.has(anahtar);
           const tatilMi = tatilGunleri.has(anahtar);
+          const renkSinif = bugunMu
+            ? "bg-terracotta text-white font-semibold animate-pulse-soft"
+            : cn(!salt && "hover:bg-cream-200 dark:hover:bg-ink-800", tatilMi ? "text-terracotta font-medium" : haftaSonu ? "text-terracotta/70" : "text-clay-700 dark:text-ink-100");
+          const ortak = cn("relative flex items-center justify-center rounded-full transition-colors tabular-nums", hucreBoyut, renkSinif);
+          const isaret = hatirlatmaVar && (
+            <span className={cn("absolute bottom-0.5 rounded-full", salt ? "h-[3px] w-[3px]" : "h-1 w-1", bugunMu ? "bg-white" : "bg-terracotta")} aria-hidden />
+          );
+
+          if (salt) {
+            return <div key={g} className={ortak}>{g}{isaret}</div>;
+          }
           return (
             <button
               key={g}
               type="button"
               onClick={() => onGunTikla?.(tarih)}
               aria-label={`${g} ${AY_ADLARI[ay]}${bugunMu ? ", bugün" : ""}${hatirlatmaVar ? ", hatırlatıcı var" : ""}`}
-              className={cn(
-                "relative flex items-center justify-center rounded-full transition-colors tabular-nums",
-                hucreBoyut,
-                bugunMu
-                  ? "bg-terracotta text-white font-semibold animate-pulse-soft"
-                  : cn(
-                      "hover:bg-cream-200 dark:hover:bg-ink-800",
-                      tatilMi ? "text-terracotta font-medium" : haftaSonu ? "text-terracotta/70" : "text-clay-700 dark:text-ink-100"
-                    )
-              )}
+              className={ortak}
             >
-              {g}
-              {/* Hatirlatici isareti - bugun degilse alt nokta */}
-              {hatirlatmaVar && !bugunMu && (
-                <span className="absolute bottom-0.5 h-1 w-1 rounded-full bg-terracotta" aria-hidden />
-              )}
-              {hatirlatmaVar && bugunMu && (
-                <span className="absolute bottom-0.5 h-1 w-1 rounded-full bg-white" aria-hidden />
-              )}
+              {g}{isaret}
             </button>
           );
         })}
