@@ -1,6 +1,8 @@
 "use client";
 
 import { Search, X } from "lucide-react";
+import { type ReactNode } from "react";
+import { Input } from "./ui/input";
 
 export function AramaKutusu({
   deger, onDegis,
@@ -10,13 +12,12 @@ export function AramaKutusu({
 }) {
   return (
     <div className="relative flex-1 min-w-0">
-      <input
-        type="text"
+      <Input
         value={deger}
         onChange={(e) => onDegis(e.target.value)}
-        placeholder="Bulmak istediğiniz notun içerisinde geçen ifadeleri yazarak aratın"
+        placeholder="Aradığın notta geçen ifadeyi yaz..."
         aria-label="Notlarda ara"
-        className="w-full rounded-xl border border-cream-300 dark:border-ink-700 bg-cream-50 dark:bg-ink-900 pl-4 pr-10 py-2 text-sm text-clay-700 dark:text-ink-100 placeholder:text-clay-300 dark:placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-terracotta/40 focus:border-terracotta transition-shadow"
+        className="h-10 pr-10 text-[13px] placeholder:text-[13px]"
       />
       {deger ? (
         <button
@@ -32,4 +33,29 @@ export function AramaKutusu({
       )}
     </div>
   );
+}
+
+// Eslesen ifadeyi vurgular (Turkce buyuk/kucuk harfe duyarsiz, orijinal metin korunur)
+export function Vurgula({ metin, terim }: { metin: string; terim: string }) {
+  const t = terim.trim();
+  if (!t || !metin) return <>{metin}</>;
+
+  const lowMetin = metin.toLocaleLowerCase("tr-TR");
+  const lowTerim = t.toLocaleLowerCase("tr-TR");
+  const parcalar: ReactNode[] = [];
+  let i = 0;
+  let key = 0;
+  let bulunan = lowMetin.indexOf(lowTerim, i);
+  while (bulunan !== -1) {
+    if (bulunan > i) parcalar.push(metin.slice(i, bulunan));
+    parcalar.push(
+      <mark key={key++} className="bg-terracotta/25 text-inherit rounded-[3px] px-0.5">
+        {metin.slice(bulunan, bulunan + t.length)}
+      </mark>
+    );
+    i = bulunan + t.length;
+    bulunan = lowMetin.indexOf(lowTerim, i);
+  }
+  if (i < metin.length) parcalar.push(metin.slice(i));
+  return <>{parcalar}</>;
 }

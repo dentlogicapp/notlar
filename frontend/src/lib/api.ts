@@ -113,12 +113,13 @@ export interface NotGuncelleOnerisi {
 }
 
 export const notApi = {
-  list: (opts?: { klasor?: string; tamamlandi?: boolean; silindi?: boolean }) => {
-    const q = new URLSearchParams();
-    if (opts?.klasor) q.set("klasor", opts.klasor);
-    if (opts?.tamamlandi !== undefined) q.set("tamamlandi", String(opts.tamamlandi));
-    if (opts?.silindi !== undefined) q.set("silindi", String(opts.silindi));
-    const qs = q.toString();
+  list: (opts?: { klasor?: string; tamamlandi?: boolean; silindi?: boolean; q?: string }) => {
+    const sp = new URLSearchParams();
+    if (opts?.klasor) sp.set("klasor", opts.klasor);
+    if (opts?.tamamlandi !== undefined) sp.set("tamamlandi", String(opts.tamamlandi));
+    if (opts?.silindi !== undefined) sp.set("silindi", String(opts.silindi));
+    if (opts?.q) sp.set("q", opts.q);
+    const qs = sp.toString();
     return ist<Not[]>(`/api/notlar${qs ? "?" + qs : ""}`);
   },
   get: (id: string) => ist<Not>(`/api/notlar/${id}`),

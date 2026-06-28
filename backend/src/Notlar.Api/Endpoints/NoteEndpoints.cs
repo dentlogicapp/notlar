@@ -15,16 +15,28 @@ public static class NoteEndpoints
 
         // LIST — tenant-scoped + filtreli (klasor, silindi, tamamlandi)
         g.MapGet("/", async (
-            AppDbContext db, IUserContext uc, Guid? klasor, bool? tamamlandi, bool? silindi,
+            AppDbContext db, IUserContext uc, Guid? klasor, bool? tamamlandi, bool? silindi, string? q,
             CancellationToken ct) =>
         {
             if (uc.AktifIsletmeId is null) return Results.Unauthorized();
             var tenantId = uc.AktifIsletmeId.Value;
 
             var sorgu = db.Notlar.Where(n => n.IsletmeId == tenantId);  // v15
-            sorgu = silindi == true ? sorgu.Where(n => n.Silindi) : sorgu.Where(n => !n.Silindi);
-            if (klasor.HasValue) sorgu = sorgu.Where(n => n.KlasorId == klasor.Value);
-            if (tamamlandi.HasValue) sorgu = sorgu.Where(n => n.Tamamlandi == tamamlandi.Value);
+            var aranan = q?.Trim();
+            if (!string.IsNullOrEmpty(aranan))
+            {
+                // Global arama: silinmemis tum tenant notlari (klasor/durum bagimsiz), baslik veya icerik eslesen
+                var desen = $"%{aranan}%";
+                sorgu = sorgu.Where(n => !n.Silindi &&
+                    (EF.Functions.ILike(n.Baslik, desen) ||
+                     (n.Icerik != null && EF.Functions.ILike(n.Icerik, desen))));
+            }
+            else
+            {
+                sorgu = silindi == true ? sorgu.Where(n => n.Silindi) : sorgu.Where(n => !n.Silindi);
+                if (klasor.HasValue) sorgu = sorgu.Where(n => n.KlasorId == klasor.Value);
+                if (tamamlandi.HasValue) sorgu = sorgu.Where(n => n.Tamamlandi == tamamlandi.Value);
+            }
 
             var notlar = await sorgu
                 .Include(n => n.OlusturanKullanici)

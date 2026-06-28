@@ -12,7 +12,7 @@ import {
 import { notApi, klasorApi, isletmeApi } from "@/lib/api";
 import { useBen } from "@/lib/useBen";
 import { akisBaglan } from "@/lib/akis";
-import { AramaKutusu } from "./AramaKutusu";
+import { AramaKutusu, Vurgula } from "./AramaKutusu";
 import { useIsletmeMetinleri, metinDeger } from "@/lib/useIsletmeMetinleri";
 import { useEditLock } from "@/lib/useEditLock";
 import { Button } from "./ui/button";
@@ -577,7 +577,7 @@ function icerikTireli(icerik: string): string {
 // madde 5 - aksiyon ikonlari icin ortak touch target: mobilde >=44px (kazara dokunma onleme), desktopta kompakt 36px
 const IKON_BUTON = "min-w-[44px] min-h-[44px] sm:min-w-[36px] sm:min-h-[36px] inline-flex items-center justify-center rounded-md transition-colors";
 
-export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBadgeGoster?: boolean }) {
+export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { not: Not; klasorBadgeGoster?: boolean; aramaTerimi?: string }) {
   const qc = useQueryClient();
   const [tamamlaAcik, setTamamlaAcik] = useState(false);
   const [duzenleAcik, setDuzenleAcik] = useState(false);
@@ -700,7 +700,7 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
             "text-sm sm:text-[15px] leading-snug font-medium break-words text-justify hyphens-auto",
             not.tamamlandi ? "line-through text-clay-400 dark:text-ink-300" : "text-clay-900 dark:text-ink-50"
           )}>
-            {not.baslik}
+            <Vurgula metin={not.baslik} terim={aramaTerimi} />
           </h4>
 
           {/* İçerik — her satır "- madde" (eski/yeni notlar tutarlı), iki yana yaslı */}
@@ -709,7 +709,7 @@ export function NotKart({ not, klasorBadgeGoster = true }: { not: Not; klasorBad
               "text-[13px] sm:text-sm mt-1.5 leading-relaxed text-justify hyphens-auto break-words whitespace-pre-wrap",
               not.tamamlandi ? "text-clay-400 dark:text-ink-300" : "text-clay-600 dark:text-ink-100"
             )}>
-              {icerikTireli(not.icerik)}
+              <Vurgula metin={icerikTireli(not.icerik)} terim={aramaTerimi} />
             </p>
           )}
 
@@ -881,14 +881,27 @@ export function NotListesi({
 }: { klasorId?: string | null; klasorBadgeGoster?: boolean; sadeceBekleyen?: boolean; baslik?: string }) {
   const qc = useQueryClient();
   const [aramaTerimi, setAramaTerimi] = useState("");
+  const [debouncedTerim, setDebouncedTerim] = useState("");
+
+  // Arama debounce - yazma durunca ~280ms sonra backend'e sor (yuku azalt)
+  useEffect(() => {
+    const z = setTimeout(() => setDebouncedTerim(aramaTerimi.trim()), 280);
+    return () => clearTimeout(z);
+  }, [aramaTerimi]);
+
+  const aramaVar = debouncedTerim.length > 0;
   const { data, isLoading, error } = useQuery({
-    queryKey: ["notlar", { klasor: klasorId, silindi: false, bekleyen: sadeceBekleyen }],
-    queryFn: () => notApi.list({
-      klasor: klasorId ?? undefined,
-      silindi: false,
-      tamamlandi: sadeceBekleyen ? false : undefined,
-    }),
-    refetchInterval: 15_000,
+    queryKey: aramaVar
+      ? ["notlar", "ara", debouncedTerim]
+      : ["notlar", { klasor: klasorId, silindi: false, bekleyen: sadeceBekleyen }],
+    queryFn: () => aramaVar
+      ? notApi.list({ q: debouncedTerim })
+      : notApi.list({
+          klasor: klasorId ?? undefined,
+          silindi: false,
+          tamamlandi: sadeceBekleyen ? false : undefined,
+        }),
+    refetchInterval: aramaVar ? false : 15_000,
   });
 
   // v19 Faz 3 Adim 2 - canli okundu: tenant akisina baglan, not_okundu olayinda listeyi tazele
@@ -905,22 +918,14 @@ export function NotListesi({
     return kapat;
   }, [qc]);
 
-  // Baslik + arama satiri - her durumda gorunur (yukleme/bos/sonuc dahil)
+  // Baslik + arama satiri - her durumda gorunur; arama yazarken mobil klavyenin notlari ortmemesi icin yapiskan ust
   const baslikSatiri = baslik !== undefined ? (
-    <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4 px-1">
+    <div className="sticky top-0 z-20 -mx-1 px-1 pt-1 pb-2 mb-2 bg-cream-100/95 dark:bg-ink-950/95 backdrop-blur-sm flex items-center gap-2 sm:gap-3">
       <h2 className="font-display text-lg sm:text-xl text-clay-900 dark:text-ink-50 shrink-0">{baslik}</h2>
       <AramaKutusu deger={aramaTerimi} onDegis={setAramaTerimi} />
     </div>
   ) : null;
   const sarmal = (ic: ReactNode) => <>{baslikSatiri}{ic}</>;
-
-  // Arama filtresi - baslik + icerik, Turkce buyuk/kucuk harfe duyarli
-  const aranan = aramaTerimi.trim().toLocaleLowerCase("tr-TR");
-  const filtreli = (data ?? []).filter((n) =>
-    !aranan ||
-    n.baslik.toLocaleLowerCase("tr-TR").includes(aranan) ||
-    (n.icerik?.toLocaleLowerCase("tr-TR").includes(aranan) ?? false)
-  );
 
   if (isLoading) {
     return sarmal(<div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-clay-400 dark:text-ink-300" /></div>);
@@ -930,23 +935,22 @@ export function NotListesi({
   }
   if (!data || data.length === 0) {
     return sarmal(
-      <div className="text-center py-10 px-4">
-        <p className="font-display text-2xl text-clay-300 dark:text-ink-400 italic">boş sayfa</p>
-        <p className="text-sm text-clay-400 dark:text-ink-300 mt-2">Yukarıdaki kutudan ekle.</p>
-      </div>
-    );
-  }
-  if (aranan && filtreli.length === 0) {
-    return sarmal(
-      <div className="text-center py-10 px-4">
-        <p className="font-display text-2xl text-clay-300 dark:text-ink-400 italic">eşleşen not yok</p>
-        <p className="text-sm text-clay-400 dark:text-ink-300 mt-2">&ldquo;{aramaTerimi}&rdquo; ifadesini içeren not bulunamadı.</p>
-      </div>
+      aramaVar ? (
+        <div className="text-center py-10 px-4">
+          <p className="font-display text-2xl text-clay-300 dark:text-ink-400 italic">eşleşen not yok</p>
+          <p className="text-sm text-clay-400 dark:text-ink-300 mt-2">&ldquo;{debouncedTerim}&rdquo; ifadesini içeren not bulunamadı.</p>
+        </div>
+      ) : (
+        <div className="text-center py-10 px-4">
+          <p className="font-display text-2xl text-clay-300 dark:text-ink-400 italic">boş sayfa</p>
+          <p className="text-sm text-clay-400 dark:text-ink-300 mt-2">Yukarıdaki kutudan ekle.</p>
+        </div>
+      )
     );
   }
 
-  const aktif = filtreli.filter((n) => !n.tamamlandi);
-  const tamamlanan = filtreli.filter((n) => n.tamamlandi);
+  const aktif = data.filter((n) => !n.tamamlandi);
+  const tamamlanan = data.filter((n) => n.tamamlandi);
   // v19 - yeni/degisen not sayisi (rozet): hic gormedigim veya son gormemden sonra guncellenen
   const yeniSayisi = aktif.filter((n) =>
     n.benimSonGorme === null || new Date(n.benimSonGorme).getTime() < new Date(n.guncellemeZamani).getTime()
@@ -965,7 +969,7 @@ export function NotListesi({
             )}
           </h3>
           <div className="space-y-2.5">
-            {aktif.map((n) => <NotKart key={n.id} not={n} klasorBadgeGoster={klasorBadgeGoster} />)}
+            {aktif.map((n) => <NotKart key={n.id} not={n} klasorBadgeGoster={aramaVar || klasorBadgeGoster} aramaTerimi={debouncedTerim} />)}
           </div>
         </section>
       )}
@@ -975,7 +979,7 @@ export function NotListesi({
             Tamamlanan · {tamamlanan.length}
           </h3>
           <div className="space-y-2.5">
-            {tamamlanan.map((n) => <NotKart key={n.id} not={n} klasorBadgeGoster={klasorBadgeGoster} />)}
+            {tamamlanan.map((n) => <NotKart key={n.id} not={n} klasorBadgeGoster={aramaVar || klasorBadgeGoster} aramaTerimi={debouncedTerim} />)}
           </div>
         </section>
       )}
