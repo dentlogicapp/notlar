@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { AuthGuard } from "@/components/AuthGuard";
-import { CountdownWidget } from "@/components/CountdownWidget";
+import { ZamanPaneli } from "@/components/ZamanPaneli";
 import { UserMenu } from "@/components/UserMenu";
 import { KlasorListesi } from "@/components/KlasorGrid";
 import { OnboardingBanner } from "@/components/OnboardingBanner";
@@ -66,7 +66,7 @@ function Icerik() {
   return (
     <main className="min-h-screen pb-24">
       <OnboardingBanner />
-      <CountdownWidget />
+      <ZamanPaneli />
 
       {/* Üst bar */}
       <header className="sticky top-0 z-30 bg-cream-100/85 dark:bg-ink-800/85 backdrop-blur-md border-b border-cream-300 dark:border-ink-700/60">
