@@ -66,7 +66,7 @@ public static class AdminEndpoints
             KullaniciOlusturIstegi req, AppDbContext db,
             IUserContext uc,
             IEmailService email, IAuditService audit, IIsletmeMetinService metinSvc,
-            IConfiguration cfg, CancellationToken ct) =>
+            IConfiguration cfg, INotBildirimServisi bildirim, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(req.Email) || string.IsNullOrWhiteSpace(req.AdSoyad))
                 return Results.BadRequest(new { hata = "Email ve ad soyad zorunlu." });
@@ -175,6 +175,9 @@ public static class AdminEndpoints
             });
 
             await db.SaveChangesAsync(ct);
+
+            // v19 4c - mevcut tenant uyelerine "yeni uye katildi" push (katilan haric)
+            await bildirim.UyeKatildi(tenantId, user, ct);
 
             // v19 - mail her durumda gider (tum tenantlarda tutarli).
             var frontend = cfg["FrontendBaseUrl"] ?? "http://localhost:3000";

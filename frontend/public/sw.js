@@ -89,9 +89,15 @@ self.addEventListener("notificationclick", (event) => {
   const hedef = (event.notification.data && event.notification.data.url) || "/";
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      // Mevcut pencere varsa odakla VE hedef nota yonlendir (?focus= isler -> ring highlight)
       for (const c of clients) {
-        if ("focus" in c) return c.focus();
+        if ("focus" in c) {
+          c.focus();
+          if ("navigate" in c) return c.navigate(hedef);
+          return;
+        }
       }
+      // Pencere yoksa hedef URL ile yeni pencere ac
       if (self.clients.openWindow) return self.clients.openWindow(hedef);
     })
   );

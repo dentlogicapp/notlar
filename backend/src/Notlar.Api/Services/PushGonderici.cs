@@ -52,7 +52,8 @@ public sealed class PushGonderici : IPushGonderici
         var payload = JsonSerializer.Serialize(new
         {
             title = baslik,
-            body = govde,
+            // Musa karari v19: marka satiri sabit "Planlama Defteri" (reklam gucu + marka stabilitesi; multitenant disi birakildi, degistirilemez)
+            body = $"Planlama Defteri\n{govde}",
             data = new { url },
         });
 

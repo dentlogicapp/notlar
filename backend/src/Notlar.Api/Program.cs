@@ -64,6 +64,7 @@ builder.Services.AddSingleton(_ =>
 });
 // v18 - tenant icerigi + version history (Senaryo A, dogrudan AppDbContext)
 builder.Services.AddScoped<IIsletmeMetinService, IsletmeMetinService>();
+builder.Services.AddScoped<INotBildirimServisi, NotBildirimServisi>();  // v19 4c - not olay/uye push tetikleyici
 
 // v14 — Defteri İndir servisleri
 // PdfRender: Playwright Chromium browser tek instance (singleton, lazy-init), her PDF için yeni context

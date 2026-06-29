@@ -47,8 +47,7 @@ public sealed class HatirlaticiKontrolcusu : BackgroundService
     {
         using var scope = _sp.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var push = scope.ServiceProvider.GetRequiredService<IPushGonderici>();
-        var metinSvc = scope.ServiceProvider.GetRequiredService<IIsletmeMetinService>();
+        var bildirimSvc = scope.ServiceProvider.GetRequiredService<INotBildirimServisi>();
 
         var simdi = DateTimeOffset.UtcNow;
 
@@ -81,16 +80,9 @@ public sealed class HatirlaticiKontrolcusu : BackgroundService
 
                 var hedefler = HedefBul(kullanicilar, kuran, not);
 
-                // v19 4b - tenant ozel push metni (placeholder: {not_baslik}, {marka_adi}); yoksa katalog varsayilani
-                var pushBaslik = (await metinSvc.GetirAsync(not.IsletmeId, "hatirlatici_push_baslik", ct))?.Icerik ?? "Hatırlatıcı";
-                var pushGovde = (await metinSvc.GetirAsync(not.IsletmeId, "hatirlatici_push_govde", ct))?.Icerik ?? "\"{not_baslik}\" notunun zamanı geldi";
-                var markaAdi = (await metinSvc.GetirAsync(not.IsletmeId, "marka_adi", ct))?.Icerik ?? "";
-                pushBaslik = pushBaslik.Replace("{not_baslik}", not.Baslik).Replace("{marka_adi}", markaAdi);
-                pushGovde = pushGovde.Replace("{not_baslik}", not.Baslik).Replace("{marka_adi}", markaAdi);
-
+                // Uygulama ici bildirim (zil) - her zaman korunur
                 foreach (var hedef in hedefler)
                 {
-                    // Uygulama ici bildirim (zil) - her zaman korunur
                     db.Bildirimler.Add(new Bildirim
                     {
                         KullaniciId = hedef.Id,
@@ -100,22 +92,10 @@ public sealed class HatirlaticiKontrolcusu : BackgroundService
                         Baslik = "Hatırlatıcı",
                         Mesaj = $"\"{not.Baslik}\" notunun zamanı geldi"
                     });
-
-                    // Web Push (gercek telefon bildirimi) - v19: hatirlatici maili kaldirildi
-                    try
-                    {
-                        await push.GonderAsync(
-                            hedef.Id,
-                            pushBaslik,
-                            pushGovde,
-                            $"/?focus={not.Id}",
-                            ct);
-                    }
-                    catch (Exception pushEx)
-                    {
-                        _log.LogError(pushEx, "Hatırlatma push gönderilemedi: Not {NotId} / Hedef {HedefId}", not.Id, hedef.Id);
-                    }
                 }
+
+                // Web Push -> ortak servis (tenant metni/katalog fallback + sabit "Planlama Defteri" satiri)
+                await bildirimSvc.HatirlaticiZamani(not, hedefler.Select(h => h.Id).ToList(), ct);
 
                 // Idempotent flag
                 not.HatirlatmaGonderildiMi = true;

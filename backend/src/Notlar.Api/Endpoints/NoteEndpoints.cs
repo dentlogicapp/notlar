@@ -115,7 +115,7 @@ public static class NoteEndpoints
         // CREATE — tenant-scoped
         g.MapPost("/", async (
             NotOlusturIstegi req, AppDbContext db,
-            IUserContext uc, IAuditService audit, CancellationToken ct) =>
+            IUserContext uc, IAuditService audit, INotBildirimServisi bildirim, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(req.Baslik))
                 return Results.BadRequest(new { hata = "Başlık zorunlu." });
@@ -182,6 +182,13 @@ public static class NoteEndpoints
 
             await audit.YazAsync("not_olusturuldu", "not", n.Id, detay: n.Baslik, ct: ct);
 
+            // v19 4c - tenant uyelerine push (alicilar olustur bildiriminden muaf -> onlara "eklendin" gider)
+            var olusturAlicilar = string.IsNullOrWhiteSpace(n.HatirlatmaAliciIdler)
+                ? new List<Guid>()
+                : JsonSerializer.Deserialize<List<Guid>>(n.HatirlatmaAliciIdler) ?? new List<Guid>();
+            await bildirim.NotOlusturuldu(n, uc.KullaniciId.Value, olusturAlicilar, ct);
+            await bildirim.HatirlaticiAliciEklendi(n, uc.KullaniciId.Value, olusturAlicilar, ct);
+
             var loaded = await db.Notlar
                 .Include(x => x.OlusturanKullanici)
                 .Include(x => x.Klasor)
@@ -192,7 +199,7 @@ public static class NoteEndpoints
         // UPDATE — tenant-scoped
         g.MapPut("/{id:guid}", async (
             Guid id, NotGuncelleIstegi req, AppDbContext db,
-            IUserContext uc, IAuditService audit, CancellationToken ct) =>
+            IUserContext uc, IAuditService audit, INotBildirimServisi bildirim, CancellationToken ct) =>
         {
             if (uc.KullaniciId is null) return Results.Unauthorized();
             if (uc.AktifIsletmeId is null) return Results.Unauthorized();
@@ -223,6 +230,10 @@ public static class NoteEndpoints
             if (kilitSahibi is not null)
                 return Results.Json(new { hata = $"{kilitSahibi} şu anda bu notu düzenliyor." }, statusCode: 409);
 
+            // v19 4c - guncelleme oncesi degerler (anlamli degisiklik + yeni alici tespiti icin)
+            var eskiBaslik = n.Baslik;
+            var eskiIcerik = n.Icerik;
+            var eskiAliciJson = n.HatirlatmaAliciIdler;
             var eski = JsonSerializer.Serialize(new { n.Baslik, n.Icerik, n.KlasorId });
             n.Baslik = req.Baslik.Trim();
             n.Icerik = req.Icerik?.Trim();
@@ -288,13 +299,28 @@ public static class NoteEndpoints
             await db.SaveChangesAsync(ct);
 
             await audit.YazAsync("not_guncellendi", "not", n.Id, detay: n.Baslik, ct: ct);
+
+            // v19 4c - sadece baslik/icerik gercekten degistiyse "guncellendi" push (klasor/kilit gurultusu yok)
+            var icerikDegisti = eskiBaslik != n.Baslik || (eskiIcerik ?? "") != (n.Icerik ?? "");
+            var eskiAlicilar = string.IsNullOrWhiteSpace(eskiAliciJson)
+                ? new List<Guid>()
+                : JsonSerializer.Deserialize<List<Guid>>(eskiAliciJson) ?? new List<Guid>();
+            var yeniAlicilar = string.IsNullOrWhiteSpace(n.HatirlatmaAliciIdler)
+                ? new List<Guid>()
+                : JsonSerializer.Deserialize<List<Guid>>(n.HatirlatmaAliciIdler) ?? new List<Guid>();
+            var eklenenAlicilar = yeniAlicilar.Except(eskiAlicilar).ToList();
+            // yeni alicilar "guncellendi"den muaf (eklenenAlicilar) -> onlara yalniz "eklendin" gider
+            if (icerikDegisti)
+                await bildirim.NotGuncellendi(n, uc.KullaniciId.Value, eklenenAlicilar, ct);
+            await bildirim.HatirlaticiAliciEklendi(n, uc.KullaniciId.Value, eklenenAlicilar, ct);
+
             return Results.Ok(MapYanit(n));
         });
 
         // TAMAMLA — tenant-scoped
         g.MapPost("/{id:guid}/tamamla", async (
             Guid id, NotTamamlaIstegi req, AppDbContext db,
-            IUserContext uc, IAuditService audit, CancellationToken ct) =>
+            IUserContext uc, IAuditService audit, INotBildirimServisi bildirim, CancellationToken ct) =>
         {
             if (uc.KullaniciId is null) return Results.Unauthorized();
             if (uc.AktifIsletmeId is null) return Results.Unauthorized();
@@ -343,6 +369,10 @@ public static class NoteEndpoints
             await db.SaveChangesAsync(ct);
 
             await audit.YazAsync("not_tamamlandi", "not", n.Id, detay: n.Baslik, ct: ct);
+
+            // v19 4c - tenant uyelerine "tamamlandi" push
+            await bildirim.NotTamamlandi(n, uc.KullaniciId.Value, ct);
+
             var loaded = await db.Notlar
                 .Include(x => x.OlusturanKullanici)
                 .Include(x => x.TamamlayanKullanici)

@@ -7,7 +7,7 @@ public static class AnahtarKatalogu
 {
     // SemVer: yeni anahtar -> minor (1.1.0); tip/limit breaking -> major (2.0.0);
     // dokumantasyon (etiket/yonlendirme/aciklama) -> patch (1.0.1).
-    public const string Version = "1.3.0";
+    public const string Version = "1.4.0";
 
     public static readonly IReadOnlyList<AnahtarTanim> Tumu = new[]
     {
@@ -96,17 +96,87 @@ public static class AnahtarKatalogu
 
         AnahtarTanim.Tanim("hatirlatici_push_baslik")
             .Kategori(Kategori.Bildirim).Tip(AlanTipi.Baslik)
-            .Etiket("Hatırlatıcı Bildirim Başlığı")
-            .Yonlendirme("Telefona düşen hatırlatıcı bildiriminin üst (kalın) satırı. Kısa tutun. İsterseniz {marka_adi} yer tutucusunu kullanabilirsiniz.")
+            .Etiket("Hatırlatıcı - Başlık")
+            .Yonlendirme("Bildirimin üst (kalın) satırı. Kısa tutun. Marka adı 'Planlama Defteri' otomatik eklenir.")
             .Aciklama("Hatırlatıcı zamanı geldiğinde gönderilen push bildiriminin başlığı.")
-            .Sira(400).Varsayilan("Hatırlatıcı").Build(),
+            .Sira(400).Varsayilan("Hatırlatma").Build(),
 
         AnahtarTanim.Tanim("hatirlatici_push_govde")
             .Kategori(Kategori.Bildirim).Tip(AlanTipi.Metin)
-            .Etiket("Hatırlatıcı Bildirim Metni")
-            .Yonlendirme("Bildirimin alt satırı. {not_baslik} ilgili notun başlığıyla, {marka_adi} marka adınızla değişir.")
-            .Aciklama("Push bildiriminin gövde metni; yer tutucular gönderim anında doldurulur.")
-            .Sira(410).Varsayilan("\"{not_baslik}\" notunun zamanı geldi").Build(),
+            .Etiket("Hatırlatıcı - Metin")
+            .Yonlendirme("Bildirimin mesaj satırı. {not_baslik} ilgili notun başlığıyla değişir.")
+            .Aciklama("Push gövdesi; 'Planlama Defteri' satırı otomatik üstte yer alır, bu metin altına eklenir.")
+            .Sira(410).Varsayilan("\"{not_baslik}\" notunun zamanı geldi. Hemen göz atmak için tıkla!").Build(),
+
+        AnahtarTanim.Tanim("not_olusturuldu_push_baslik")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Baslik)
+            .Etiket("Yeni Not Oluşturuldu - Başlık")
+            .Yonlendirme("Ekipten biri yeni not eklediğinde diğer üyelere düşen bildirimin başlığı.")
+            .Aciklama("İşlemi yapan kişi hariç tenant üyelerine gönderilir.")
+            .Sira(420).Varsayilan("Yeni Not Oluşturuldu").Build(),
+
+        AnahtarTanim.Tanim("not_olusturuldu_push_govde")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Metin)
+            .Etiket("Yeni Not Oluşturuldu - Metin")
+            .Yonlendirme("{not_baslik} notun başlığı, {kullanici_adi} notu oluşturan kişi ile değişir.")
+            .Aciklama("Push gövdesi; 'Planlama Defteri' satırı otomatik üstte yer alır.")
+            .Sira(430).Varsayilan("\"{not_baslik}\" başlıklı yeni not \"{kullanici_adi}\" tarafından oluşturuldu. Hemen göz atmak için tıkla!").Build(),
+
+        AnahtarTanim.Tanim("not_guncellendi_push_baslik")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Baslik)
+            .Etiket("Not Güncellendi - Başlık")
+            .Yonlendirme("Ekipten biri bir notu güncellediğinde diğer üyelere düşen bildirimin başlığı.")
+            .Aciklama("İşlemi yapan kişi hariç tenant üyelerine gönderilir.")
+            .Sira(440).Varsayilan("Not Güncellendi").Build(),
+
+        AnahtarTanim.Tanim("not_guncellendi_push_govde")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Metin)
+            .Etiket("Not Güncellendi - Metin")
+            .Yonlendirme("{not_baslik} notun başlığı, {kullanici_adi} güncelleyen kişi ile değişir.")
+            .Aciklama("Push gövdesi; 'Planlama Defteri' satırı otomatik üstte yer alır.")
+            .Sira(450).Varsayilan("\"{not_baslik}\" başlıklı not \"{kullanici_adi}\" tarafından güncellendi. Hemen göz atmak için tıkla!").Build(),
+
+        AnahtarTanim.Tanim("not_tamamlandi_push_baslik")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Baslik)
+            .Etiket("Not Tamamlandı - Başlık")
+            .Yonlendirme("Ekipten biri bir notu tamamladığında diğer üyelere düşen bildirimin başlığı.")
+            .Aciklama("İşlemi yapan kişi hariç tenant üyelerine gönderilir.")
+            .Sira(460).Varsayilan("Not Tamamlandı").Build(),
+
+        AnahtarTanim.Tanim("not_tamamlandi_push_govde")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Metin)
+            .Etiket("Not Tamamlandı - Metin")
+            .Yonlendirme("{not_baslik} notun başlığı, {kullanici_adi} tamamlayan kişi ile değişir.")
+            .Aciklama("Push gövdesi; 'Planlama Defteri' satırı otomatik üstte yer alır.")
+            .Sira(470).Varsayilan("\"{not_baslik}\" başlıklı not \"{kullanici_adi}\" tarafından tamamlandı. Hemen göz atmak için tıkla!").Build(),
+
+        AnahtarTanim.Tanim("hatirlatici_alici_eklendi_push_baslik")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Baslik)
+            .Etiket("Hatırlatıcıya Eklendin - Başlık")
+            .Yonlendirme("Biri seni bir notun hatırlatıcı alıcısı yaptığında düşen bildirimin başlığı.")
+            .Aciklama("Yalnızca yeni eklenen alıcılara gönderilir.")
+            .Sira(480).Varsayilan("Hatırlatıcıya Eklendin").Build(),
+
+        AnahtarTanim.Tanim("hatirlatici_alici_eklendi_push_govde")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Metin)
+            .Etiket("Hatırlatıcıya Eklendin - Metin")
+            .Yonlendirme("{not_baslik} notun başlığı, {kullanici_adi} seni ekleyen kişi ile değişir.")
+            .Aciklama("Push gövdesi; 'Planlama Defteri' satırı otomatik üstte yer alır.")
+            .Sira(490).Varsayilan("\"{kullanici_adi}\", \"{not_baslik}\" notunun hatırlatıcısına seni ekledi. Hemen göz atmak için tıkla!").Build(),
+
+        AnahtarTanim.Tanim("uye_katildi_push_baslik")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Baslik)
+            .Etiket("Yeni Üye Katıldı - Başlık")
+            .Yonlendirme("Ekibe yeni bir üye eklendiğinde mevcut üyelere düşen bildirimin başlığı.")
+            .Aciklama("Yeni katılan hariç tenant üyelerine gönderilir.")
+            .Sira(500).Varsayilan("Yeni Üye Katıldı").Build(),
+
+        AnahtarTanim.Tanim("uye_katildi_push_govde")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Metin)
+            .Etiket("Yeni Üye Katıldı - Metin")
+            .Yonlendirme("{kullanici_adi} ekibe katılan kişinin adı ile değişir.")
+            .Aciklama("Push gövdesi; 'Planlama Defteri' satırı otomatik üstte yer alır.")
+            .Sira(510).Varsayilan("\"{kullanici_adi}\" ekibe katıldı. Hemen tanışmak için tıkla!").Build(),
 
         AnahtarTanim.Tanim("mail_tonu")
             .Kategori(Kategori.Mail).Tip(AlanTipi.PlaceholderKisa)
