@@ -46,17 +46,19 @@ export function TakvimModal({
   return (
     <>
       <Dialog open={acik} onOpenChange={onOpenChange}>
-        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-md">
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Takvim</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
-            <MiniTakvim
-              buyuk
-              hatirlatmaGunleri={hatirlatmaGunleri}
-              onGunTikla={setSeciliGun}
-            />
+            <div className="flex justify-center">
+              <MiniTakvim
+                buyuk
+                hatirlatmaGunleri={hatirlatmaGunleri}
+                onGunTikla={setSeciliGun}
+              />
+            </div>
 
             {/* Secili gunun hatirlaticilari - takvim boyutu sabit kalir, baslik tam (kaydirma) */}
             {seciliGun && (
@@ -74,7 +76,7 @@ export function TakvimModal({
                 {seciliNotlar.length === 0 ? (
                   <p className="text-[12px] text-clay-400 dark:text-ink-300">Bu güne ait hatırlatıcı yok.</p>
                 ) : (
-                  <ul className="space-y-1.5">
+                  <ul className="space-y-1.5 max-h-[40vh] overflow-y-auto">
                     {seciliNotlar.map((n) => (
                       <li key={n.id}>
                         <button
@@ -84,7 +86,7 @@ export function TakvimModal({
                           aria-label={`${n.baslik} - notu aç`}
                         >
                           <Bell className="h-3 w-3 text-terracotta shrink-0 mt-0.5" strokeWidth={2.5} />
-                          <span className="flex-1 text-[12px] text-clay-700 dark:text-ink-100 break-words leading-snug">{n.baslik}</span>
+                          <span className="flex-1 min-w-0 text-[12px] text-clay-700 dark:text-ink-100 break-words leading-snug">{n.baslik}</span>
                           <span className="shrink-0 text-[10px] text-clay-400 dark:text-ink-300 tabular-nums mt-0.5">
                             {new Date(n.hatirlatmaZamani!).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
                           </span>
@@ -101,7 +103,7 @@ export function TakvimModal({
 
       {/* Not detayi - anasayfadaki birebir NotKart gorunumu, flu arka plan, tam etkilesimli */}
       <Dialog open={!!seciliNot} onOpenChange={(o) => { if (!o) setSeciliNotId(null); }}>
-        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-lg p-4 overflow-y-visible">
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-2xl p-4 max-h-[85vh] overflow-y-auto">
           {seciliNot && <NotKart not={seciliNot} klasorBadgeGoster={false} />}
         </DialogContent>
       </Dialog>
