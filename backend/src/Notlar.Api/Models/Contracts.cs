@@ -205,7 +205,7 @@ public sealed record OnboardingDurum(int Toplam, int Dolu, IReadOnlyList<string>
 public sealed record OnboardingTestMailIstegi(string Email, string? Ad = null);
 
 // v18 Asama 17.3 - app push cihaz kaydi
-public sealed record CihazKayitIstegi(string PushToken, string Platform, string? CihazAdi = null);
+public sealed record CihazKayitIstegi(string PushToken, string Platform, string? CihazAdi = null, string? P256dh = null, string? Auth = null);
 public sealed record CihazYaniti(Guid Id, string Platform, string? CihazAdi, string TokenSon,
     DateTimeOffset OlusturmaZamani, DateTimeOffset SonAktiflik);
 

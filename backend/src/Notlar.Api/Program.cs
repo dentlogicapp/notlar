@@ -34,6 +34,7 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddSingleton<IOperasyonelBildirimGonderici, OperasyonelBildirimGonderici>();  // v19 B8 - fire-and-forget super admin bildirim
 builder.Services.AddSingleton<IAkisYayinci, AkisYayinci>();  // v19 Asama 7 - SSE in-memory event broker
 builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddSingleton<IPushGonderici, PushGonderici>();  // v19 push - Web Push gonderim (cok cihaz + gecersiz temizleme + audit)
 builder.Services.AddScoped<AnahtarSyncService>();  // v18 Asama 11.9 - Schema-as-Code sync
 // v17 - AI API key sifreleme + DataProtection key persistence (docker volume /keys)
 builder.Services.AddDataProtection()

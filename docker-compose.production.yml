@@ -48,6 +48,9 @@ services:
       Smtp__Ssl: "true"
       Smtp__From: ${SMTP_FROM}
       Smtp__FromName: "Planlama Defteri"
+      Vapid__PublicKey: ${VAPID_PUBLIC_KEY}
+      Vapid__PrivateKey: ${VAPID_PRIVATE_KEY}
+      Vapid__Subject: "mailto:destek@dentlogicapp.com"
       FrontendBaseUrl: "https://notlar.dentlogicapp.com"
       IlkAdmin__Email: ${ILK_ADMIN_EMAIL}
       IlkAdmin__AdSoyad: ${ILK_ADMIN_AD}

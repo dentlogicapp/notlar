@@ -32,6 +32,8 @@ public static class CihazEndpoints
             {
                 mevcut.SonAktiflik = DateTimeOffset.UtcNow;
                 mevcut.CihazAdi = req.CihazAdi;
+                mevcut.PushP256dh = req.P256dh;  // Web Push abonelik yenilenebilir
+                mevcut.PushAuth = req.Auth;
                 await db.SaveChangesAsync(ct);
                 return Results.Ok(new { id = mevcut.Id, olusturuldu = false });
             }
@@ -40,6 +42,8 @@ public static class CihazEndpoints
             {
                 KullaniciId = kid,
                 PushToken = req.PushToken.Trim(),
+                PushP256dh = req.P256dh,
+                PushAuth = req.Auth,
                 Platform = req.Platform,
                 CihazAdi = req.CihazAdi,
             };
