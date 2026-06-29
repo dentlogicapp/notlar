@@ -129,19 +129,6 @@ public sealed class Not
     public ICollection<NotGecmisi> Gecmis { get; set; } = new List<NotGecmisi>();
 }
 
-// v19 - Not okuma kaydi (read receipts). Bir kullanici bir notu scroll ile gorunce upsert edilir.
-// "Yeni/degisen" tespiti: not.GuncellemeZamani > OkunmaZamani ise o kullanici icin not degismis demektir.
-public sealed class NotOkunma
-{
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid IsletmeId { get; set; }                 // tenant izolasyon (zorunlu)
-    public Guid NotId { get; set; }
-    public Not Not { get; set; } = null!;
-    public Guid KullaniciId { get; set; }
-    public Kullanici Kullanici { get; set; } = null!;
-    public DateTimeOffset OkunmaZamani { get; set; } = DateTimeOffset.UtcNow;  // son gorme (upsert ile guncellenir)
-}
-
 public sealed class NotGecmisi
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -334,7 +321,9 @@ public sealed class KullaniciCihaz
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid KullaniciId { get; set; }
-    public string PushToken { get; set; } = "";
+    public string PushToken { get; set; } = "";    // Web Push: endpoint URL (cihaz basina benzersiz, UNIQUE)
+    public string? PushP256dh { get; set; }         // Web Push: sifreleme public key (native token'da null)
+    public string? PushAuth { get; set; }           // Web Push: auth secret (native token'da null)
     public string Platform { get; set; } = "web";  // 'ios' | 'android' | 'web'
     public string? CihazAdi { get; set; }
     public DateTimeOffset OlusturmaZamani { get; set; } = DateTimeOffset.UtcNow;

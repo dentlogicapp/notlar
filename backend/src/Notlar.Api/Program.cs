@@ -570,6 +570,9 @@ using (var scope = app.Services.CreateScope())
                 ON kullanici_cihazlari (""KullaniciId"");
             CREATE UNIQUE INDEX IF NOT EXISTS ""IX_kullanici_cihazlari_PushToken""
                 ON kullanici_cihazlari (""PushToken"");
+            -- v19 push: Web Push abonelik alanlari (endpoint=PushToken; p256dh+auth ile sifreleme)
+            ALTER TABLE kullanici_cihazlari ADD COLUMN IF NOT EXISTS ""PushP256dh"" character varying(200);
+            ALTER TABLE kullanici_cihazlari ADD COLUMN IF NOT EXISTS ""PushAuth"" character varying(100);
             -- 13. AI sağlayıcı ayarı (v17 — singleton, Strategy Pattern)
             CREATE TABLE IF NOT EXISTS ai_ayarlari (
                 ""Id"" uuid NOT NULL PRIMARY KEY,
