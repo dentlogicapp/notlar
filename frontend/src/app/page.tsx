@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { AuthGuard } from "@/components/AuthGuard";
-import { ZamanPaneli } from "@/components/ZamanPaneli";
+import { CountdownWidget } from "@/components/CountdownWidget";
 import { UserMenu } from "@/components/UserMenu";
 import { KlasorListesi } from "@/components/KlasorGrid";
 import { OnboardingBanner } from "@/components/OnboardingBanner";
@@ -12,11 +12,13 @@ import { YeniNotFormu, NotListesi } from "@/components/Notlar";
 import { useBen } from "@/lib/useBen";
 import { useIsletmeMetinleri, metinDeger } from "@/lib/useIsletmeMetinleri";
 import { notApi } from "@/lib/api";
+import { PushTest } from "@/components/PushTest"; // GECICI test - kanit sonrasi silinecek
 
 export default function AnaSayfa() {
   return (
     <AuthGuard>
       <Icerik />
+      <PushTest />
     </AuthGuard>
   );
 }
@@ -66,7 +68,7 @@ function Icerik() {
   return (
     <main className="min-h-screen pb-24">
       <OnboardingBanner />
-      <ZamanPaneli />
+      <CountdownWidget />
 
       {/* Üst bar */}
       <header className="sticky top-0 z-30 bg-cream-100/85 dark:bg-ink-800/85 backdrop-blur-md border-b border-cream-300 dark:border-ink-700/60">
@@ -83,11 +85,11 @@ function Icerik() {
 
       <div className="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-10 space-y-5 sm:space-y-8">
         {/* Karşılama */}
-        <section className="animate-fade-in">
+        <section className="animate-fade-in pr-0 md:pr-48 lg:pr-64">
           <p className="font-display text-2xl sm:text-3xl md:text-4xl text-clay-900 dark:text-ink-50 leading-tight">
             {karsilamaBasligi}
           </p>
-          <p className="text-clay-500 dark:text-ink-200 mt-1.5 sm:mt-2 italic text-[13px] sm:text-[15px] md:text-base leading-relaxed text-justify hyphens-auto">
+          <p className="text-clay-500 dark:text-ink-200 mt-1.5 sm:mt-2 italic text-[13px] sm:text-[15px] md:text-base leading-relaxed">
             {karsilamaAltMetni}
           </p>
         </section>
@@ -102,7 +104,8 @@ function Icerik() {
           <KlasorListesi />
 
           <section className="min-w-0">
-            <NotListesi klasorId={null} sadeceBekleyen baslik="Tüm Notlar" />
+            <h2 className="font-display text-lg sm:text-xl text-clay-900 dark:text-ink-50 mb-3 sm:mb-4 px-1">Tüm Notlar</h2>
+            <NotListesi klasorId={null} sadeceBekleyen />
           </section>
         </div>
 

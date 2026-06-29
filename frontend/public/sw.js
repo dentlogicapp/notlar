@@ -64,3 +64,35 @@ self.addEventListener("fetch", (event) => {
   // 4) Digerleri -> network, cevrimdisiyse varsa onbellek
   event.respondWith(fetch(request).catch(() => caches.match(request)));
 });
+
+// Push bildirimi geldiginde goster
+self.addEventListener("push", (event) => {
+  let veri = { title: "Planlama Defterimiz", body: "" };
+  try {
+    if (event.data) veri = Object.assign(veri, event.data.json());
+  } catch (e) {
+    if (event.data) veri.body = event.data.text();
+  }
+  event.waitUntil(
+    self.registration.showNotification(veri.title, {
+      body: veri.body,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      data: veri.data || {},
+    })
+  );
+});
+
+// Bildirime tiklayinca uygulamayi ac/odakla
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const hedef = (event.notification.data && event.notification.data.url) || "/";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      for (const c of clients) {
+        if ("focus" in c) return c.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(hedef);
+    })
+  );
+});
