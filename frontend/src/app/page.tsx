@@ -60,6 +60,19 @@ function Icerik() {
     return () => clearTimeout(t);
   }, [focusId, notlarYuklendi, router]);
 
+  // Push bildirimi tiklandiginda SW'den gelen mesaj -> client-side yonlendirme
+  // (reload YOK; menu ici bildirim tiklamasiyla ayni yumusak scroll + highlight)
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === "notlar-focus" && event.data.url) {
+        router.push(event.data.url);
+      }
+    };
+    navigator.serviceWorker.addEventListener("message", handler);
+    return () => navigator.serviceWorker.removeEventListener("message", handler);
+  }, [router]);
+
   // Lokal admin kullanıcısı yerine sevgi dolu hitap
   const ad = ben?.adSoyad?.split(" ")?.[0] ?? "";
 

@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   LogOut, Shield, Trash2, ListTodo, Bell, Download,
   FileText, FileSpreadsheet, FileType, FileCode, Loader2, X,
-  Moon, Sun, Plus, Crown
+  Moon, Sun, Crown
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -16,7 +16,6 @@ import { useIsletmeMetinleri, metinDeger } from "@/lib/useIsletmeMetinleri";
 import { useTema } from "@/lib/tema";
 import { cn, bastari } from "@/lib/utils";
 import type { Bildirim } from "@/lib/types";
-import { BildirimAyarlariModal } from "./BildirimAyarlariModal";
 import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription
@@ -50,7 +49,6 @@ export function UserMenu() {
   const [indirAcik, setIndirAcik] = useState(false);
   const [gosterilen, setGosterilen] = useState(ILK_BILDIRIM);
   const [tema, , temaTersle] = useTema();
-  const [bildirimModalAcik, setBildirimModalAcik] = useState(false);
 
   // v15 — Aktif tenant'taki rol (Yönetim linki için)
   const aktifRol = ben?.uyelikler?.find(u => u.isletmeId === ben?.aktifIsletmeId)?.rol ?? "kullanici";
@@ -214,17 +212,6 @@ export function UserMenu() {
                       )}
                     </DM.Item>
                   ))}
-                {ben.superAdmin && (
-                  <DM.Item
-                    disabled
-                    onSelect={(e) => e.preventDefault()}
-                    title="v17'de gelir"
-                    className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg outline-none text-clay-400 dark:text-ink-400 opacity-50 cursor-not-allowed"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Yeni İşletme
-                  </DM.Item>
-                )}
               </>
             )}
 
@@ -278,15 +265,6 @@ export function UserMenu() {
                   )}
                 />
               </span>
-            </DM.Item>
-
-            {/* v19 push - Bildirim Ayarlari (izin + cihaz yonetimi) */}
-            <DM.Item
-              onSelect={(e) => { e.preventDefault(); setBildirimModalAcik(true); }}
-              className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-cream-200 dark:hover:bg-ink-800 cursor-pointer outline-none text-clay-700 dark:text-ink-100"
-            >
-              <Bell className="h-4 w-4 text-terracotta" />
-              <span className="flex-1">Bildirim Ayarları</span>
             </DM.Item>
 
             {/* BİLDİRİMLER — Çöp Kutusu altı, Çıkış üstü, paginate edilmiş */}
@@ -377,7 +355,6 @@ export function UserMenu() {
           </DM.Content>
         </DM.Portal>
       </DM.Root>
-      <BildirimAyarlariModal acik={bildirimModalAcik} onOpenChange={setBildirimModalAcik} />
 
       {/* Defteri İndir — Format seçim dialog'u */}
       <DefteriIndirDialog open={indirAcik} onOpenChange={setIndirAcik} />

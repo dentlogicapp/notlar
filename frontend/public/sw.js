@@ -89,11 +89,12 @@ self.addEventListener("notificationclick", (event) => {
   const hedef = (event.notification.data && event.notification.data.url) || "/";
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
-      // Mevcut pencere varsa odakla VE hedef nota yonlendir (?focus= isler -> ring highlight)
+      // Mevcut pencere varsa: client-side yonlendirme icin mesaj gonder
+      // (reload YOK -> menu ici tiklama gibi yumusak scroll + highlight calisir)
       for (const c of clients) {
         if ("focus" in c) {
           c.focus();
-          if ("navigate" in c) return c.navigate(hedef);
+          c.postMessage({ type: "notlar-focus", url: hedef });
           return;
         }
       }
