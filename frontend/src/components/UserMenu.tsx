@@ -141,7 +141,7 @@ export function UserMenu() {
         <DM.Portal>
           <DM.Content
             align="end" sideOffset={8}
-            className="min-w-[320px] max-w-[360px] kart p-1 z-50 animate-fade-in"
+            className="min-w-[320px] max-w-[360px] max-h-[var(--radix-dropdown-menu-content-available-height)] overflow-y-auto kart p-1 z-50 animate-fade-in"
           >
             {/* User identity */}
             <div className="px-3 py-2.5 border-b border-cream-300 dark:border-ink-700">

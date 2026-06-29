@@ -920,7 +920,7 @@ export function NotListesi({
 
   // Baslik + arama satiri - her durumda gorunur; arama yazarken mobil klavyenin notlari ortmemesi icin yapiskan ust
   const baslikSatiri = baslik !== undefined ? (
-    <div className="sticky top-0 z-20 -mx-1 px-1 pt-1 pb-2 mb-2 bg-cream-100/95 dark:bg-ink-950/95 backdrop-blur-sm flex items-center gap-2 sm:gap-3">
+    <div className="sticky top-0 z-20 -mx-1 px-1 pt-1 pb-2 mb-2 bg-cream-100/95 dark:bg-ink-900/95 backdrop-blur-sm flex items-center gap-2 sm:gap-3">
       <h2 className="font-display text-lg sm:text-xl text-clay-900 dark:text-ink-50 shrink-0">{baslik}</h2>
       <AramaKutusu deger={aramaTerimi} onDegis={setAramaTerimi} />
     </div>

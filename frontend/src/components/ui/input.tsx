@@ -7,7 +7,7 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
     <input
       ref={ref}
       className={cn(
-        "h-11 w-full rounded-xl border border-clay-200 bg-white dark:bg-ink-850 px-4 text-[15px] text-clay-900 dark:text-ink-50",
+        "h-11 w-full rounded-xl border border-clay-200 bg-white dark:bg-ink-850 px-4 text-[16px] md:text-[15px] text-clay-900 dark:text-ink-50",
         "placeholder:text-clay-400 dark:placeholder:text-ink-300",
         "focus:outline-none focus:border-clay-400 focus:ring-2 focus:ring-clay-900/5",
         "transition-colors",
@@ -24,7 +24,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
     <textarea
       ref={ref}
       className={cn(
-        "w-full rounded-xl border border-clay-200 bg-white dark:bg-ink-850 px-4 py-3 text-[15px] text-clay-900 dark:text-ink-50",
+        "w-full rounded-xl border border-clay-200 bg-white dark:bg-ink-850 px-4 py-3 text-[16px] md:text-[15px] text-clay-900 dark:text-ink-50",
         "placeholder:text-clay-400 dark:placeholder:text-ink-300 resize-y min-h-[88px]",
         "focus:outline-none focus:border-clay-400 focus:ring-2 focus:ring-clay-900/5",
         "transition-colors",
