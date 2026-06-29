@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { tatilHaritasi } from "@/lib/tatiller";
 
 const AY_ADLARI = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
 const GUN_ADLARI = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
@@ -21,13 +22,11 @@ function pztBasli(jsGun: number): number {
 
 export function MiniTakvim({
   hatirlatmaGunleri = new Set<string>(),
-  tatilGunleri = new Set<string>(),
   onGunTikla,
   buyuk = false,
   salt = false,
 }: {
   hatirlatmaGunleri?: Set<string>;
-  tatilGunleri?: Set<string>;
   onGunTikla?: (tarih: Date) => void;
   buyuk?: boolean;
   salt?: boolean;
@@ -38,6 +37,8 @@ export function MiniTakvim({
 
   const yil = gosterilen.getFullYear();
   const ay = gosterilen.getMonth();
+  // Tatiller gorunen yila gore (ay/yil degisince dogru tatiller; sonsuz kapsama)
+  const tatilSet = useMemo(() => new Set(tatilHaritasi(yil).keys()), [yil]);
   const ayBasiGun = pztBasli(new Date(yil, ay, 1).getDay());
   const ayGunSayisi = new Date(yil, ay + 1, 0).getDate();
   const oncekiAy = (ay + 11) % 12;
@@ -106,10 +107,10 @@ export function MiniTakvim({
           const bugunMu = anahtar === tarihAnahtar(bugun);
           const haftaSonu = i % 7 >= 5;
           const hatirlatmaVar = hatirlatmaGunleri.has(anahtar);
-          const tatilMi = tatilGunleri.has(anahtar);
+          const tatilMi = tatilSet.has(anahtar);
           const renkSinif = bugunMu
             ? "bg-terracotta text-white font-semibold animate-pulse-soft"
-            : cn(!salt && "hover:bg-cream-200 dark:hover:bg-ink-800", tatilMi ? "text-terracotta font-medium" : haftaSonu ? "text-terracotta/70" : "text-clay-700 dark:text-ink-100");
+            : cn(!salt && "hover:bg-cream-200 dark:hover:bg-ink-800", tatilMi ? "bg-terracotta/15 text-terracotta font-semibold" : haftaSonu ? "text-terracotta/70" : "text-clay-700 dark:text-ink-100");
           const ortak = cn("relative flex items-center justify-center rounded-full transition-colors tabular-nums", hucreBoyut, renkSinif);
           const isaret = hatirlatmaVar && (
             <span className={cn("absolute bottom-0.5 rounded-full", salt ? "h-[3px] w-[3px]" : "h-1 w-1", bugunMu ? "bg-white" : "bg-terracotta")} aria-hidden />

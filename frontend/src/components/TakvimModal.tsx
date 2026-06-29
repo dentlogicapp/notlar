@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { MiniTakvim, tarihAnahtar } from "./MiniTakvim";
+import { tatilHaritasi } from "@/lib/tatiller";
 import { NotKart } from "./Notlar";
 import type { Not } from "@/lib/types";
 
@@ -15,15 +16,13 @@ function tamTarih(d: Date): string {
 }
 
 export function TakvimModal({
-  acik, onOpenChange, notlar = [], tatilAdlari = new Map<string, string>(), baslangicGun = null,
+  acik, onOpenChange, notlar = [], baslangicGun = null,
 }: {
   acik: boolean;
   onOpenChange: (a: boolean) => void;
   notlar?: Not[];
-  tatilAdlari?: Map<string, string>;
   baslangicGun?: Date | null;
 }) {
-  const tatilGunleri = new Set(tatilAdlari.keys());
   const [seciliGun, setSeciliGun] = useState<Date | null>(null);
   const [seciliNotId, setSeciliNotId] = useState<string | null>(null);
 
@@ -41,6 +40,8 @@ export function TakvimModal({
     ? notlar.filter((n) => n.hatirlatmaZamani && tarihAnahtar(new Date(n.hatirlatmaZamani)) === tarihAnahtar(seciliGun))
     : [];
   const seciliNot = seciliNotId ? notlar.find((n) => n.id === seciliNotId) ?? null : null;
+  // Secili gunun tatil adi - gorunen yila gore (sonsuz kapsama)
+  const seciliTatilAd = seciliGun ? tatilHaritasi(seciliGun.getFullYear()).get(tarihAnahtar(seciliGun)) : null;
 
   return (
     <>
@@ -54,7 +55,6 @@ export function TakvimModal({
             <MiniTakvim
               buyuk
               hatirlatmaGunleri={hatirlatmaGunleri}
-              tatilGunleri={tatilGunleri}
               onGunTikla={setSeciliGun}
             />
 
@@ -65,9 +65,9 @@ export function TakvimModal({
                   <p className="text-[12px] font-semibold text-clay-700 dark:text-ink-50">
                     {tamTarih(seciliGun)}
                   </p>
-                  {tatilAdlari.get(tarihAnahtar(seciliGun)) && (
+                  {seciliTatilAd && (
                     <p className="text-[11px] font-medium text-terracotta mt-0.5">
-                      {tatilAdlari.get(tarihAnahtar(seciliGun))}
+                      {seciliTatilAd}
                     </p>
                   )}
                 </div>
