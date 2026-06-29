@@ -16,6 +16,7 @@ import { useIsletmeMetinleri, metinDeger } from "@/lib/useIsletmeMetinleri";
 import { useTema } from "@/lib/tema";
 import { cn, bastari } from "@/lib/utils";
 import type { Bildirim } from "@/lib/types";
+import { BildirimAyarlariModal } from "./BildirimAyarlariModal";
 import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription
@@ -49,6 +50,7 @@ export function UserMenu() {
   const [indirAcik, setIndirAcik] = useState(false);
   const [gosterilen, setGosterilen] = useState(ILK_BILDIRIM);
   const [tema, , temaTersle] = useTema();
+  const [bildirimModalAcik, setBildirimModalAcik] = useState(false);
 
   // v15 — Aktif tenant'taki rol (Yönetim linki için)
   const aktifRol = ben?.uyelikler?.find(u => u.isletmeId === ben?.aktifIsletmeId)?.rol ?? "kullanici";
@@ -278,6 +280,15 @@ export function UserMenu() {
               </span>
             </DM.Item>
 
+            {/* v19 push - Bildirim Ayarlari (izin + cihaz yonetimi) */}
+            <DM.Item
+              onSelect={(e) => { e.preventDefault(); setBildirimModalAcik(true); }}
+              className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-cream-200 dark:hover:bg-ink-800 cursor-pointer outline-none text-clay-700 dark:text-ink-100"
+            >
+              <Bell className="h-4 w-4 text-terracotta" />
+              <span className="flex-1">Bildirim Ayarları</span>
+            </DM.Item>
+
             {/* BİLDİRİMLER — Çöp Kutusu altı, Çıkış üstü, paginate edilmiş */}
             <DM.Separator className="h-px bg-cream-300 dark:bg-ink-700 my-1" />
 
@@ -366,6 +377,7 @@ export function UserMenu() {
           </DM.Content>
         </DM.Portal>
       </DM.Root>
+      <BildirimAyarlariModal acik={bildirimModalAcik} onOpenChange={setBildirimModalAcik} />
 
       {/* Defteri İndir — Format seçim dialog'u */}
       <DefteriIndirDialog open={indirAcik} onOpenChange={setIndirAcik} />

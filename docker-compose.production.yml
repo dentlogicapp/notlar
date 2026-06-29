@@ -64,6 +64,7 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_BASE: "https://api.dentlogicapp.com"
+        NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
     container_name: notlar_frontend
     restart: unless-stopped
     depends_on:

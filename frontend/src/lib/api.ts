@@ -8,6 +8,7 @@ import type {
   MetinBirlesik, MetinVersiyon, OnboardingDurum,
   TaslakSonucu,
   IsletmeOzet, IsletmeDetay, SuperAdminOzet,
+  Cihaz,
 } from "./types";
 
 const API = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:5000";
@@ -461,4 +462,21 @@ export const superAdminYoneticiApi = {
     ist<SuperAdminOzet>("/api/super-admin/yoneticiler", { method: "POST", body: JSON.stringify({ email }) }),
   kaldir: (kullaniciId: string) =>
     ist<void>(`/api/super-admin/yoneticiler/${kullaniciId}`, { method: "DELETE" }),
+};
+
+// v19 push - cihaz/Web Push abonelik yonetimi
+export const cihazApi = {
+  kayit: (body: { pushToken: string; platform: string; cihazAdi?: string; p256dh?: string; auth?: string }) =>
+    ist<{ id: string; olusturuldu: boolean }>("/api/cihazlar/kayit", {
+      method: "POST",
+      body: JSON.stringify({
+        PushToken: body.pushToken,
+        Platform: body.platform,
+        CihazAdi: body.cihazAdi,
+        P256dh: body.p256dh,
+        Auth: body.auth,
+      }),
+    }),
+  liste: () => ist<Cihaz[]>("/api/cihazlar"),
+  sil: (id: string) => ist<{ silindi: boolean }>(`/api/cihazlar/${id}`, { method: "DELETE" }),
 };

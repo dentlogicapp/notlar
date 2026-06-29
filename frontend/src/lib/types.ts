@@ -312,3 +312,13 @@ export interface IsletmeDetay {
   sonAktivite: string | null; // v19 - en guncel not ya da uye girisi
   uyeler: IsletmeUye[];
 }
+
+// v19 push - kullanici cihazi (Web Push abone)
+export interface Cihaz {
+  id: string;
+  platform: string;
+  cihazAdi: string | null;
+  tokenSon: string;
+  olusturmaZamani: string;
+  sonAktiflik: string;
+}
