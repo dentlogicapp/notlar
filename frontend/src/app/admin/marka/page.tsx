@@ -40,18 +40,16 @@ const KATEGORI_BASLIK: Record<string, string> = {
 };
 
 // v19 6c - Mail sekmesi alt-gruplari. Anahtar prefix ile eslesir (Sifir Sablon:
-// yeni mail_davetiye_* / mail_hatirlatma_* anahtari otomatik dogru gruba duser).
-type MailAltGrup = "davetiye" | "hatirlatma" | "eklendi" | "sifre" | "imza";
+// yeni mail_davetiye_* / mail_eklendi_* anahtari otomatik dogru gruba duser).
+type MailAltGrup = "davetiye" | "eklendi" | "sifre" | "imza";
 const MAIL_ALT_SEKMELER: { kod: MailAltGrup; etiket: string }[] = [
   { kod: "davetiye", etiket: "Davetiye" },
-  { kod: "hatirlatma", etiket: "Hatırlatma" },
   { kod: "eklendi", etiket: "Markaya Eklendi" },
   { kod: "sifre", etiket: "Şifre Sıfırlama" },
   { kod: "imza", etiket: "İmza & Genel" },
 ];
 function mailAltGrup(anahtar: string): MailAltGrup {
   if (anahtar.startsWith("mail_davetiye")) return "davetiye";
-  if (anahtar.startsWith("mail_hatirlatma")) return "hatirlatma";
   if (anahtar.startsWith("mail_eklendi")) return "eklendi";
   if (anahtar.startsWith("mail_sifre")) return "sifre";
   return "imza"; // mail_imza, mail_tonu, iletisim_email ve diger mail anahtarlari
@@ -84,7 +82,7 @@ function Icerik() {
         { popover: { title: "Hoşgeldin!", description: "İşletmenin tüm metinlerini buradan yönetirsin. Hızlı bir tura çıkalım mı?" } },
         { element: '[data-tour-step="sekmeler"]', popover: { title: "Kategoriler", description: "Marka, Karşılama, Sayaç ve Mail kategorilerine ayrılmış sekmeler. Her sekme ilgili metinleri gruplar." } },
         { element: '[data-tour-step="metin-alani"]', popover: { title: "Otomatik Kayıt", description: "Yazdıkların kısa süre sonra otomatik kaydedilir. Ayrıca Kaydet butonuna basmana gerek yok." } },
-        { element: '[data-tour-step="mail-sekmesi"]', popover: { title: "Mail Metinleri", description: "Davetiye, hatırlatma ve imza metinleri burada. Önemli: mail metinleri eksikken davetiye gönderemezsin, sistem seni korur." } },
+        { element: '[data-tour-step="mail-sekmesi"]', popover: { title: "Mail Metinleri", description: "Davetiye, markaya eklendi ve imza metinleri burada. Önemli: mail metinleri eksikken davetiye gönderemezsin, sistem seni korur." } },
         { element: '[data-tour-step="karakter-sayaci"]', popover: { title: "Karakter Limiti", description: "Her alanın kendi limiti var, sağ altta sayaç gösterir. Mail konusu için kısa, gövde için uzun gibi." } },
         { element: '[data-tour-step="live-preview"]', popover: { title: "Anlık Önizleme", description: "Sağ panelde yazdıklarının nasıl görüneceğini anlık gör. Mail içeriği, dashboard karşılaması, hepsi canlı." } },
         { element: '[data-tour-step="versiyon-gecmisi"]', popover: { title: "Eski Sürüme Dönüş", description: "Her alanın geçmişi tutulur. Yanlışlıkla değiştirdiysen saat ikonundan eski sürüme dönebilirsin." } },

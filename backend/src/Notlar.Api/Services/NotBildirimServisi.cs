@@ -51,8 +51,17 @@ public sealed class NotBildirimServisi : INotBildirimServisi
         => AnahtarKatalogu.Tumu.FirstOrDefault(a => a.Anahtar == anahtar)?.Varsayilan ?? "";
 
     private static string Doldur(string metin, string? notBaslik, string? kullaniciAdi)
-        => metin.Replace("{not_baslik}", notBaslik ?? "")
-                .Replace("{kullanici_adi}", kullaniciAdi ?? "");
+        => metin.Replace("{not_baslik}", Kirp(notBaslik, 40))
+                .Replace("{kullanici_adi}", Kirp(kullaniciAdi, 30));
+
+    // Bildirim ekranina sigsin diye yer tutucu degerlerini kirpar (sonu "..." ile);
+    // boylece sabit kuyruk ("... tikla!") her zaman gorunur kalir.
+    private static string Kirp(string? s, int max)
+    {
+        if (string.IsNullOrEmpty(s)) return "";
+        s = s.Trim();
+        return s.Length <= max ? s : s.Substring(0, max).TrimEnd() + "…";
+    }
 
     private Task<string> AktorAd(Guid aktorId, CancellationToken ct)
         => _db.Kullanicilar.Where(k => k.Id == aktorId)

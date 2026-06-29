@@ -65,20 +65,25 @@
 
   /* v9 - Focus highlight (bildirimden nota gelirken 2sn ring vurgusu) */
   @keyframes focus-pulse-terracotta {
-    0%, 100% {
+    0% {
       box-shadow: 0 0 0 0 rgba(196, 112, 77, 0);
       transform: scale(1);
     }
-    25% {
-      box-shadow: 0 0 0 4px rgba(196, 112, 77, 0.4);
-      transform: scale(1.005);
+    12% {
+      box-shadow: 0 0 0 6px rgba(196, 112, 77, 0.55);
+      transform: scale(1.012);
     }
-    75% {
-      box-shadow: 0 0 0 2px rgba(196, 112, 77, 0.25);
+    60% {
+      box-shadow: 0 0 0 5px rgba(196, 112, 77, 0.45);
+      transform: scale(1.008);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(196, 112, 77, 0);
+      transform: scale(1);
     }
   }
   .animate-focus-pulse {
-    animation: focus-pulse-terracotta 2s ease-in-out;
+    animation: focus-pulse-terracotta 4.5s ease-in-out;
   }
 
   /* v11 — Bildirim feed scroll (gradient fade üst) */

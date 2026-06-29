@@ -7,7 +7,7 @@ public static class AnahtarKatalogu
 {
     // SemVer: yeni anahtar -> minor (1.1.0); tip/limit breaking -> major (2.0.0);
     // dokumantasyon (etiket/yonlendirme/aciklama) -> patch (1.0.1).
-    public const string Version = "1.4.0";
+    public const string Version = "1.4.1";
 
     public static readonly IReadOnlyList<AnahtarTanim> Tumu = new[]
     {
@@ -256,7 +256,7 @@ public static class AnahtarKatalogu
             .Etiket("Hatırlatıcı Maili Konusu")
             .Yonlendirme("Bir not için hatırlatıcı kurulduğunda gönderilecek mail'in konusu. (Örn: '♡ Hatırlatıcı - {not_basligi}', 'Hatırlatıyoruz: {not_basligi}')")
             .Aciklama("Hatırlatma zamanı geldiğinde gönderilen mail'in subject'i.")
-            .Sira(340).Varsayilan("Hatırlatma: {not_basligi}").Build(),
+            .Sira(340).Deprecated().Varsayilan("Hatırlatma: {not_basligi}").Build(),
 
         AnahtarTanim.Tanim("mail_hatirlatma_giris_metni")
             .Kategori(Kategori.Mail).Tip(AlanTipi.Body)
@@ -264,7 +264,7 @@ public static class AnahtarKatalogu
             .Etiket("Hatırlatıcı Maili Giriş Metni")
             .Yonlendirme("Hatırlatma mailinin üst kısmında, not detayından önce gösterilecek açıklama. (Örn: 'Kurduğun hatırlatmanın zamanı geldi 🤍')")
             .Aciklama("Hatırlatma mailinde not başlığından önce görünür. Boş bırakılırsa varsayılan kullanılır.")
-            .Sira(341).Varsayilan("Hatırlatmanın zamanı geldi.").Build(),
+            .Sira(341).Deprecated().Varsayilan("Hatırlatmanın zamanı geldi.").Build(),
 
         AnahtarTanim.Tanim("mail_hatirlatma_alt_baslik")
             .Kategori(Kategori.Mail).Tip(AlanTipi.Metin)
@@ -272,14 +272,14 @@ public static class AnahtarKatalogu
             .Etiket("Hatırlatıcı Maili Alt Başlığı")
             .Yonlendirme("Başlıkta alıcının adından sonra gelen ifade. (Örn: 'hatırlatıcının zamanı geldi')")
             .Aciklama("Mailin başlığında 'Ad, ...' biçiminde alıcı adından sonra görünür.")
-            .Sira(342).Varsayilan("hatırlatıcının zamanı geldi").Build(),
+            .Sira(342).Deprecated().Varsayilan("hatırlatıcının zamanı geldi").Build(),
 
         AnahtarTanim.Tanim("mail_hatirlatma_buton")
             .Kategori(Kategori.Mail).Tip(AlanTipi.Metin)
             .Etiket("Hatırlatıcı Maili Buton Metni")
             .Yonlendirme("Nota gitme butonunun metni. (Örn: 'Notu Defterimde Aç', 'Nota Git')")
             .Aciklama("Mailin altındaki butonun üzerinde görünür (ok işareti otomatik eklenir).")
-            .Sira(343).Varsayilan("Notu Defterimde Aç").Build(),
+            .Sira(343).Deprecated().Varsayilan("Notu Defterimde Aç").Build(),
 
         AnahtarTanim.Tanim("mail_eklendi_konu")
             .Kategori(Kategori.Mail).Tip(AlanTipi.Subject)

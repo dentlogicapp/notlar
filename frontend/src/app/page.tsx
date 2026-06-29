@@ -50,8 +50,8 @@ function Icerik() {
       if (!el) return;
       el.scrollIntoView({ behavior: "smooth", block: "center" });
       el.classList.add("animate-focus-pulse");
-      // 2sn sonra class temizlensin
-      const tt = setTimeout(() => el.classList.remove("animate-focus-pulse"), 2200);
+      // animasyon bitince class temizlensin (4.5sn + kucuk tampon)
+      const tt = setTimeout(() => el.classList.remove("animate-focus-pulse"), 4700);
       // URL'i temizle (geri gelmesini önlemek için)
       router.replace("/", { scroll: false });
       return () => clearTimeout(tt);

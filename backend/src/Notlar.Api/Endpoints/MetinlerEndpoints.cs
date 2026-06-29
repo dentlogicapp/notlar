@@ -105,12 +105,6 @@ public static class MetinlerEndpoints
 
             switch (tip)
             {
-                case "hatirlatma":
-                    await email.HatirlaticiMailGonderAsync(uc.Email, "Test", "Cuma toplantısı hazırlığı",
-                        "Sunum dosyasını gözden geçir, slaytları güncelle ve ekibe paylaş.",
-                        "Projeler", "Ayşe Y. hatırlatıcıyı kurdu · Ayşe Y., Mehmet K.'e hatırlatıldı",
-                        DateTimeOffset.UtcNow.AddDays(1), Guid.NewGuid(), isletmeId, ct);
-                    break;
                 case "eklendi":
                     await email.MarkayaEklendiMailGonderAsync(uc.Email, "Test", link, isletmeId, ct);
                     break;
@@ -131,9 +125,9 @@ public static class MetinlerEndpoints
         g.MapPost("/mail-onizle", async (MailOnizleIstegi req, IUserContext uc, IEmailService email, CancellationToken ct) =>
         {
             if (uc.AktifIsletmeId is null) return Results.Unauthorized();
-            var gecerli = new[] { "davet", "hatirlatma", "eklendi", "sifre" };
+            var gecerli = new[] { "davet", "eklendi", "sifre" };
             if (string.IsNullOrWhiteSpace(req.Tip) || !gecerli.Contains(req.Tip))
-                return Results.BadRequest(new { hata = "GECERSIZ_TIP", mesaj = "tip: davet|hatirlatma|eklendi|sifre" });
+                return Results.BadRequest(new { hata = "GECERSIZ_TIP", mesaj = "tip: davet|eklendi|sifre" });
 
             var html = await email.MailOnizleHtmlAsync(uc.AktifIsletmeId.Value, req.Tip, req.Degerler, ct);
             return Results.Content(html, "text/html; charset=utf-8");
