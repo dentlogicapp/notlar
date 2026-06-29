@@ -129,6 +129,19 @@ public sealed class Not
     public ICollection<NotGecmisi> Gecmis { get; set; } = new List<NotGecmisi>();
 }
 
+// v19 - Not okuma kaydi (read receipts). Bir kullanici bir notu scroll ile gorunce upsert edilir.
+// "Yeni/degisen" tespiti: not.GuncellemeZamani > OkunmaZamani ise o kullanici icin not degismis demektir.
+public sealed class NotOkunma
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid IsletmeId { get; set; }                 // tenant izolasyon (zorunlu)
+    public Guid NotId { get; set; }
+    public Not Not { get; set; } = null!;
+    public Guid KullaniciId { get; set; }
+    public Kullanici Kullanici { get; set; } = null!;
+    public DateTimeOffset OkunmaZamani { get; set; } = DateTimeOffset.UtcNow;  // son gorme (upsert ile guncellenir)
+}
+
 public sealed class NotGecmisi
 {
     public Guid Id { get; set; } = Guid.NewGuid();
