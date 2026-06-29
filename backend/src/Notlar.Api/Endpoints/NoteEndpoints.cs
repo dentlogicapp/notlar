@@ -538,6 +538,12 @@ public static class NoteEndpoints
             var tenantId = uc.AktifIsletmeId.Value;
             var kid = uc.KullaniciId.Value;
 
+            // Guven/gizlilik (defense in depth katman 1): kullanici bu tenant'in UYESI degilse okundu YAZILMAZ.
+            // Super admin salt-okunur goruntulemede "Goruldu" kaydi olusmaz; tenant kullanicilarinda guven kaybi onlenir.
+            // Uyelik bazli kontrol; claim/header'dan bagimsiz, en saglam koruma.
+            var uyeMi = await db.IsletmeUyelikleri.AnyAsync(u => u.IsletmeId == tenantId && u.KullaniciId == kid, ct);
+            if (!uyeMi) return Results.Ok(new { ok = true, atlandi = true });  // sessiz no-op (frontend hata almaz)
+
             // Tenant izolasyon: not bu tenant'a ait mi
             var notVar = await db.Notlar.AnyAsync(n => n.Id == id && n.IsletmeId == tenantId, ct);
             if (!notVar) return Results.NotFound();

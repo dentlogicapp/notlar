@@ -632,7 +632,8 @@ export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { n
     if (!el) return;
     const gormeli = not.benimSonGorme === null ||
       new Date(not.benimSonGorme).getTime() < new Date(not.guncellemeZamani).getTime();
-    if (!gormeli || not.tamamlandi) return;
+    // Defense in depth katman 2: super admin salt-okunur goruntulemede okundu gonderilmez (backend de reddeder)
+    if (!gormeli || not.tamamlandi || ben?.goruntulemeModu) return;
     const obs = new IntersectionObserver((entries) => {
       for (const e of entries) {
         if (e.isIntersecting && !okunduGonderildiRef.current) {
