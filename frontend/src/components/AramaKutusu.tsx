@@ -17,7 +17,7 @@ export function AramaKutusu({
         onChange={(e) => onDegis(e.target.value)}
         placeholder="Aradığın notta geçen ifadeyi yaz..."
         aria-label="Notlarda ara"
-        className="h-10 pr-10 text-[16px] md:text-[13px] placeholder:text-[16px] md:placeholder:text-[13px]"
+        className="h-10 pr-10 text-[16px] md:text-[13px] placeholder:text-[12px] md:placeholder:text-[12px]"
       />
       {deger ? (
         <button
