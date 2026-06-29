@@ -574,6 +574,9 @@ using (var scope = app.Services.CreateScope())
             -- v19 push: Web Push abonelik alanlari (endpoint=PushToken; p256dh+auth ile sifreleme)
             ALTER TABLE kullanici_cihazlari ADD COLUMN IF NOT EXISTS ""PushP256dh"" character varying(200);
             ALTER TABLE kullanici_cihazlari ADD COLUMN IF NOT EXISTS ""PushAuth"" character varying(100);
+            -- v19 push: hatirlatici maili kaldirildi; eski email/her_ikisi sekiller uygulama'ya (push+zil)
+            UPDATE notlar SET ""HatirlatmaSekli"" = 'uygulama'
+                WHERE ""HatirlatmaSekli"" IN ('email', 'her_ikisi');
             -- 13. AI sağlayıcı ayarı (v17 — singleton, Strategy Pattern)
             CREATE TABLE IF NOT EXISTS ai_ayarlari (
                 ""Id"" uuid NOT NULL PRIMARY KEY,

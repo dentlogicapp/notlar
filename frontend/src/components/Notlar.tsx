@@ -202,9 +202,8 @@ export function DuzenleDialog({
   const [hatirlatmaAliciIdler, setHatirlatmaAliciIdler] = useState<string[]>(
     not.hatirlatmaAliciIdler ?? []
   );
-  const [hatirlatmaSekli, setHatirlatmaSekli] = useState<"uygulama" | "email" | "her_ikisi" | "">(
-    (not.hatirlatmaSekli as "uygulama" | "email" | "her_ikisi") ?? ""
-  );
+  // v19: hatirlatici hep uygulama (Web Push + zil); ayri sekil secimi kaldirildi
+  const hatirlatmaSekli = "uygulama" as const;
 
   const { data: klasorler } = useQuery({
     queryKey: ["klasorler"],
@@ -428,20 +427,6 @@ export function DuzenleDialog({
                   )}
                 </div>
               </div>
-              <div>
-                <Label htmlFor="hatirlatma-sekli">Hatırlatma şekli</Label>
-                <select
-                  id="hatirlatma-sekli"
-                  value={hatirlatmaSekli}
-                  onChange={(e) => setHatirlatmaSekli(e.target.value as "uygulama" | "email" | "her_ikisi" | "")}
-                  className="h-11 w-full rounded-xl border border-clay-200 bg-white dark:bg-ink-850 px-4 text-[15px] text-clay-900 dark:text-ink-50 focus:outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta/15 transition-colors"
-                >
-                  <option value="" disabled>Seç…</option>
-                  <option value="uygulama">Uygulama içinde</option>
-                  <option value="email">E-postayla</option>
-                  <option value="her_ikisi">Hem uygulama hem e-posta</option>
-                </select>
-              </div>
             </div>
           </div>
         </div>
@@ -454,7 +439,7 @@ export function DuzenleDialog({
             disabled={
               m.isPending ||
               baslik.trim().length === 0 ||
-              (hatirlaticiAcik && (!hatirlatmaZamani || hatirlatmaAliciIdler.length === 0 || !hatirlatmaSekli))
+              (hatirlaticiAcik && (!hatirlatmaZamani || hatirlatmaAliciIdler.length === 0))
             }
           >
             Kaydet
@@ -555,12 +540,6 @@ function KlasorBadge({ klasorAdi }: { klasorAdi: string | null }) {
 }
 
 // Tek not kartı
-// madde 1 - hatirlatma sekli etiketleri (dokum popover'da gosterilir)
-const HATIRLATMA_SEKIL_ETIKET: Record<string, string> = {
-  uygulama: "Uygulama içi bildirim",
-  email: "E-posta",
-  her_ikisi: "Uygulama + E-posta",
-};
 
 // icerik her satirini "- madde" formatina normalize eder (cift tire onler; tire'siz eski notlara otomatik ekler)
 function icerikTireli(icerik: string): string {
@@ -767,11 +746,6 @@ export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { n
                           <p className="text-[11px] text-clay-500 dark:text-ink-300 mt-1.5 leading-relaxed">
                             <span className="text-clay-400 dark:text-ink-400">Kimlere: </span>
                             {hatirlatmaAlicilari.join(", ")}
-                          </p>
-                        )}
-                        {not.hatirlatmaSekli && HATIRLATMA_SEKIL_ETIKET[not.hatirlatmaSekli] && (
-                          <p className="text-[10px] text-clay-400 dark:text-ink-400 mt-1.5">
-                            {HATIRLATMA_SEKIL_ETIKET[not.hatirlatmaSekli]}
                           </p>
                         )}
                         {not.hatirlatmaGonderildiMi && (

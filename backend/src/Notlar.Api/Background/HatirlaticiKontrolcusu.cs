@@ -47,7 +47,7 @@ public sealed class HatirlaticiKontrolcusu : BackgroundService
     {
         using var scope = _sp.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var email = scope.ServiceProvider.GetRequiredService<IEmailService>();
+        var push = scope.ServiceProvider.GetRequiredService<IPushGonderici>();
 
         var simdi = DateTimeOffset.UtcNow;
 
@@ -79,47 +79,33 @@ public sealed class HatirlaticiKontrolcusu : BackgroundService
                         ?? not.OlusturanKullanici;
 
                 var hedefler = HedefBul(kullanicilar, kuran, not);
-                // v19 - kime metni TUM alicilar + kuran ile canli uretilir (her hedefe ayni, sabit liste).
-                var kimeMetin = KimeMetinUret(hedefler, kuran);
 
                 foreach (var hedef in hedefler)
                 {
-
-                    // Uygulama içi bildirim
-                    if (not.HatirlatmaSekli == "uygulama" || not.HatirlatmaSekli == "her_ikisi")
+                    // Uygulama ici bildirim (zil) - her zaman korunur
+                    db.Bildirimler.Add(new Bildirim
                     {
-                        db.Bildirimler.Add(new Bildirim
-                        {
-                            KullaniciId = hedef.Id,
-                            IsletmeId = not.IsletmeId,  // v15 — bildirim notun tenant'ında düşer
-                            Tip = "hatirlatma",
-                            NotId = not.Id,
-                            Baslik = "Hatırlatıcı",
-                            Mesaj = $"\"{not.Baslik}\" notunun zamanı geldi"
-                        });
+                        KullaniciId = hedef.Id,
+                        IsletmeId = not.IsletmeId,  // v15 — bildirim notun tenant'ında düşer
+                        Tip = "hatirlatma",
+                        NotId = not.Id,
+                        Baslik = "Hatırlatıcı",
+                        Mesaj = $"\"{not.Baslik}\" notunun zamanı geldi"
+                    });
+
+                    // Web Push (gercek telefon bildirimi) - v19: hatirlatici maili kaldirildi
+                    try
+                    {
+                        await push.GonderAsync(
+                            hedef.Id,
+                            "Hatırlatıcı",
+                            $"\"{not.Baslik}\" notunun zamanı geldi",
+                            $"/?focus={not.Id}",
+                            ct);
                     }
-
-                    // E-posta
-                    if (not.HatirlatmaSekli == "email" || not.HatirlatmaSekli == "her_ikisi")
+                    catch (Exception pushEx)
                     {
-                        try
-                        {
-                            await email.HatirlaticiMailGonderAsync(
-                                hedef.Email, hedef.AdSoyad,
-                                not.Baslik, not.Icerik,
-                                not.Klasor?.Ad,
-                                kimeMetin,
-                                not.HatirlatmaZamani!.Value,
-                                not.Id,
-                                not.IsletmeId,
-                                ct);
-                        }
-                        catch (Exception mailEx)
-                        {
-                            _log.LogError(mailEx, "Hatırlatma maili gönderilemedi: {Email} / Not {NotId}",
-                                hedef.Email, not.Id);
-                            // Mail başarısız olsa bile diğer hedefler için devam
-                        }
+                        _log.LogError(pushEx, "Hatırlatma push gönderilemedi: Not {NotId} / Hedef {HedefId}", not.Id, hedef.Id);
                     }
                 }
 
