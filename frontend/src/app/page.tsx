@@ -1,9 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { AuthGuard } from "@/components/AuthGuard";
+import { useFocusNot } from "@/lib/useFocusNot";
 import { ZamanPaneli } from "@/components/ZamanPaneli";
 import { UserMenu } from "@/components/UserMenu";
 import { KlasorListesi } from "@/components/KlasorGrid";
@@ -11,7 +9,6 @@ import { OnboardingBanner } from "@/components/OnboardingBanner";
 import { YeniNotFormu, NotListesi } from "@/components/Notlar";
 import { useBen } from "@/lib/useBen";
 import { useIsletmeMetinleri, metinDeger } from "@/lib/useIsletmeMetinleri";
-import { notApi } from "@/lib/api";
 
 export default function AnaSayfa() {
   return (
@@ -24,54 +21,12 @@ export default function AnaSayfa() {
 function Icerik() {
   const { data: ben } = useBen();
   const { data: metinler } = useIsletmeMetinleri();
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const focusId = searchParams.get("focus");
+  useFocusNot();
 
   const markaEmoji = metinDeger(metinler, "marka_emoji", "");
   const markaAdi = metinDeger(metinler, "marka_adi", "");
   const karsilamaBasligi = metinDeger(metinler, "dashboard_karsilama_basligi", "");
   const karsilamaAltMetni = metinDeger(metinler, "dashboard_karsilama_alt_metin", "");
-
-  // Notlar yüklendi mi? Bildirimden gelirken o yüklendikten sonra scroll yapmamız gerek.
-  const notlarQuery = useQuery({
-    queryKey: ["notlar", null],
-    queryFn: () => notApi.list({ silindi: false }),
-    refetchInterval: 15_000, // 15 saniye — eşin değişiklikleri görünür
-  });
-  const notlarYuklendi = !notlarQuery.isLoading && !!notlarQuery.data;
-
-  // ?focus={id} → notu bul, scroll + 2 saniye ring vurgusu, sonra query parametresini temizle
-  useEffect(() => {
-    if (!focusId || !notlarYuklendi) return;
-
-    const t = setTimeout(() => {
-      const el = document.querySelector(`[data-not-id="${focusId}"]`) as HTMLElement | null;
-      if (!el) return;
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      el.classList.add("animate-focus-pulse");
-      // animasyon bitince class temizlensin (4.5sn + kucuk tampon)
-      const tt = setTimeout(() => el.classList.remove("animate-focus-pulse"), 4700);
-      // URL'i temizle (geri gelmesini önlemek için)
-      router.replace("/", { scroll: false });
-      return () => clearTimeout(tt);
-    }, 250);
-
-    return () => clearTimeout(t);
-  }, [focusId, notlarYuklendi, router]);
-
-  // Push bildirimi tiklandiginda SW'den gelen mesaj -> client-side yonlendirme
-  // (reload YOK; menu ici bildirim tiklamasiyla ayni yumusak scroll + highlight)
-  useEffect(() => {
-    if (!("serviceWorker" in navigator)) return;
-    const handler = (event: MessageEvent) => {
-      if (event.data?.type === "notlar-focus" && event.data.url) {
-        router.push(event.data.url);
-      }
-    };
-    navigator.serviceWorker.addEventListener("message", handler);
-    return () => navigator.serviceWorker.removeEventListener("message", handler);
-  }, [router]);
 
   // Lokal admin kullanıcısı yerine sevgi dolu hitap
   const ad = ben?.adSoyad?.split(" ")?.[0] ?? "";

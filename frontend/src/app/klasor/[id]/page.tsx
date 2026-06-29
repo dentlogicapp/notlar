@@ -9,6 +9,7 @@ import { CountdownWidget } from "@/components/CountdownWidget";
 import { UserMenu } from "@/components/UserMenu";
 import { KlasorListesi, IkonGoster } from "@/components/KlasorGrid";
 import { YeniNotFormu, NotListesi } from "@/components/Notlar";
+import { useFocusNot } from "@/lib/useFocusNot";
 import { klasorApi } from "@/lib/api";
 import { gunFormat } from "@/lib/utils";
 
@@ -22,6 +23,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
 
 function Icerik({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  useFocusNot();
 
   const { data: klasorler } = useQuery({
     queryKey: ["klasorler"],

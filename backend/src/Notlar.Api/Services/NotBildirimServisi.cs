@@ -87,24 +87,30 @@ public sealed class NotBildirimServisi : INotBildirimServisi
     }
 
     private async Task NotOlayi(Not not, Guid aktorId, IReadOnlyCollection<Guid>? muaf,
-        string anahtarBaslik, string anahtarGovde, CancellationToken ct)
+        string anahtarBaslik, string anahtarGovde, string url, CancellationToken ct)
     {
         var hedefler = await HedefUyeler(not.IsletmeId, aktorId, muaf, ct);
         if (hedefler.Count == 0) return;
         var (b, g) = await MetinAl(not.IsletmeId, anahtarBaslik, anahtarGovde, ct);
         var ad = await AktorAd(aktorId, ct);
         b = Doldur(b, not.Baslik, ad); g = Doldur(g, not.Baslik, ad);
-        await Tetikle(hedefler, b, g, $"/?focus={not.Id}", ct);
+        await Tetikle(hedefler, b, g, url, ct);
     }
 
+    // Bekleyen not ana listede gorunur -> ana sayfa; tamamlanan not "Tamamlananlar" klasorune
+    // tasindigi icin -> o klasore yonlendirilir (ikisinde de ?focus={id} -> scroll + highlight).
+    private static string AnaUrl(Not not) => $"/?focus={not.Id}";
+    private static string KlasorUrl(Not not)
+        => not.KlasorId is Guid kid ? $"/klasor/{kid}?focus={not.Id}" : AnaUrl(not);
+
     public Task NotOlusturuldu(Not not, Guid aktorId, IReadOnlyCollection<Guid>? muafAliciIdler, CancellationToken ct = default)
-        => NotOlayi(not, aktorId, muafAliciIdler, "not_olusturuldu_push_baslik", "not_olusturuldu_push_govde", ct);
+        => NotOlayi(not, aktorId, muafAliciIdler, "not_olusturuldu_push_baslik", "not_olusturuldu_push_govde", AnaUrl(not), ct);
 
     public Task NotGuncellendi(Not not, Guid aktorId, IReadOnlyCollection<Guid>? muafAliciIdler, CancellationToken ct = default)
-        => NotOlayi(not, aktorId, muafAliciIdler, "not_guncellendi_push_baslik", "not_guncellendi_push_govde", ct);
+        => NotOlayi(not, aktorId, muafAliciIdler, "not_guncellendi_push_baslik", "not_guncellendi_push_govde", AnaUrl(not), ct);
 
     public Task NotTamamlandi(Not not, Guid aktorId, CancellationToken ct = default)
-        => NotOlayi(not, aktorId, null, "not_tamamlandi_push_baslik", "not_tamamlandi_push_govde", ct);
+        => NotOlayi(not, aktorId, null, "not_tamamlandi_push_baslik", "not_tamamlandi_push_govde", KlasorUrl(not), ct);
 
     public async Task HatirlaticiAliciEklendi(Not not, Guid aktorId, IReadOnlyCollection<Guid> yeniAliciIdler, CancellationToken ct = default)
     {
