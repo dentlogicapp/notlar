@@ -7,7 +7,7 @@ public static class AnahtarKatalogu
 {
     // SemVer: yeni anahtar -> minor (1.1.0); tip/limit breaking -> major (2.0.0);
     // dokumantasyon (etiket/yonlendirme/aciklama) -> patch (1.0.1).
-    public const string Version = "1.2.0";
+    public const string Version = "1.3.0";
 
     public static readonly IReadOnlyList<AnahtarTanim> Tumu = new[]
     {
@@ -93,6 +93,20 @@ public static class AnahtarKatalogu
             .Yonlendirme("Mail sonunda gösterilecek ve çalışmanızı en iyi açıklayacak imzanızı yazınız. (Örn: 'Bilgi Kitap Evi Çalışma Grup Yönetimi', 'Sevgilerle, Musa & Ayşegül', 'Saygılarımızla, Yıldız Hukuk Bürosu')")
             .Aciklama("Hatırlatıcı ve davet maillerinin sonunda görünür.")
             .Zorunlu().Sira(300).Varsayilan("Saygılarımızla").Build(),
+
+        AnahtarTanim.Tanim("hatirlatici_push_baslik")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Baslik)
+            .Etiket("Hatırlatıcı Bildirim Başlığı")
+            .Yonlendirme("Telefona düşen hatırlatıcı bildiriminin üst (kalın) satırı. Kısa tutun. İsterseniz {marka_adi} yer tutucusunu kullanabilirsiniz.")
+            .Aciklama("Hatırlatıcı zamanı geldiğinde gönderilen push bildiriminin başlığı.")
+            .Sira(400).Varsayilan("Hatırlatıcı").Build(),
+
+        AnahtarTanim.Tanim("hatirlatici_push_govde")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Metin)
+            .Etiket("Hatırlatıcı Bildirim Metni")
+            .Yonlendirme("Bildirimin alt satırı. {not_baslik} ilgili notun başlığıyla, {marka_adi} marka adınızla değişir.")
+            .Aciklama("Push bildiriminin gövde metni; yer tutucular gönderim anında doldurulur.")
+            .Sira(410).Varsayilan("\"{not_baslik}\" notunun zamanı geldi").Build(),
 
         AnahtarTanim.Tanim("mail_tonu")
             .Kategori(Kategori.Mail).Tip(AlanTipi.PlaceholderKisa)

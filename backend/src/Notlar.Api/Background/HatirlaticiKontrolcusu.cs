@@ -48,6 +48,7 @@ public sealed class HatirlaticiKontrolcusu : BackgroundService
         using var scope = _sp.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var push = scope.ServiceProvider.GetRequiredService<IPushGonderici>();
+        var metinSvc = scope.ServiceProvider.GetRequiredService<IIsletmeMetinService>();
 
         var simdi = DateTimeOffset.UtcNow;
 
@@ -80,6 +81,13 @@ public sealed class HatirlaticiKontrolcusu : BackgroundService
 
                 var hedefler = HedefBul(kullanicilar, kuran, not);
 
+                // v19 4b - tenant ozel push metni (placeholder: {not_baslik}, {marka_adi}); yoksa katalog varsayilani
+                var pushBaslik = (await metinSvc.GetirAsync(not.IsletmeId, "hatirlatici_push_baslik", ct))?.Icerik ?? "Hatırlatıcı";
+                var pushGovde = (await metinSvc.GetirAsync(not.IsletmeId, "hatirlatici_push_govde", ct))?.Icerik ?? "\"{not_baslik}\" notunun zamanı geldi";
+                var markaAdi = (await metinSvc.GetirAsync(not.IsletmeId, "marka_adi", ct))?.Icerik ?? "";
+                pushBaslik = pushBaslik.Replace("{not_baslik}", not.Baslik).Replace("{marka_adi}", markaAdi);
+                pushGovde = pushGovde.Replace("{not_baslik}", not.Baslik).Replace("{marka_adi}", markaAdi);
+
                 foreach (var hedef in hedefler)
                 {
                     // Uygulama ici bildirim (zil) - her zaman korunur
@@ -98,8 +106,8 @@ public sealed class HatirlaticiKontrolcusu : BackgroundService
                     {
                         await push.GonderAsync(
                             hedef.Id,
-                            "Hatırlatıcı",
-                            $"\"{not.Baslik}\" notunun zamanı geldi",
+                            pushBaslik,
+                            pushGovde,
                             $"/?focus={not.Id}",
                             ct);
                     }
