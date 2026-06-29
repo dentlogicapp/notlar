@@ -3,9 +3,9 @@ import type { MetadataRoute } from "next";
 // PWA uygulama tanimi - "Ana Ekrana Ekle" sonrasi uygulama gibi acilir (tam ekran, ikon, splash)
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Planlama Defterimiz",
-    short_name: "Planlama",
-    description: "Birlikte yapılacaklar, birlikte tamamlanacaklar",
+    name: "Planlama Defteri",
+    short_name: "Planlama Defteri",
+    description: "Ekibini Kur, Birlikte Not Al, Planla, Tamamla",
     start_url: "/",
     scope: "/",
     display: "standalone",

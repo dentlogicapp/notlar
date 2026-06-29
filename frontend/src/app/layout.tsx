@@ -20,13 +20,13 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Planlama Defterimiz",
-  description: "Birlikte yapılacaklar, birlikte tamamlanacaklar 🤍",
+  title: "Planlama Defteri",
+  description: "Ekibini Kur, Birlikte Not Al, Planla, Tamamla",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Planlama",
+    title: "Planlama Defteri",
   },
   icons: {
     icon: "/favicon.svg",
