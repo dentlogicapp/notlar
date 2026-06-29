@@ -23,7 +23,7 @@ import { useIsletmeMetinleri } from "@/lib/useIsletmeMetinleri";
 import { useAutoSave } from "@/lib/useAutoSave";
 import { cn } from "@/lib/utils";
 
-type SekmeKod = "marka" | "karsilama" | "sayac" | "mail" | "diger";
+type SekmeKod = "marka" | "karsilama" | "sayac" | "mail" | "bildirim" | "diger";
 
 // v18 - Katalog-driven: sekmeler kategoriye gore filtreler; yeni anahtar otomatik gorunur (Sifir Sablon).
 const SEKMELER: { kod: SekmeKod; etiket: string; kategoriler: string[] }[] = [
@@ -31,6 +31,7 @@ const SEKMELER: { kod: SekmeKod; etiket: string; kategoriler: string[] }[] = [
   { kod: "karsilama", etiket: "Karşılama", kategoriler: ["dashboard"] },
   { kod: "sayac", etiket: "Sayaç", kategoriler: ["sayac"] },
   { kod: "mail", etiket: "Mail", kategoriler: ["mail"] },
+  { kod: "bildirim", etiket: "Bildirim", kategoriler: ["bildirim"] },
 ];
 
 const KATEGORI_BASLIK: Record<string, string> = {
