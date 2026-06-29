@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import { Providers } from "./providers";
 import { MarkaBaslik } from "@/components/MarkaBaslik";
+import { PWARegister } from "@/components/PWARegister";
 import { TEMA_INLINE_SCRIPT } from "@/lib/tema";
 import "./globals.css";
 
@@ -20,7 +21,24 @@ const fraunces = Fraunces({
 
 export const metadata: Metadata = {
   title: "Planlama Defterimiz",
-  description: "Birlikte yapılacaklar, birlikte tamamlanacaklar",
+  description: "Birlikte yapılacaklar, birlikte tamamlanacaklar 🤍",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Planlama",
+  },
+  icons: {
+    icon: "/favicon.svg",
+    apple: "/icons/apple-touch-icon.png",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#c4704d",
+  width: "device-width",
+  initialScale: 1,
+  // maximumScale bilincli olarak yok: kullanici pinch-zoom yapabilir (otomatik zoom input 16px ile engellendi)
 };
 
 export default function RootLayout({
@@ -38,6 +56,7 @@ export default function RootLayout({
         <Providers>
           {/* v16 — document.title tek otoritesi (tenant marka adi + super admin prefix) */}
           <MarkaBaslik />
+          <PWARegister />
           {children}
         </Providers>
       </body>
