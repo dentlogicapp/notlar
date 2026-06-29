@@ -230,10 +230,11 @@ public static class NoteEndpoints
             if (kilitSahibi is not null)
                 return Results.Json(new { hata = $"{kilitSahibi} şu anda bu notu düzenliyor." }, statusCode: 409);
 
-            // v19 4c - guncelleme oncesi degerler (anlamli degisiklik + yeni alici tespiti icin)
+            // v19 4c - guncelleme oncesi degerler (anlamli degisiklik + yeni alici/tarih tespiti icin)
             var eskiBaslik = n.Baslik;
             var eskiIcerik = n.Icerik;
             var eskiAliciJson = n.HatirlatmaAliciIdler;
+            var eskiHatirlatmaZamani = n.HatirlatmaZamani;
             var eski = JsonSerializer.Serialize(new { n.Baslik, n.Icerik, n.KlasorId });
             n.Baslik = req.Baslik.Trim();
             n.Icerik = req.Icerik?.Trim();
@@ -309,10 +310,13 @@ public static class NoteEndpoints
                 ? new List<Guid>()
                 : JsonSerializer.Deserialize<List<Guid>>(n.HatirlatmaAliciIdler) ?? new List<Guid>();
             var eklenenAlicilar = yeniAlicilar.Except(eskiAlicilar).ToList();
-            // yeni alicilar "guncellendi"den muaf (eklenenAlicilar) -> onlara yalniz "eklendin" gider
+            // v19 - hatirlatma zamani degistiyse MEVCUT alicilar da haberdar edilir (yeni + devam edenler);
+            // degismediyse yalniz yeni eklenenler. Bu hedefler "guncellendi"den muaf, sadece hatirlatici bildirimi alir.
+            var hatirlatmaZamaniDegisti = eskiHatirlatmaZamani != n.HatirlatmaZamani;
+            var hatirlaticiHedefler = hatirlatmaZamaniDegisti ? yeniAlicilar : eklenenAlicilar;
             if (icerikDegisti)
-                await bildirim.NotGuncellendi(n, uc.KullaniciId.Value, eklenenAlicilar, ct);
-            await bildirim.HatirlaticiAliciEklendi(n, uc.KullaniciId.Value, eklenenAlicilar, ct);
+                await bildirim.NotGuncellendi(n, uc.KullaniciId.Value, hatirlaticiHedefler, ct);
+            await bildirim.HatirlaticiAliciEklendi(n, uc.KullaniciId.Value, hatirlaticiHedefler, ct);
 
             return Results.Ok(MapYanit(n));
         });
