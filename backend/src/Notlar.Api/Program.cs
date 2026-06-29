@@ -754,7 +754,10 @@ app.Use(async (ctx, next) =>
         var path = ctx.Request.Path.Value ?? "";
         // /api/super-admin/* istisna: goruntule/bitir cikis + super admin islemleri serbest
         var superAdminYolu = path.StartsWith("/api/super-admin", StringComparison.OrdinalIgnoreCase);
-        if (yazma && !superAdminYolu)
+        // /api/auth/* istisna: login/logout/refresh kimlik islemleridir, tenant verisi yazma degildir.
+        // Kullanici goruntuleme oturumundan ancak bu yollarla cikabilir; engellenirse hesaba kilitlenir.
+        var authYolu = path.StartsWith("/api/auth", StringComparison.OrdinalIgnoreCase);
+        if (yazma && !superAdminYolu && !authYolu)
         {
             // B1 - audit trail (atomik: audit yazimi + 403 response ayni istek scope'unda)
             using var scope = ctx.RequestServices.CreateScope();
@@ -787,7 +790,6 @@ app.MapAdminEndpoints();
 app.MapFolderEndpoints();
 app.MapNoteEndpoints();
 app.MapNotificationEndpoints();
-app.MapPushTestEndpoints();  // GECICI push test - kanit sonrasi silinecek
 app.MapLockEndpoints();
 app.MapExportEndpoints();
 app.MapIsletmeEndpoints();  // v15
