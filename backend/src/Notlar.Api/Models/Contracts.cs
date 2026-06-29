@@ -211,3 +211,6 @@ public sealed record CihazYaniti(Guid Id, string Platform, string? CihazAdi, str
 
 // v18 Asama 19 B2 - tur analytics
 public sealed record TurAuditIstegi(string Eylem, int AdimNo, int? KalanSureSn = null);
+
+// v19 4d - kendi profil guncelleme (ad soyad + cinsiyet; email degistirilemez)
+public sealed record ProfilGuncelleIstegi(string AdSoyad, string? Cinsiyet);

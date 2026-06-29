@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   LogOut, Shield, Trash2, ListTodo, Bell, Download,
   FileText, FileSpreadsheet, FileType, FileCode, Loader2, X,
-  Moon, Sun, Crown
+  Moon, Sun, Crown, UserCircle
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription
 } from "./ui/dialog";
+import { ProfilimModal } from "./ProfilimModal";
 
 const ILK_BILDIRIM = 5;
 const MAX_BILDIRIM = 30;
@@ -47,6 +48,7 @@ export function UserMenu() {
   const qc = useQueryClient();
   const [acik, setAcik] = useState(false);
   const [indirAcik, setIndirAcik] = useState(false);
+  const [profilModalAcik, setProfilModalAcik] = useState(false);
   const [gosterilen, setGosterilen] = useState(ILK_BILDIRIM);
   const [tema, , temaTersle] = useTema();
 
@@ -160,6 +162,19 @@ export function UserMenu() {
                 </p>
               )}
             </div>
+
+            {/* Profilim */}
+            <DM.Item
+              onSelect={(e) => {
+                e.preventDefault();
+                setProfilModalAcik(true);
+              }}
+              className="flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg hover:bg-cream-200 dark:hover:bg-ink-800 cursor-pointer outline-none text-clay-700 dark:text-ink-100"
+            >
+              <UserCircle className="h-4 w-4 text-clay-500 dark:text-ink-300" />
+              Profilim
+            </DM.Item>
+            <DM.Separator className="my-1 h-px bg-cream-300 dark:bg-ink-700" />
 
             {/* MENÜ */}
             <DM.Item asChild>
@@ -358,6 +373,9 @@ export function UserMenu() {
 
       {/* Defteri İndir — Format seçim dialog'u */}
       <DefteriIndirDialog open={indirAcik} onOpenChange={setIndirAcik} />
+
+      {/* Profilim modali */}
+      <ProfilimModal acik={profilModalAcik} onOpenChange={setProfilModalAcik} />
     </>
   );
 }

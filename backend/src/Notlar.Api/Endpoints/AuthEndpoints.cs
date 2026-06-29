@@ -246,6 +246,27 @@ public static class AuthEndpoints
                 goruntulemeModu, goruntulenenMarka));
         }).RequireAuthorization();
 
+        // 5.1 Profil guncelle (kendi ad soyad + cinsiyet; email degistirilemez)
+        g.MapPost("/profil", async (
+            ProfilGuncelleIstegi req, IUserContext uc, AppDbContext db,
+            IAuditService audit, CancellationToken ct) =>
+        {
+            if (uc.KullaniciId is null) return Results.Unauthorized();
+            if (string.IsNullOrWhiteSpace(req.AdSoyad))
+                return Results.BadRequest(new { hata = "Ad soyad zorunlu." });
+            if (req.Cinsiyet is not null && req.Cinsiyet != "kadin" && req.Cinsiyet != "erkek")
+                return Results.BadRequest(new { hata = "Cinsiyet 'kadin' veya 'erkek' olmalı." });
+
+            var user = await db.Kullanicilar.FirstOrDefaultAsync(k => k.Id == uc.KullaniciId.Value, ct);
+            if (user is null) return Results.NotFound();
+
+            user.AdSoyad = req.AdSoyad.Trim();
+            user.Cinsiyet = req.Cinsiyet;
+            await db.SaveChangesAsync(ct);
+            await audit.YazAsync("profil_guncellendi", "kullanici", user.Id, detay: user.AdSoyad, ct: ct);
+            return Results.Ok(new { adSoyad = user.AdSoyad, cinsiyet = user.Cinsiyet });
+        }).RequireAuthorization();
+
         // 6. Çıkış
         g.MapPost("/cikis", async (HttpContext http, IAuditService audit,
             IUserContext u, IConfiguration cfg, CancellationToken ct) =>

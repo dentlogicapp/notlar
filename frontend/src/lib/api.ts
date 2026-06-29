@@ -79,6 +79,8 @@ export const authApi = {
     ist<{ mesaj: string }>("/api/auth/sifre-belirle", { method: "POST", body: JSON.stringify({ token, yeniSifre }) }),
   sifreSifirlaIste: (email: string) =>
     ist<{ mesaj: string }>("/api/auth/sifre-sifirla-iste", { method: "POST", body: JSON.stringify({ email }) }),
+  profilGuncelle: (adSoyad: string, cinsiyet: Cinsiyet | null) =>
+    ist<{ adSoyad: string; cinsiyet: Cinsiyet | null }>("/api/auth/profil", { method: "POST", body: JSON.stringify({ adSoyad, cinsiyet }) }),
 };
 
 export const klasorApi = {
