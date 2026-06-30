@@ -47,6 +47,10 @@ export interface Ben {
   uyelikler: Uyelik[];
   goruntulemeModu: boolean;          // v19 - impersonation aktif mi (super admin baska tenant'i goruyor)
   goruntulenenMarka: string | null;  // impersonation hedef tenant marka adi
+  // v19 4d - sessiz saatler (rahatsiz edilmeme)
+  sessizSaatAktif: boolean;
+  sessizSaatBaslangic: string;       // "HH:mm"
+  sessizSaatBitis: string;           // "HH:mm"
 }
 
 export interface Kullanici {

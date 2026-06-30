@@ -27,7 +27,10 @@ public sealed record BenYaniti(
     Guid? AktifIsletmeId,
     IReadOnlyList<UyelikYaniti> Uyelikler,
     bool GoruntulemeModu,
-    string? GoruntulenenMarka);
+    string? GoruntulenenMarka,
+    bool SessizSaatAktif,            // v19 4d - sessiz saatler
+    string SessizSaatBaslangic,      // "HH:mm"
+    string SessizSaatBitis);         // "HH:mm"
 
 public sealed record UyelikYaniti(
     Guid IsletmeId,
@@ -214,3 +217,6 @@ public sealed record TurAuditIstegi(string Eylem, int AdimNo, int? KalanSureSn =
 
 // v19 4d - kendi profil guncelleme (ad soyad + cinsiyet; email degistirilemez)
 public sealed record ProfilGuncelleIstegi(string AdSoyad, string? Cinsiyet);
+
+// v19 4d - kendi sessiz saat ayarlari (Baslangic/Bitis "HH:mm")
+public sealed record SessizSaatGuncelleIstegi(bool Aktif, string Baslangic, string Bitis);

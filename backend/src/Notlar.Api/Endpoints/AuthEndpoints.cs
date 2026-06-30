@@ -127,7 +127,8 @@ public static class AuthEndpoints
             return Results.Ok(new BenYaniti(
                 user.Id, user.Email, user.AdSoyad, user.Rol, user.Cinsiyet,
                 user.SuperAdmin, user.AktifIsletmeId, uyelikYanitlari,
-                false, null));  // v19 - login'de impersonation olmaz
+                false, null,  // v19 - login'de impersonation olmaz
+                user.SessizSaatAktif, user.SessizSaatBaslangic.ToString("HH:mm"), user.SessizSaatBitis.ToString("HH:mm")));
         });
 
         // 2. Token doğrula (frontend setup/reset sayfasında preflight)
@@ -243,7 +244,8 @@ public static class AuthEndpoints
             return Results.Ok(new BenYaniti(
                 user.Id, user.Email, user.AdSoyad, user.Rol, user.Cinsiyet,
                 user.SuperAdmin, etkinAktif, uyelikler,
-                goruntulemeModu, goruntulenenMarka));
+                goruntulemeModu, goruntulenenMarka,
+                user.SessizSaatAktif, user.SessizSaatBaslangic.ToString("HH:mm"), user.SessizSaatBitis.ToString("HH:mm")));
         }).RequireAuthorization();
 
         // 5.1 Profil guncelle (kendi ad soyad + cinsiyet; email degistirilemez)
@@ -265,6 +267,31 @@ public static class AuthEndpoints
             await db.SaveChangesAsync(ct);
             await audit.YazAsync("profil_guncellendi", "kullanici", user.Id, detay: user.AdSoyad, ct: ct);
             return Results.Ok(new { adSoyad = user.AdSoyad, cinsiyet = user.Cinsiyet });
+        }).RequireAuthorization();
+
+        // 5.2 Sessiz saat ayarlari guncelle (kendi rahatsiz edilmeme araligi)
+        g.MapPost("/sessiz-saat", async (
+            SessizSaatGuncelleIstegi req, IUserContext uc, AppDbContext db,
+            IAuditService audit, CancellationToken ct) =>
+        {
+            if (uc.KullaniciId is null) return Results.Unauthorized();
+            if (!TimeOnly.TryParse(req.Baslangic, out var bas) || !TimeOnly.TryParse(req.Bitis, out var bit))
+                return Results.BadRequest(new { hata = "Saat formati gecersiz (HH:mm bekleniyor)." });
+
+            var user = await db.Kullanicilar.FirstOrDefaultAsync(k => k.Id == uc.KullaniciId.Value, ct);
+            if (user is null) return Results.NotFound();
+
+            user.SessizSaatAktif = req.Aktif;
+            user.SessizSaatBaslangic = bas;
+            user.SessizSaatBitis = bit;
+            await db.SaveChangesAsync(ct);
+            await audit.YazAsync("sessiz_saat_guncellendi", "kullanici", user.Id, ct: ct);
+            return Results.Ok(new
+            {
+                aktif = user.SessizSaatAktif,
+                baslangic = user.SessizSaatBaslangic.ToString("HH:mm"),
+                bitis = user.SessizSaatBitis.ToString("HH:mm"),
+            });
         }).RequireAuthorization();
 
         // 6. Çıkış

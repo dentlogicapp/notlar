@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
-import { Mail, Bell, BellOff, Loader2, KeyRound, ShieldCheck, Check } from "lucide-react";
+import { Mail, Bell, BellOff, Loader2, KeyRound, ShieldCheck, Check, Moon } from "lucide-react";
 import { authApi } from "@/lib/api";
 import { pushDurumu, pushAboneOl, pushCikar, type PushDurum } from "@/lib/push";
 import { useBen } from "@/lib/useBen";
@@ -26,6 +26,9 @@ export function ProfilimModal({
   const [pushDurum, setPushDurum] = useState<PushDurum>("kapali");
   const [pushYukleniyor, setPushYukleniyor] = useState(false);
   const [sifreGonderildi, setSifreGonderildi] = useState(false);
+  const [sessizAktif, setSessizAktif] = useState(true);
+  const [sessizBaslangic, setSessizBaslangic] = useState("22:00");
+  const [sessizBitis, setSessizBitis] = useState("08:00");
 
   // modal acilinca mevcut degerleri doldur
   useEffect(() => {
@@ -33,6 +36,9 @@ export function ProfilimModal({
       setAdSoyad(ben.adSoyad);
       setCinsiyet(ben.cinsiyet);
       setSifreGonderildi(false);
+      setSessizAktif(ben.sessizSaatAktif);
+      setSessizBaslangic(ben.sessizSaatBaslangic);
+      setSessizBitis(ben.sessizSaatBitis);
     }
   }, [acik, ben]);
 
@@ -47,6 +53,15 @@ export function ProfilimModal({
       qc.invalidateQueries({ queryKey: ["ben"] });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Güncellenemedi"),
+  });
+
+  const sessizSaatMutation = useMutation({
+    mutationFn: () => authApi.sessizSaatGuncelle(sessizAktif, sessizBaslangic, sessizBitis),
+    onSuccess: () => {
+      toast.success("Sessiz saat ayarlarınız kaydedildi");
+      qc.invalidateQueries({ queryKey: ["ben"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Kaydedilemedi"),
   });
 
   const sifreMutation = useMutation({
@@ -81,6 +96,9 @@ export function ProfilimModal({
 
   const degisti = adSoyad.trim() !== ben.adSoyad || cinsiyet !== ben.cinsiyet;
   const adGecerli = adSoyad.trim().length > 0;
+  const sessizDegisti = sessizAktif !== ben.sessizSaatAktif
+    || sessizBaslangic !== ben.sessizSaatBaslangic
+    || sessizBitis !== ben.sessizSaatBitis;
 
   return (
     <Dialog open={acik} onOpenChange={onOpenChange}>
@@ -208,6 +226,85 @@ export function ProfilimModal({
                     />
                   </span>
                 )}
+              </button>
+            )}
+          </div>
+
+          <div className="h-px bg-cream-300 dark:bg-ink-700" />
+
+          {/* Sessiz Saatler */}
+          <div>
+            <label className="text-[11px] uppercase tracking-wider text-clay-500 dark:text-ink-200 font-semibold mb-2 block">
+              Sessiz Saatler
+            </label>
+            <button
+              type="button"
+              onClick={() => setSessizAktif((v) => !v)}
+              className="w-full flex items-center gap-3 rounded-xl border border-cream-300 dark:border-ink-700 p-3 hover:bg-cream-100 dark:hover:bg-ink-800/50 transition-colors"
+            >
+              <Moon className={cn("h-5 w-5", sessizAktif ? "text-terracotta" : "text-clay-400")} />
+              <span className="flex-1 text-left text-sm font-medium text-clay-700 dark:text-ink-50">
+                {sessizAktif ? "Sessiz saatler açık" : "Sessiz saatler kapalı"}
+              </span>
+              <span
+                role="switch"
+                aria-checked={sessizAktif}
+                className={cn(
+                  "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors",
+                  sessizAktif ? "bg-terracotta" : "bg-clay-200 dark:bg-ink-700"
+                )}
+              >
+                <span
+                  className={cn(
+                    "inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm",
+                    sessizAktif ? "translate-x-[18px]" : "translate-x-0.5"
+                  )}
+                />
+              </span>
+            </button>
+
+            {sessizAktif && (
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <div>
+                  <label htmlFor="sessiz-bas" className="text-[10px] uppercase tracking-wide text-clay-400 dark:text-ink-300 font-medium mb-1 block">
+                    Başlangıç
+                  </label>
+                  <input
+                    id="sessiz-bas"
+                    type="time"
+                    value={sessizBaslangic}
+                    onChange={(e) => setSessizBaslangic(e.target.value)}
+                    className="w-full rounded-xl border border-cream-300 dark:border-ink-700 bg-white dark:bg-ink-900 px-3 py-2 text-[16px] md:text-sm text-clay-800 dark:text-ink-50 outline-none focus:border-terracotta focus:ring-1 focus:ring-terracotta/30"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="sessiz-bit" className="text-[10px] uppercase tracking-wide text-clay-400 dark:text-ink-300 font-medium mb-1 block">
+                    Bitiş
+                  </label>
+                  <input
+                    id="sessiz-bit"
+                    type="time"
+                    value={sessizBitis}
+                    onChange={(e) => setSessizBitis(e.target.value)}
+                    className="w-full rounded-xl border border-cream-300 dark:border-ink-700 bg-white dark:bg-ink-900 px-3 py-2 text-[16px] md:text-sm text-clay-800 dark:text-ink-50 outline-none focus:border-terracotta focus:ring-1 focus:ring-terracotta/30"
+                  />
+                </div>
+              </div>
+            )}
+
+            <p className="mt-2 text-[11px] text-clay-400 dark:text-ink-300 leading-relaxed">
+              Rahatsız edilmeme süresi sonunda, bu aralıkta biriken tüm bildirimler toplu olarak gönderilir. Hatırlatıcılar bu ayardan etkilenmez; zamanı geldiğinde her zaman iletilir.
+            </p>
+
+            {sessizDegisti && (
+              <button
+                type="button"
+                onClick={() => sessizSaatMutation.mutate()}
+                disabled={sessizSaatMutation.isPending}
+                className="mt-2 w-full rounded-xl bg-terracotta py-2.5 text-sm font-semibold text-white transition-colors hover:bg-terracotta/90 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {sessizSaatMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                Sessiz saatleri kaydet
               </button>
             )}
           </div>
