@@ -75,6 +75,7 @@ builder.Services.AddScoped<IDocxDonusturucu, DocxDonusturucu>();
 builder.Services.AddHostedService<CopKutusuTemizleyici>();
 builder.Services.AddHostedService<HatirlaticiKontrolcusu>();
 builder.Services.AddHostedService<InaktifTenantTarayici>();  // v19 B8 - hareketsiz tenant gunluk tarama
+builder.Services.AddHostedService<SessizSaatBosaltici>();    // v19 4d - sessiz saat kuyrugu bosaltma
 
 // JWT
 var jwtSecret = builder.Configuration["Jwt:Secret"]
@@ -320,6 +321,28 @@ using (var scope = app.Services.CreateScope())
     try
     {
         await db.Database.ExecuteSqlRawAsync(@"
+            -- v19 4d - sessiz saatler (rahatsiz edilmeme) + ertelenen bildirim kuyrugu
+            ALTER TABLE kullanicilar
+                ADD COLUMN IF NOT EXISTS ""SessizSaatAktif"" boolean NOT NULL DEFAULT true;
+            ALTER TABLE kullanicilar
+                ADD COLUMN IF NOT EXISTS ""SessizSaatBaslangic"" time without time zone NOT NULL DEFAULT '22:00';
+            ALTER TABLE kullanicilar
+                ADD COLUMN IF NOT EXISTS ""SessizSaatBitis"" time without time zone NOT NULL DEFAULT '08:00';
+
+            CREATE TABLE IF NOT EXISTS ertelenen_bildirimler (
+                ""Id"" uuid PRIMARY KEY,
+                ""IsletmeId"" uuid NOT NULL,
+                ""KullaniciId"" uuid NOT NULL,
+                ""Baslik"" text NOT NULL,
+                ""Govde"" text NOT NULL,
+                ""Url"" text,
+                ""OlusturmaZamani"" timestamp with time zone NOT NULL DEFAULT now()
+            );
+            CREATE INDEX IF NOT EXISTS ""IX_ertelenen_bildirimler_KullaniciId""
+                ON ertelenen_bildirimler (""KullaniciId"");
+            CREATE INDEX IF NOT EXISTS ""IX_ertelenen_bildirimler_IsletmeId""
+                ON ertelenen_bildirimler (""IsletmeId"");
+
             -- kullanicilar.cinsiyet (v9)
             ALTER TABLE kullanicilar
                 ADD COLUMN IF NOT EXISTS ""Cinsiyet"" character varying(10);

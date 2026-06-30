@@ -21,6 +21,7 @@ public sealed class AppDbContext : DbContext
     // v17 — Sistem metin anahtar kataloğu
     public DbSet<MetinAnahtari> MetinAnahtarlari => Set<MetinAnahtari>();
     public DbSet<KullaniciCihaz> KullaniciCihazlari => Set<KullaniciCihaz>();  // v18 Asama 17.3
+    public DbSet<ErtelenenBildirim> ErtelenenBildirimler => Set<ErtelenenBildirim>();  // v19 4d - sessiz saat kuyrugu
     // v17 - AI saglayici ayari (singleton)
     public DbSet<AiAyari> AiAyarlari => Set<AiAyari>();
 
@@ -277,6 +278,17 @@ public sealed class AppDbContext : DbContext
             e.HasOne(x => x.Kullanici).WithMany().HasForeignKey(x => x.KullaniciId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne<Isletme>().WithMany().HasForeignKey(x => x.IsletmeId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => new { x.NotId, x.KullaniciId }).IsUnique();
+            e.HasIndex(x => x.IsletmeId);
+        });
+
+        // v19 4d - sessiz saat ertelenmis push kuyrugu
+        m.Entity<ErtelenenBildirim>(e =>
+        {
+            e.ToTable("ertelenen_bildirimler");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Baslik).IsRequired();
+            e.Property(x => x.Govde).IsRequired();
+            e.HasIndex(x => x.KullaniciId);
             e.HasIndex(x => x.IsletmeId);
         });
     }

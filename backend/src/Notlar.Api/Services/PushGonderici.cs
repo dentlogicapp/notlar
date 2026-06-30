@@ -10,7 +10,7 @@ namespace Notlar.Api.Services;
 // gecersiz (410/404) abonelikleri otomatik temizler; her gonderimi denetim_gunlukleri'ne yazar.
 public interface IPushGonderici
 {
-    Task GonderAsync(Guid kullaniciId, string baslik, string govde, string? url = null, CancellationToken ct = default);
+    Task GonderAsync(Guid kullaniciId, string baslik, string govde, string? url = null, bool sessizSaateTabi = true, CancellationToken ct = default);
 }
 
 public sealed class PushGonderici : IPushGonderici
@@ -27,7 +27,7 @@ public sealed class PushGonderici : IPushGonderici
         _log = log;
     }
 
-    public async Task GonderAsync(Guid kullaniciId, string baslik, string govde, string? url = null, CancellationToken ct = default)
+    public async Task GonderAsync(Guid kullaniciId, string baslik, string govde, string? url = null, bool sessizSaateTabi = true, CancellationToken ct = default)
     {
         var pub = _config["Vapid:PublicKey"];
         var priv = _config["Vapid:PrivateKey"];
@@ -42,6 +42,29 @@ public sealed class PushGonderici : IPushGonderici
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var audit = scope.ServiceProvider.GetRequiredService<IAuditService>();
+
+        // v19 4d - sessiz saat kontrolu (hatirlatici MUAF: sessizSaateTabi=false ile cagrilir).
+        // Sessiz aralikta isek bildirimi kuyruga al, gonderme; SessizSaatBosaltici sabah toplu gonderir.
+        if (sessizSaateTabi)
+        {
+            var ka = await db.Kullanicilar
+                .Where(k => k.Id == kullaniciId)
+                .Select(k => new { k.SessizSaatAktif, k.SessizSaatBaslangic, k.SessizSaatBitis, k.AktifIsletmeId })
+                .FirstOrDefaultAsync(ct);
+            if (ka is not null && ka.SessizSaatAktif && SessizSaatteMi(ka.SessizSaatBaslangic, ka.SessizSaatBitis))
+            {
+                db.ErtelenenBildirimler.Add(new ErtelenenBildirim
+                {
+                    IsletmeId = ka.AktifIsletmeId ?? Guid.Empty,
+                    KullaniciId = kullaniciId,
+                    Baslik = baslik,
+                    Govde = govde,
+                    Url = url,
+                });
+                await db.SaveChangesAsync(ct);
+                return;
+            }
+        }
 
         // Yalnizca Web Push abone cihazlar (p256dh + auth dolu)
         var cihazlar = await db.KullaniciCihazlari
@@ -100,5 +123,15 @@ public sealed class PushGonderici : IPushGonderici
                 temizlenen_gecersiz = gecersizler.Count,
             }),
             ct: ct);
+    }
+
+    // Turkiye saati (UTC+3) ile sessiz saat araliginda miyiz? Gece yarisi gecisini (orn 22:00-08:00) destekler.
+    // public static: SessizSaatBosaltici da ayni mantigi kullanir (DRY, tek dogruluk kaynagi).
+    public static bool SessizSaatteMi(TimeOnly baslangic, TimeOnly bitis)
+    {
+        var simdi = TimeOnly.FromDateTime(DateTime.UtcNow.AddHours(3));
+        if (baslangic == bitis) return false;                              // ayni saat => sessiz saat yok
+        if (baslangic < bitis) return simdi >= baslangic && simdi < bitis; // ayni gun (orn 09:00-17:00)
+        return simdi >= baslangic || simdi < bitis;                        // gece yarisi gecisi (orn 22:00-08:00)
     }
 }

@@ -77,11 +77,11 @@ public sealed class NotBildirimServisi : INotBildirimServisi
             .ToListAsync(ct);
     }
 
-    private async Task Tetikle(IEnumerable<Guid> hedefler, string baslik, string govde, string? url, CancellationToken ct)
+    private async Task Tetikle(IEnumerable<Guid> hedefler, string baslik, string govde, string? url, CancellationToken ct, bool sessizSaateTabi = true)
     {
         foreach (var uid in hedefler)
         {
-            try { await _push.GonderAsync(uid, baslik, govde, url, ct); }
+            try { await _push.GonderAsync(uid, baslik, govde, url, sessizSaateTabi, ct); }
             catch (Exception ex) { _log.LogError(ex, "Not bildirimi push gonderilemedi: Hedef {Uid}", uid); }
         }
     }
@@ -139,6 +139,7 @@ public sealed class NotBildirimServisi : INotBildirimServisi
         if (liste.Count == 0) return;
         var (b, g) = await MetinAl(not.IsletmeId, "hatirlatici_push_baslik", "hatirlatici_push_govde", ct);
         b = Doldur(b, not.Baslik, null); g = Doldur(g, not.Baslik, null);
-        await Tetikle(liste, b, g, $"/?focus={not.Id}", ct);
+        // Hatirlatici MUAF: sessiz saatte bile aninda gider (kullanici o ana hatirlatici kurmus).
+        await Tetikle(liste, b, g, $"/?focus={not.Id}", ct, sessizSaateTabi: false);
     }
 }

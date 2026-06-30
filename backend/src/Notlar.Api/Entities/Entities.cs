@@ -21,6 +21,11 @@ public sealed class Kullanici
     public bool IkiFaktorEtkin { get; set; }              // v19 B7 — 2FA hazirligi (kolon var, aktivasyon v20+; JWT'ye girmez)
     public bool OperasyonelBildirimAl { get; set; } = true; // v19 B8 — super admin operasyonel mail (tenant olay/inaktif) opt-out
 
+    // v19 4d - sessiz saatler (rahatsiz edilmeme): bu aralikta push ertelenir; hatirlatici MUAF
+    public bool SessizSaatAktif { get; set; } = true;               // varsayilan acik (tum kullanicilar)
+    public TimeOnly SessizSaatBaslangic { get; set; } = new(22, 0); // 22:00
+    public TimeOnly SessizSaatBitis { get; set; } = new(8, 0);      // 08:00
+
     // Lockout
     public int BasarisizDeneme { get; set; }
     public DateTimeOffset? KilitlenmeZamani { get; set; }
@@ -341,4 +346,16 @@ public sealed class KullaniciCihaz
     public string? CihazAdi { get; set; }
     public DateTimeOffset OlusturmaZamani { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset SonAktiflik { get; set; } = DateTimeOffset.UtcNow;
+}
+
+// v19 4d - sessiz saatlerde ertelenmis push kuyrugu (sessiz saat bitince toplu gonderilir, sonra silinir)
+public sealed class ErtelenenBildirim
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid IsletmeId { get; set; }       // multi-tenant izolasyon
+    public Guid KullaniciId { get; set; }
+    public required string Baslik { get; set; }
+    public required string Govde { get; set; }
+    public string? Url { get; set; }
+    public DateTimeOffset OlusturmaZamani { get; set; } = DateTimeOffset.UtcNow;
 }
