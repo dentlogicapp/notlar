@@ -6,7 +6,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { MiniTakvim, tarihAnahtar } from "./MiniTakvim";
 import { tatilHaritasi } from "@/lib/tatiller";
 import { NotKart } from "./Notlar";
-import { cn } from "@/lib/utils";
 import type { Not } from "@/lib/types";
 
 const AY_ADLARI = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
@@ -47,25 +46,17 @@ export function TakvimModal({
   return (
     <>
       <Dialog open={acik} onOpenChange={onOpenChange}>
-        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-3xl">
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Takvim</DialogTitle>
           </DialogHeader>
 
-          <div className={cn(
-            "space-y-4",
-            seciliGun && "sm:grid sm:grid-cols-[auto_1fr] sm:gap-6 sm:space-y-0 sm:items-start"
-          )}>
-            <div className={cn(
-              "flex justify-center",
-              seciliGun && "sm:justify-start sm:pt-1"
-            )}>
-              <MiniTakvim
-                buyuk
-                hatirlatmaGunleri={hatirlatmaGunleri}
-                onGunTikla={setSeciliGun}
-              />
-            </div>
+          <div className="space-y-4">
+            <MiniTakvim
+              buyuk
+              hatirlatmaGunleri={hatirlatmaGunleri}
+              onGunTikla={setSeciliGun}
+            />
 
             {/* Secili gunun hatirlaticilari - takvim boyutu sabit kalir, baslik tam (kaydirma) */}
             {seciliGun && (
@@ -83,7 +74,7 @@ export function TakvimModal({
                 {seciliNotlar.length === 0 ? (
                   <p className="text-[12px] text-clay-400 dark:text-ink-300">Bu güne ait hatırlatıcı yok.</p>
                 ) : (
-                  <ul className="space-y-1.5 max-h-[40vh] sm:max-h-[60vh] overflow-y-auto">
+                  <ul className="space-y-1.5">
                     {seciliNotlar.map((n) => (
                       <li key={n.id}>
                         <button
@@ -93,7 +84,7 @@ export function TakvimModal({
                           aria-label={`${n.baslik} - notu aç`}
                         >
                           <Bell className="h-3 w-3 text-terracotta shrink-0 mt-0.5" strokeWidth={2.5} />
-                          <span className="flex-1 min-w-0 text-[12px] text-clay-700 dark:text-ink-100 break-words leading-snug">{n.baslik}</span>
+                          <span className="flex-1 text-[12px] text-clay-700 dark:text-ink-100 break-words leading-snug">{n.baslik}</span>
                           <span className="shrink-0 text-[10px] text-clay-400 dark:text-ink-300 tabular-nums mt-0.5">
                             {new Date(n.hatirlatmaZamani!).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
                           </span>
@@ -110,7 +101,7 @@ export function TakvimModal({
 
       {/* Not detayi - anasayfadaki birebir NotKart gorunumu, flu arka plan, tam etkilesimli */}
       <Dialog open={!!seciliNot} onOpenChange={(o) => { if (!o) setSeciliNotId(null); }}>
-        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-3xl p-4 max-h-[85vh] overflow-y-auto">
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-lg p-4 overflow-y-visible">
           {seciliNot && <NotKart not={seciliNot} klasorBadgeGoster={false} />}
         </DialogContent>
       </Dialog>
