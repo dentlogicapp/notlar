@@ -94,7 +94,8 @@ public static class IsletmeEndpoints
             return Results.Ok(new BenYaniti(
                 user.Id, user.Email, user.AdSoyad, user.Rol, user.Cinsiyet,
                 user.SuperAdmin, user.AktifIsletmeId, uyelikler,
-                false, null));  // v19 - tenant switch impersonation degil
+                false, null,  // v19 - tenant switch impersonation degil
+                user.SessizSaatAktif, user.SessizSaatBaslangic.ToString("HH:mm"), user.SessizSaatBitis.ToString("HH:mm")));
         });
 
         // GET /api/isletmeler/aktif — aktif tenant ayarları (Marka & Görünüm için, v16'da detaylı)
