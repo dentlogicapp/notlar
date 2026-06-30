@@ -220,3 +220,5 @@ public sealed record ProfilGuncelleIstegi(string AdSoyad, string? Cinsiyet);
 
 // v19 4d - kendi sessiz saat ayarlari (Baslangic/Bitis "HH:mm")
 public sealed record SessizSaatGuncelleIstegi(bool Aktif, string Baslangic, string Bitis);
+
+public sealed record BildirimTestIstegi(string Olay);

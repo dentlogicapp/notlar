@@ -519,5 +519,30 @@ public static class AdminEndpoints
             var toplam = await sorgu.CountAsync(ct);
             return Results.Ok(new { toplam, kayitlar = list });
         });
+
+        // Bildirim test: secili olayin push metnini, ornek placeholder degerleriyle admin'in kendi cihazina gonderir.
+        // Marka panelindeki canli onizlemenin gercek cihazda dogrulanmasi icin (4c-3).
+        g.MapPost("/bildirim-test", async (
+            BildirimTestIstegi req, IUserContext uc, AppDbContext db,
+            INotBildirimServisi bildirim, CancellationToken ct) =>
+        {
+            if (uc.KullaniciId is null || uc.AktifIsletmeId is null) return Results.Unauthorized();
+            if (uc.GoruntumeModu) return Results.StatusCode(403);
+
+            var gecerliOlaylar = new[] {
+                "not_olusturuldu", "not_guncellendi", "not_tamamlandi",
+                "hatirlatici_alici_eklendi", "uye_katildi", "hatirlatici"
+            };
+            if (!gecerliOlaylar.Contains(req.Olay))
+                return Results.BadRequest(new { hata = "GECERSIZ_OLAY", mesaj = "Bilinmeyen bildirim olayı." });
+
+            // Bu kullanicida abone cihaz yoksa push gidemez; kullaniciyi izin acmaya yonlendir.
+            var aboneVar = await db.KullaniciCihazlari.AnyAsync(c => c.KullaniciId == uc.KullaniciId.Value, ct);
+            if (!aboneVar)
+                return Results.BadRequest(new { hata = "ABONE_YOK", mesaj = "Önce bu cihazda bildirim iznini aç." });
+
+            await bildirim.TestGonder(uc.AktifIsletmeId.Value, uc.KullaniciId.Value, req.Olay, ct);
+            return Results.Ok(new { gonderildi = true });
+        });
     }
 }

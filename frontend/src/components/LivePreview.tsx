@@ -8,7 +8,7 @@ import { sayacHesapla, hedefMsCoz, type SayacDurum } from "@/lib/sayac";
 
 // v18 - Live Preview: marka sayfasinda field duzenlenirken anlik dinamik onizleme.
 // Tek kutu standardi, canli sayac (geri+ileri), karsilama + not ipucu. Mail onizleme Asama D.
-export function LivePreview({ sekme, degerler, mailAltSekme = "davetiye" }: { sekme: string; degerler: Record<string, string>; mailAltSekme?: string }) {
+export function LivePreview({ sekme, degerler, mailAltSekme = "davetiye", bildirimAltSekme = "yeni_not" }: { sekme: string; degerler: Record<string, string>; mailAltSekme?: string; bildirimAltSekme?: string }) {
   const [sk, setSk] = useState<SayacDurum>({ gecti: false, gun: 0, sa: 0, dk: 0, sn: 0 });
   const hedefMs = hedefMsCoz(degerler["sayac_hedef_tarihi"] ?? "");
 
@@ -164,6 +164,36 @@ export function LivePreview({ sekme, degerler, mailAltSekme = "davetiye" }: { se
           </div>
         )}
         <p className="text-[10px] italic text-clay-400 dark:text-ink-300">Gerçek mail önizlemesi - düzenledikçe anlık güncellenir.</p>
+      </div>
+    );
+  }
+
+  if (sekme === "bildirim") {
+    const prefix = {
+      yeni_not: "not_olusturuldu",
+      guncellendi: "not_guncellendi",
+      tamamlandi: "not_tamamlandi",
+      hatirlatici_eklendi: "hatirlatici_alici_eklendi",
+      uye_katildi: "uye_katildi",
+      hatirlatici: "hatirlatici",
+    }[bildirimAltSekme] ?? "not_olusturuldu";
+    // Ornek placeholder degerleri backend TestGonder ile ayni: "Örnek Not" / "Bir üye"
+    const doldur = (s: string) => s.replace(/\{not_baslik\}/g, "Örnek Not").replace(/\{kullanici_adi\}/g, "Bir üye");
+    const baslik = doldur(c(`${prefix}_push_baslik`) || "Bildirim başlığı");
+    const govde = doldur(c(`${prefix}_push_govde`) || "Bildirim metni");
+    const emoji = degerler["marka_emoji"] ?? "";
+    return (
+      <div className="space-y-2">
+        <div className="rounded-2xl border border-cream-300 dark:border-ink-700 bg-white dark:bg-ink-900 shadow-sm p-3.5">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="h-6 w-6 rounded-md bg-cream-200 dark:bg-ink-800 flex items-center justify-center text-sm shrink-0">{emoji || "🔔"}</span>
+            <span className="text-[11px] font-medium text-clay-500 dark:text-ink-300 uppercase tracking-wide truncate">Planlama Defteri</span>
+            <span className="text-[10px] text-clay-400 dark:text-ink-400 ml-auto shrink-0">şimdi</span>
+          </div>
+          <p className="text-sm font-semibold text-clay-900 dark:text-ink-50 leading-snug [overflow-wrap:anywhere]">{baslik}</p>
+          <p className="text-[13px] text-clay-600 dark:text-ink-200 leading-snug mt-0.5 [overflow-wrap:anywhere]">{govde}</p>
+        </div>
+        <p className="text-[10px] italic text-clay-400 dark:text-ink-300">Telefonda görünüm; "Planlama Defteri" satırını cihazın işletim sistemi ekler.</p>
       </div>
     );
   }

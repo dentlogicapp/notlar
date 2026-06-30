@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, HelpCircle, Loader2, Mail, Palette, Save, Search } from "lucide-react";
+import { Bell, ChevronLeft, HelpCircle, Loader2, Mail, Palette, Save, Search } from "lucide-react";
 import { toast } from "sonner";
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
@@ -18,7 +18,7 @@ import { LivePreview } from "@/components/LivePreview";
 import { HosgeldinModal } from "@/components/HosgeldinModal";
 import { MarkaSkeleton } from "@/components/skeleton/Skeleton";
 import { Button } from "@/components/ui/button";
-import { metinApi, turApi } from "@/lib/api";
+import { adminApi, metinApi, turApi } from "@/lib/api";
 import { useIsletmeMetinleri } from "@/lib/useIsletmeMetinleri";
 import { useAutoSave } from "@/lib/useAutoSave";
 import { cn } from "@/lib/utils";
@@ -54,6 +54,36 @@ function mailAltGrup(anahtar: string): MailAltGrup {
   if (anahtar.startsWith("mail_sifre")) return "sifre";
   return "imza"; // mail_imza, mail_tonu, iletisim_email ve diger mail anahtarlari
 }
+
+// Bildirim sekmesi alt-gruplari. Her push olayi = bir alt-sekme. Anahtar prefix ile eslesir
+// (Sifir Sablon: yeni not_*_push anahtari otomatik dogru gruba duser).
+type BildirimAltGrup = "yeni_not" | "guncellendi" | "tamamlandi" | "hatirlatici_eklendi" | "uye_katildi" | "hatirlatici";
+const BILDIRIM_ALT_SEKMELER: { kod: BildirimAltGrup; etiket: string }[] = [
+  { kod: "yeni_not", etiket: "Yeni Not" },
+  { kod: "guncellendi", etiket: "Not Güncellendi" },
+  { kod: "tamamlandi", etiket: "Not Tamamlandı" },
+  { kod: "hatirlatici_eklendi", etiket: "Hatırlatıcıya Eklendin" },
+  { kod: "uye_katildi", etiket: "Yeni Üye" },
+  { kod: "hatirlatici", etiket: "Hatırlatıcı Zamanı" },
+];
+function bildirimAltGrup(anahtar: string): BildirimAltGrup {
+  // Sira onemli: "hatirlatici_alici_eklendi", "hatirlatici" prefixini de tasir; once spesifik olan.
+  if (anahtar.startsWith("not_olusturuldu")) return "yeni_not";
+  if (anahtar.startsWith("not_guncellendi")) return "guncellendi";
+  if (anahtar.startsWith("not_tamamlandi")) return "tamamlandi";
+  if (anahtar.startsWith("hatirlatici_alici_eklendi")) return "hatirlatici_eklendi";
+  if (anahtar.startsWith("uye_katildi")) return "uye_katildi";
+  return "hatirlatici"; // hatirlatici_push_baslik / hatirlatici_push_govde
+}
+// Alt-sekme grubu -> backend olay kodu (test endpoint icin; bildirimAltGrup'un ters yonu).
+const BILDIRIM_OLAY_KODU: Record<BildirimAltGrup, string> = {
+  yeni_not: "not_olusturuldu",
+  guncellendi: "not_guncellendi",
+  tamamlandi: "not_tamamlandi",
+  hatirlatici_eklendi: "hatirlatici_alici_eklendi",
+  uye_katildi: "uye_katildi",
+  hatirlatici: "hatirlatici",
+};
 
 export default function Page() {
   return (
@@ -113,6 +143,7 @@ function Icerik() {
   }, [turRun]);
   const [sekme, setSekme] = useState<SekmeKod>("marka");
   const [mailAltSekme, setMailAltSekme] = useState<MailAltGrup>("davetiye"); // v19 6c
+  const [bildirimAltSekme, setBildirimAltSekme] = useState<BildirimAltGrup>("yeni_not"); // 4c-3
   const [degerler, setDegerler] = useState<Record<string, string>>({});
   const [ara, setAra] = useState("");
   const [hatalar, setHatalar] = useState<Record<string, string>>({});
@@ -190,6 +221,22 @@ function Icerik() {
       toast.success(`${etiket} test maili gönderildi: ${r.email}`, { duration: 2500 });
     } catch {
       toast.error("Test maili gönderilemedi, tekrar deneyin");
+    } finally {
+      setTestGonderiliyor(false);
+    }
+  };
+
+  const testBildirimGonder = async () => {
+    const olay = BILDIRIM_OLAY_KODU[bildirimAltSekme];
+    const etiket = BILDIRIM_ALT_SEKMELER.find((s) => s.kod === bildirimAltSekme)?.etiket ?? "Bildirim";
+    setTestGonderiliyor(true);
+    try {
+      await adminApi.bildirimTest(olay);
+      toast.success(`${etiket} test bildirimi cihazına gönderildi`, { duration: 2500 });
+    } catch (e) {
+      const kod = (e as { kod?: string })?.kod;
+      if (kod === "ABONE_YOK") toast.error("Önce bu cihazda bildirim iznini aç (Profilim).");
+      else toast.error("Test bildirimi gönderilemedi, tekrar deneyin");
     } finally {
       setTestGonderiliyor(false);
     }
@@ -409,6 +456,49 @@ function Icerik() {
                 );
               })()}
             </>
+          ) : sekme === "bildirim" ? (
+            // 4c-3 - Bildirim alt-sekmeleri: her push olayi ayri grup (prefix ile filtrele)
+            <>
+              <div className="flex items-center justify-between border-b border-cream-300 dark:border-ink-700/60 -mt-1 mb-1 gap-2">
+                <div className="flex gap-1 min-w-0 overflow-x-auto">
+                  {BILDIRIM_ALT_SEKMELER.map((as) => (
+                    <button
+                      key={as.kod}
+                      type="button"
+                      onClick={() => setBildirimAltSekme(as.kod)}
+                      className={cn(
+                        "px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap",
+                        bildirimAltSekme === as.kod
+                          ? "border-terracotta text-terracotta"
+                          : "border-transparent text-clay-500 dark:text-ink-300 hover:text-clay-700 dark:hover:text-ink-100"
+                      )}
+                    >
+                      {as.etiket}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={testBildirimGonder}
+                  disabled={testGonderiliyor}
+                  title="Bu olayın bildirimini kendi cihazına örnek gönder"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-clay-500 dark:text-ink-300 hover:text-terracotta disabled:opacity-50 transition-colors shrink-0"
+                >
+                  {testGonderiliyor ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Bell className="h-3.5 w-3.5" />}
+                  <span className="hidden sm:inline">Cihazıma gönder</span>
+                </button>
+              </div>
+              {(() => {
+                const grup = sekmeMetinleri.filter((m) => bildirimAltGrup(m.anahtar) === bildirimAltSekme);
+                return grup.length === 0 ? (
+                  <p className="text-sm text-clay-400 dark:text-ink-300 italic">Bu grupta metin bulunmuyor.</p>
+                ) : (
+                  grup.map((m) => (
+                    <MetinAlani key={m.anahtar} metin={m} deger={degerler[m.anahtar] ?? ""} onDegis={onDegis} hata={hatalar[m.anahtar]} onSifirla={sifirla} />
+                  ))
+                );
+              })()}
+            </>
           ) : (
             sekmeMetinleri.map((m) => (
               <MetinAlani key={m.anahtar} metin={m} deger={degerler[m.anahtar] ?? ""} onDegis={onDegis} hata={hatalar[m.anahtar]} onSifirla={sifirla} />
@@ -419,7 +509,7 @@ function Icerik() {
           <div>
             <p className="text-xs italic text-clay-400 dark:text-ink-300 mb-2">Canlı Önizleme</p>
             <div data-tour-step="live-preview" className="kart p-5">
-              <LivePreview sekme={sekme} degerler={degerler} mailAltSekme={mailAltSekme} />
+              <LivePreview sekme={sekme} degerler={degerler} mailAltSekme={mailAltSekme} bildirimAltSekme={bildirimAltSekme} />
             </div>
           </div>
         </div>

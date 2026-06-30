@@ -22,6 +22,7 @@ public interface INotBildirimServisi
     Task HatirlaticiAliciEklendi(Not not, Guid aktorId, IReadOnlyCollection<Guid> yeniAliciIdler, CancellationToken ct = default);
     Task UyeKatildi(Guid isletmeId, Kullanici yeniUye, CancellationToken ct = default);
     Task HatirlaticiZamani(Not not, IReadOnlyCollection<Guid> hedefler, CancellationToken ct = default);
+    Task TestGonder(Guid isletmeId, Guid adminId, string olay, CancellationToken ct = default);
 }
 
 public sealed class NotBildirimServisi : INotBildirimServisi
@@ -141,5 +142,15 @@ public sealed class NotBildirimServisi : INotBildirimServisi
         b = Doldur(b, not.Baslik, null); g = Doldur(g, not.Baslik, null);
         // Hatirlatici MUAF: sessiz saatte bile aninda gider (kullanici o ana hatirlatici kurmus).
         await Tetikle(liste, b, g, $"/?focus={not.Id}", ct, sessizSaateTabi: false);
+    }
+
+    // Test bildirimi: secili olayin metnini ornek placeholder degerleriyle admin'in kendi cihazina gonderir.
+    // Gercek bildirimle ayni MetinAl + Doldur yolundan gecer (sapma yok). Sessiz saate takilmaz; aninda gelir.
+    public async Task TestGonder(Guid isletmeId, Guid adminId, string olay, CancellationToken ct = default)
+    {
+        var (b, g) = await MetinAl(isletmeId, $"{olay}_push_baslik", $"{olay}_push_govde", ct);
+        b = Doldur(b, "Örnek Not", "Bir üye");
+        g = Doldur(g, "Örnek Not", "Bir üye");
+        await _push.GonderAsync(adminId, b, g, "/", false, ct);
     }
 }

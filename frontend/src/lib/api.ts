@@ -222,6 +222,8 @@ export const adminApi = {
     ist<void>(`/api/admin/kullanicilar/${id}${devret ? "?devret=true" : ""}`, { method: "DELETE" }),
   denetim: (skip = 0, take = 50) =>
     ist<DenetimListesi>(`/api/admin/denetim?skip=${skip}&take=${take}`),
+  bildirimTest: (olay: string) =>
+    ist<{ gonderildi: boolean }>("/api/admin/bildirim-test", { method: "POST", body: JSON.stringify({ olay }) }),
 };
 
 // v16 — Isletme ayar guncelle istegi (frontend "...Onerisi" konvansiyonu; backend "...Istegi")
