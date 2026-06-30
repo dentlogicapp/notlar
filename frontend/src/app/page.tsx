@@ -9,6 +9,8 @@ import { OnboardingBanner } from "@/components/OnboardingBanner";
 import { YeniNotFormu, NotListesi } from "@/components/Notlar";
 import { useBen } from "@/lib/useBen";
 import { useIsletmeMetinleri, metinDeger } from "@/lib/useIsletmeMetinleri";
+import { pushDurumu, pushAboneOl } from "@/lib/push";
+import { useEffect } from "react";
 
 export default function AnaSayfa() {
   return (
@@ -22,6 +24,18 @@ function Icerik() {
   const { data: ben } = useBen();
   const { data: metinler } = useIsletmeMetinleri();
   useFocusNot();
+
+  // Varsayilan bildirim izni: oturum acilinca kullanici henuz abone degilse
+  // otomatik abone et. Izin daha once verilmisse sessizce, hic sorulmamissa
+  // tek seferlik onayla. Reddedeni rahatsiz etme (denied durumuna dokunma).
+  useEffect(() => {
+    if (!ben) return;
+    pushDurumu().then((durum) => {
+      if (durum === "kapali") {
+        pushAboneOl().catch(() => {});
+      }
+    });
+  }, [ben?.id]);
 
   const markaEmoji = metinDeger(metinler, "marka_emoji", "");
   const markaAdi = metinDeger(metinler, "marka_adi", "");
