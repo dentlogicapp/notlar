@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type TouchEvent } from "react";
 import { authApi, bildirimApi, defteriIndir, isletmeApi, type DefteriIndirFormat } from "@/lib/api";
 import { useBen } from "@/lib/useBen";
 import { useIsletmeMetinleri, metinDeger } from "@/lib/useIsletmeMetinleri";
@@ -23,7 +23,7 @@ import {
 import { ProfilimModal } from "./ProfilimModal";
 
 const ILK_BILDIRIM = 5;
-const MAX_BILDIRIM = 30;
+const MAX_BILDIRIM = 15;
 
 function gecenSureMetni(zaman: string): string {
   const t = new Date(zaman).getTime();
@@ -36,6 +36,100 @@ function gecenSureMetni(zaman: string): string {
   const gun = Math.floor(sa / 24);
   if (gun < 7) return `${gun} gün önce`;
   return new Date(zaman).toLocaleDateString("tr-TR", { day: "numeric", month: "short" });
+}
+
+// Tek bildirim satiri: esit yukseklik, okunmamis vurgu (kirmizi nokta + canli renk),
+// sola surukleyerek silme (mobil) + hover sil butonu (masaustu).
+function BildirimSatiri({
+  b, onTikla, onSil, siliniyor,
+}: {
+  b: Bildirim;
+  onTikla: (b: Bildirim) => void;
+  onSil: (id: string) => void;
+  siliniyor: boolean;
+}) {
+  const SIL_GENISLIK = 76;
+  const [kaydir, setKaydir] = useState(0);        // negatif = sola kaymis (sil blogu gorunur)
+  const baslangic = useRef<number | null>(null);
+  const suruklendi = useRef(false);
+
+  function dokunBasla(e: TouchEvent) {
+    baslangic.current = e.touches[0].clientX;
+    suruklendi.current = false;
+  }
+  function dokunHareket(e: TouchEvent) {
+    if (baslangic.current === null) return;
+    const delta = e.touches[0].clientX - baslangic.current;
+    if (Math.abs(delta) > 6) suruklendi.current = true;
+    setKaydir(Math.max(Math.min(delta, 0), -SIL_GENISLIK));   // yalniz sola, en fazla SIL_GENISLIK
+  }
+  function dokunBitir() {
+    baslangic.current = null;
+    setKaydir((k) => (k < -SIL_GENISLIK / 2 ? -SIL_GENISLIK : 0));
+  }
+
+  return (
+    <div className="relative overflow-hidden rounded-lg">
+      {/* Sola surukleyince sagdan gorunen kirmizi Sil blogu */}
+      <button
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onSil(b.id); }}
+        disabled={siliniyor}
+        aria-label="Bildirimi sil"
+        className="absolute inset-y-0 right-0 flex items-center justify-center bg-red-500 text-white text-[11px] font-semibold disabled:opacity-50"
+        style={{ width: SIL_GENISLIK }}
+      >
+        <Trash2 className="h-3.5 w-3.5 mr-1" /> Sil
+      </button>
+
+      {/* On yuz: bildirim icerigi (swipe ile kayar). min-h ile tum satirlar esit yukseklikte. */}
+      <div
+        onClick={() => { if (kaydir === 0 && !suruklendi.current) onTikla(b); else setKaydir(0); }}
+        onTouchStart={dokunBasla}
+        onTouchMove={dokunHareket}
+        onTouchEnd={dokunBitir}
+        className={cn(
+          "relative w-full text-left px-2.5 py-2 flex items-start gap-2 group cursor-pointer min-h-[62px] transition-transform",
+          "bg-cream-50 dark:bg-ink-900 hover:bg-cream-200 dark:hover:bg-ink-800",
+          !b.okunduMu && "bg-cream-100 dark:bg-ink-800/60"
+        )}
+        style={{ transform: `translateX(${kaydir}px)` }}
+      >
+        {/* Okunmamis kirmizi nokta (okununca bosalir, hizalama korunur) */}
+        <span className="shrink-0 mt-1 flex h-2 w-2">
+          {!b.okunduMu && <span className="h-2 w-2 rounded-full bg-red-500" />}
+        </span>
+
+        <div className="flex-1 min-w-0">
+          <p className={cn(
+            "text-[11px] font-semibold leading-tight truncate",
+            b.okunduMu ? "text-clay-500 dark:text-ink-300" : "text-terracotta"
+          )}>
+            {b.baslik}
+          </p>
+          <p className={cn(
+            "text-xs leading-snug mt-0.5 line-clamp-2",
+            b.okunduMu ? "text-clay-400 dark:text-ink-300" : "text-clay-800 dark:text-ink-50"
+          )}>
+            {b.mesaj}
+          </p>
+          <p className="text-[10px] text-clay-400 dark:text-ink-300 mt-1">
+            {gecenSureMetni(b.olusturmaZamani)}
+          </p>
+        </div>
+
+        {/* Masaustu: hover'da gorunen sil butonu */}
+        <span
+          role="button"
+          tabIndex={-1}
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onSil(b.id); }}
+          aria-label="Bildirimi sil"
+          className="shrink-0 self-center opacity-0 group-hover:opacity-100 text-clay-400 hover:text-red-500 transition-opacity p-1 -mr-1 hidden md:block"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </span>
+      </div>
+    </div>
+  );
 }
 
 export function UserMenu() {
@@ -65,9 +159,24 @@ export function UserMenu() {
     refetchOnWindowFocus: true,
   });
 
-  const hepsiOkundu = useMutation({
-    mutationFn: () => bildirimApi.hepsiOkundu(),
+  // Tek bildirim okundu (tiklayinca; soluklasir, listede kalir).
+  const okunduYap = useMutation({
+    mutationFn: (id: string) => bildirimApi.okundu(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["bildirimler"] }),
+  });
+
+  // Tek bildirim sil (sola surukle / hover sil butonu). Kalici, DB'den de gider.
+  const bildirimSil = useMutation({
+    mutationFn: (id: string) => bildirimApi.sil(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["bildirimler"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  // Tumunu temizle (hepsini sil).
+  const tumunuTemizle = useMutation({
+    mutationFn: () => bildirimApi.tumunuSil(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["bildirimler"] }),
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const cikis = useMutation({
@@ -87,16 +196,17 @@ export function UserMenu() {
   const goruntuBildirimler = tumBildirimler.slice(0, gosterilen);
   const dahaVar = tumBildirimler.length > gosterilen;
 
-  // Dropdown açıldığında okunmamış varsa "hepsi okundu" tetikle + gösterileni sıfırla
+  // Dropdown acilinca SADECE gosterileni sifirla. Bireysel kontrol: acmak hicbir bildirimi
+  // okundu yapmaz; her bildirim ancak tiklandiginda okundu (soluk) olur. Boylece 4 bildirimden
+  // birini ele alirken digerleri canli kalir.
   useEffect(() => {
-    if (acik) {
-      if (okunmamis > 0) hepsiOkundu.mutate();
-      setGosterilen(ILK_BILDIRIM);
-    }
+    if (acik) setGosterilen(ILK_BILDIRIM);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [acik]);
 
   const bildirimeTikla = (b: Bildirim) => {
+    // Tikla -> bu bildirim okundu (soluklasir ama listede kalir) + nota yonlendir.
+    if (!b.okunduMu) okunduYap.mutate(b.id);
     setAcik(false);
     if (!b.notId) return;
     // Push tiklama ile ayni mantik: not tamamlanmissa Tamamlananlar klasorune,
@@ -298,9 +408,13 @@ export function UserMenu() {
                 Bildirimler
               </span>
               {tumBildirimler.length > 0 && (
-                <span className="text-[10px] text-clay-400 dark:text-ink-300 ml-auto">
-                  {tumBildirimler.length}{tumBildirimler.length >= MAX_BILDIRIM ? "+" : ""} adet
-                </span>
+                <button
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); tumunuTemizle.mutate(); }}
+                  disabled={tumunuTemizle.isPending}
+                  className="ml-auto text-[10px] text-clay-400 hover:text-red-500 dark:text-ink-300 dark:hover:text-red-400 font-medium transition-colors disabled:opacity-50"
+                >
+                  Tümünü temizle
+                </button>
               )}
             </div>
 
@@ -309,7 +423,7 @@ export function UserMenu() {
                 Henüz bildirim yok.
               </p>
             ) : (
-              <div className="relative px-1 pb-1.5 max-h-[300px] overflow-y-auto bildirim-scroll">
+              <div className="relative px-1 pb-1.5 space-y-0.5 max-h-[330px] overflow-y-auto bildirim-scroll">
                 {/* Üst gradient fade */}
                 {gosterilen > ILK_BILDIRIM && (
                   <div
@@ -318,29 +432,13 @@ export function UserMenu() {
                 )}
 
                 {goruntuBildirimler.map((b) => (
-                  <button
+                  <BildirimSatiri
                     key={b.id}
-                    onClick={() => bildirimeTikla(b)}
-                    className={cn(
-                      "w-full text-left rounded-lg px-2.5 py-2 hover:bg-cream-200 dark:hover:bg-ink-800 transition-colors flex items-start gap-2 group",
-                      !b.okunduMu && "bg-cream-100 dark:bg-ink-800/60"
-                    )}
-                  >
-                    <Bell className="h-3.5 w-3.5 text-terracotta shrink-0 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <p className={cn(
-                        "text-xs leading-snug truncate",
-                        b.okunduMu
-                          ? "text-clay-500 dark:text-ink-200"
-                          : "text-clay-800 dark:text-ink-50 font-medium"
-                      )}>
-                        {b.mesaj}
-                      </p>
-                      <p className="text-[10px] text-clay-400 dark:text-ink-300 mt-0.5">
-                        {gecenSureMetni(b.olusturmaZamani)}
-                      </p>
-                    </div>
-                  </button>
+                    b={b}
+                    onTikla={bildirimeTikla}
+                    onSil={(id) => bildirimSil.mutate(id)}
+                    siliniyor={bildirimSil.isPending}
+                  />
                 ))}
 
                 {dahaVar && (

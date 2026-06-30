@@ -102,6 +102,21 @@ public sealed class NotBildirimServisi : INotBildirimServisi
         }
         await _db.SaveChangesAsync(ct);
 
+        // (1b) Tavan koru: her hedefte tenant basina en fazla 15 bildirim kalir; fazlasi (en eskiler) DB'den silinir.
+        foreach (var uid in hedefList)
+        {
+            var fazlalar = await _db.Bildirimler
+                .Where(b => b.KullaniciId == uid && b.IsletmeId == isletmeId)
+                .OrderByDescending(b => b.OlusturmaZamani)
+                .Skip(15)
+                .ToListAsync(ct);
+            if (fazlalar.Count > 0)
+            {
+                _db.Bildirimler.RemoveRange(fazlalar);
+                await _db.SaveChangesAsync(ct);
+            }
+        }
+
         // (2) Web Push: best-effort. Gelmese bile yukaridaki in-app kaydi durur.
         foreach (var uid in hedefList)
         {

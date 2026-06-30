@@ -153,6 +153,10 @@ export const bildirimApi = {
     ist<void>(`/api/bildirimler/${id}/okundu`, { method: "POST" }),
   hepsiOkundu: () =>
     ist<void>("/api/bildirimler/hepsi-okundu", { method: "POST" }),
+  sil: (id: string) =>
+    ist<void>(`/api/bildirimler/${id}`, { method: "DELETE" }),
+  tumunuSil: () =>
+    ist<void>("/api/bildirimler/", { method: "DELETE" }),
 };
 
 // Edit lock (yumuşak kilit)
