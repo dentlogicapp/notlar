@@ -15,7 +15,7 @@ import { useBen } from "@/lib/useBen";
 import { useIsletmeMetinleri, metinDeger } from "@/lib/useIsletmeMetinleri";
 import { useTema } from "@/lib/tema";
 import { cn, bastari } from "@/lib/utils";
-import type { Bildirim } from "@/lib/types";
+import type { Bildirim, Not } from "@/lib/types";
 import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription
@@ -98,9 +98,16 @@ export function UserMenu() {
 
   const bildirimeTikla = (b: Bildirim) => {
     setAcik(false);
-    if (b.notId) {
-      router.push(`/?focus=${b.notId}`);
-    }
+    if (!b.notId) return;
+    // Push tiklama ile ayni mantik: not tamamlanmissa Tamamlananlar klasorune,
+    // degilse ana listeye yonlendir (her ikisinde de ?focus -> scroll + highlight).
+    const notlar = qc.getQueryData<Not[]>(["notlar"]) ?? [];
+    const not = notlar.find((n) => n.id === b.notId);
+    const hedef = not?.tamamlandi && not.klasorId
+      ? `/klasor/${not.klasorId}?focus=${b.notId}`
+      : `/?focus=${b.notId}`;
+    // Radix dropdown kapanirken navigation yutulmasin diye bir tick ertele
+    setTimeout(() => router.push(hedef), 0);
   };
 
   if (!ben) return null;
