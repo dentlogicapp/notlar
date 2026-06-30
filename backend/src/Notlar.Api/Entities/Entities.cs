@@ -123,6 +123,10 @@ public sealed class Not
     public string? HatirlatmaAliciIdler { get; set; }           // JSONB uuid[] - v19 P4 cok alici (secili uye id listesi). DegisenAlanlar pattern'i (string JSON).
     public string? HatirlatmaSekli { get; set; }                // "uygulama" | "email" | "her_ikisi"
     public bool HatirlatmaGonderildiMi { get; set; }            // background service idempotent için
+
+    // Olusturma bildirimi tetiklendi mi? create'te false kalir; ilk anlamli Kaydet (update) onu
+    // duyurup true yapar. Boylece "Ekle -> otomatik duzenle -> Kaydet" akisinda cift bildirim (olusturuldu+guncellendi) olmaz.
+    public bool Duyuruldu { get; set; } = false;
     public DateTimeOffset? HatirlatmaGonderimZamani { get; set; }
     public Guid? HatirlatmaKuranKullaniciId { get; set; }       // imza/audit için
 

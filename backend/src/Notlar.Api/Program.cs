@@ -366,6 +366,12 @@ using (var scope = app.Services.CreateScope())
                 ADD COLUMN IF NOT EXISTS ""HatirlatmaGonderimZamani"" timestamp with time zone;
             ALTER TABLE notlar
                 ADD COLUMN IF NOT EXISTS ""HatirlatmaKuranKullaniciId"" uuid;
+            -- Olusturma bildirimi durumu. Mevcut notlar zaten duyuruldu (DEFAULT true);
+            -- yeni notlar create'te false baslar (ALTER), ilk Kaydet'te duyurulur. Cift bildirim onlenir.
+            ALTER TABLE notlar
+                ADD COLUMN IF NOT EXISTS ""Duyuruldu"" boolean NOT NULL DEFAULT true;
+            ALTER TABLE notlar
+                ALTER COLUMN ""Duyuruldu"" SET DEFAULT false;
 
             CREATE INDEX IF NOT EXISTS ""IX_notlar_HatirlatmaZamani_HatirlatmaGonderildiMi""
                 ON notlar (""HatirlatmaZamani"", ""HatirlatmaGonderildiMi"");

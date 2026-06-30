@@ -182,12 +182,9 @@ public static class NoteEndpoints
 
             await audit.YazAsync("not_olusturuldu", "not", n.Id, detay: n.Baslik, ct: ct);
 
-            // v19 4c - tenant uyelerine push (alicilar olustur bildiriminden muaf -> onlara "eklendin" gider)
-            var olusturAlicilar = string.IsNullOrWhiteSpace(n.HatirlatmaAliciIdler)
-                ? new List<Guid>()
-                : JsonSerializer.Deserialize<List<Guid>>(n.HatirlatmaAliciIdler) ?? new List<Guid>();
-            await bildirim.NotOlusturuldu(n, uc.KullaniciId.Value, olusturAlicilar, ct);
-            await bildirim.HatirlaticiAliciEklendi(n, uc.KullaniciId.Value, olusturAlicilar, ct);
+            // Olusturma bildirimi ARTIK create'te tetiklenmez. Not.Duyuruldu=false olarak olusur;
+            // ilk anlamli Kaydet (update) "not_olusturuldu" bildirimini tetikler ve Duyuruldu=true yapar.
+            // Boylece "Ekle -> otomatik duzenle -> Kaydet" akisinda cift bildirim (olusturuldu+guncellendi) olmaz.
 
             var loaded = await db.Notlar
                 .Include(x => x.OlusturanKullanici)
@@ -314,8 +311,18 @@ public static class NoteEndpoints
             // degismediyse yalniz yeni eklenenler. Bu hedefler "guncellendi"den muaf, sadece hatirlatici bildirimi alir.
             var hatirlatmaZamaniDegisti = eskiHatirlatmaZamani != n.HatirlatmaZamani;
             var hatirlaticiHedefler = hatirlatmaZamaniDegisti ? yeniAlicilar : eklenenAlicilar;
-            if (icerikDegisti)
+            // Ilk anlamli Kaydet'te "olusturuldu", sonraki Kaydet'lerde (anlamli degisiklikte) "guncellendi".
+            // Duyuruldu=true once persist edilir (NotOlusturuldu oncesi); hata olsa bile cift duyuru olmaz.
+            if (!n.Duyuruldu)
+            {
+                n.Duyuruldu = true;
+                await db.SaveChangesAsync(ct);
+                await bildirim.NotOlusturuldu(n, uc.KullaniciId.Value, hatirlaticiHedefler, ct);
+            }
+            else if (icerikDegisti)
+            {
                 await bildirim.NotGuncellendi(n, uc.KullaniciId.Value, hatirlaticiHedefler, ct);
+            }
             await bildirim.HatirlaticiAliciEklendi(n, uc.KullaniciId.Value, hatirlaticiHedefler, ct);
 
             return Results.Ok(MapYanit(n));
