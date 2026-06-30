@@ -466,6 +466,13 @@ public static class AdminEndpoints
             foreach (var sk in sistemKlasorler)
                 sk.OlusturanKullaniciId = uc.KullaniciId.Value;
 
+            // Bu tenant'taki ertelenen bildirim kuyrugunu temizle. ErtelenenBildirim FK constraint'siz;
+            // temizlenmezse silinen kullanicidan yetim iz kalir. RemoveRange + mevcut SaveChanges = atomik.
+            var ertelenenler = await db.ErtelenenBildirimler
+                .Where(x => x.KullaniciId == id && x.IsletmeId == tenantId)
+                .ToListAsync(ct);
+            db.ErtelenenBildirimler.RemoveRange(ertelenenler);
+
             // Tenant üyeliğini sil (Kullanici global kalır)
             db.IsletmeUyelikleri.Remove(uyelik);
 

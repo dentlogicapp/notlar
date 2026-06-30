@@ -226,6 +226,11 @@ public static class AuthEndpoints
                     x.Isletme.KullanimModu, x.Rol, x.Aktif))
                 .ToListAsync(ct);
 
+            // Pasiflestirilen/silinen kullanici: aktif tenant uyeligi kalmadiysa (super admin haric)
+            // oturum gecersizdir; 403 ile frontend cikisi tetiklenir. Login'deki bos-uyelik kontroluyle tutarli.
+            if (uyelikler.Count == 0 && !user.SuperAdmin)
+                return Results.Json(new { hata = "ERISIM_YOK", mesaj = "Hesabın aktif bir markaya bağlı değil." }, statusCode: 403);
+
             // v19 Asama 9 - impersonation algilama: goruntule endpoint gecici JWT'de aktif_isletme_id=hedef
             // set eder; DB user.AktifIsletmeId degismez. JWT (u) ile DB (user) ayrismissa goruntuleme modu.
             var goruntulemeModu = user.SuperAdmin && u.AktifIsletmeId.HasValue

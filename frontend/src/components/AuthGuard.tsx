@@ -29,6 +29,9 @@ export function AuthGuard({ children, requireAdmin = false, requireSuperAdmin = 
   useEffect(() => {
     if (isLoading) return;
     if (isError || !ben) { router.replace("/giris"); return; }
+    // Defense in depth: aktif uyelik yok (pasif/silinmis) + super admin degil -> cikis.
+    // Backend /ben zaten 403 verir; bu ek katman API atlansa bile oturumu kapatir.
+    if (!ben.superAdmin && (ben.uyelikler?.length ?? 0) === 0) { router.replace("/giris"); return; }
     // v15 — admin kontrolü tenant scope (mevcut ben.rol artık global, geriye uyumluluk için duruyor)
     if (requireSuperAdmin && !ben.superAdmin) { router.replace("/"); return; }
     if (requireAdmin && aktifRol !== "admin") router.replace("/");
