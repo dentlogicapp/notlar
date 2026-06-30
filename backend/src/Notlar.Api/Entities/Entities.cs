@@ -22,7 +22,7 @@ public sealed class Kullanici
     public bool OperasyonelBildirimAl { get; set; } = true; // v19 B8 — super admin operasyonel mail (tenant olay/inaktif) opt-out
 
     // v19 4d - sessiz saatler (rahatsiz edilmeme): bu aralikta push ertelenir; hatirlatici MUAF
-    public bool SessizSaatAktif { get; set; } = true;               // varsayilan acik (tum kullanicilar)
+    public bool SessizSaatAktif { get; set; } = false;              // varsayilan kapali (yeni kullanici; isteyen acar)
     public TimeOnly SessizSaatBaslangic { get; set; } = new(22, 0); // 22:00
     public TimeOnly SessizSaatBitis { get; set; } = new(8, 0);      // 08:00
 

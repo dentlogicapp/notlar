@@ -323,7 +323,11 @@ using (var scope = app.Services.CreateScope())
         await db.Database.ExecuteSqlRawAsync(@"
             -- v19 4d - sessiz saatler (rahatsiz edilmeme) + ertelenen bildirim kuyrugu
             ALTER TABLE kullanicilar
-                ADD COLUMN IF NOT EXISTS ""SessizSaatAktif"" boolean NOT NULL DEFAULT true;
+                ADD COLUMN IF NOT EXISTS ""SessizSaatAktif"" boolean NOT NULL DEFAULT false;
+            -- Yeni kullanici varsayilani kapali (Musa karari). Kolon zaten varsa ADD atlanir;
+            -- bu ALTER mevcut DB'de default'u false'a ceker. Mevcut kullanici SATIRLARINA dokunmaz.
+            ALTER TABLE kullanicilar
+                ALTER COLUMN ""SessizSaatAktif"" SET DEFAULT false;
             ALTER TABLE kullanicilar
                 ADD COLUMN IF NOT EXISTS ""SessizSaatBaslangic"" time without time zone NOT NULL DEFAULT '22:00';
             ALTER TABLE kullanicilar
