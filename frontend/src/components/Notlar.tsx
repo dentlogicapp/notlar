@@ -677,7 +677,7 @@ export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { n
           </div>
           {/* Başlık: tam genişlik, daralmaz */}
           <h4 className={cn(
-            "text-sm sm:text-[15px] leading-snug font-medium break-words text-justify hyphens-auto",
+            "text-sm sm:text-[15px] leading-snug font-medium break-words [overflow-wrap:anywhere] text-justify hyphens-auto",
             not.tamamlandi ? "line-through text-clay-400 dark:text-ink-300" : "text-clay-900 dark:text-ink-50"
           )}>
             <Vurgula metin={not.baslik} terim={aramaTerimi} />
@@ -686,7 +686,7 @@ export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { n
           {/* İçerik — her satır "- madde" (eski/yeni notlar tutarlı), iki yana yaslı */}
           {not.icerik && (
             <p className={cn(
-              "text-[13px] sm:text-sm mt-1.5 leading-relaxed text-justify hyphens-auto break-words whitespace-pre-wrap",
+              "text-[13px] sm:text-sm mt-1.5 leading-relaxed text-justify hyphens-auto break-words [overflow-wrap:anywhere] whitespace-pre-wrap",
               not.tamamlandi ? "text-clay-400 dark:text-ink-300" : "text-clay-600 dark:text-ink-100"
             )}>
               <Vurgula metin={icerikTireli(not.icerik)} terim={aramaTerimi} />
@@ -699,7 +699,7 @@ export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { n
               <p className="text-[11px] sm:text-xs text-clay-500 dark:text-ink-200 mb-0.5">
                 {not.tamamlayanAdSoyad} tamamladı · {tarihFormat(not.tamamlanmaZamani)}
               </p>
-              <p className="text-[13px] sm:text-sm text-clay-700 dark:text-ink-100 text-justify hyphens-auto break-words whitespace-pre-wrap">
+              <p className="text-[13px] sm:text-sm text-clay-700 dark:text-ink-100 text-justify hyphens-auto break-words [overflow-wrap:anywhere] whitespace-pre-wrap">
                 {not.tamamlanmaAciklamasi}
               </p>
             </div>
