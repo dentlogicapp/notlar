@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { MiniTakvim, tarihAnahtar } from "./MiniTakvim";
 import { tatilHaritasi } from "@/lib/tatiller";
 import { NotKart } from "./Notlar";
+import { cn } from "@/lib/utils";
 import type { Not } from "@/lib/types";
 
 const AY_ADLARI = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
@@ -46,13 +47,19 @@ export function TakvimModal({
   return (
     <>
       <Dialog open={acik} onOpenChange={onOpenChange}>
-        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-lg">
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>Takvim</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="flex justify-center">
+          <div className={cn(
+            "space-y-4",
+            seciliGun && "sm:grid sm:grid-cols-[auto_1fr] sm:gap-6 sm:space-y-0 sm:items-start"
+          )}>
+            <div className={cn(
+              "flex justify-center",
+              seciliGun && "sm:justify-start sm:pt-1"
+            )}>
               <MiniTakvim
                 buyuk
                 hatirlatmaGunleri={hatirlatmaGunleri}
@@ -76,7 +83,7 @@ export function TakvimModal({
                 {seciliNotlar.length === 0 ? (
                   <p className="text-[12px] text-clay-400 dark:text-ink-300">Bu güne ait hatırlatıcı yok.</p>
                 ) : (
-                  <ul className="space-y-1.5 max-h-[40vh] overflow-y-auto">
+                  <ul className="space-y-1.5 max-h-[40vh] sm:max-h-[60vh] overflow-y-auto">
                     {seciliNotlar.map((n) => (
                       <li key={n.id}>
                         <button
@@ -103,7 +110,7 @@ export function TakvimModal({
 
       {/* Not detayi - anasayfadaki birebir NotKart gorunumu, flu arka plan, tam etkilesimli */}
       <Dialog open={!!seciliNot} onOpenChange={(o) => { if (!o) setSeciliNotId(null); }}>
-        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-2xl p-4 max-h-[85vh] overflow-y-auto">
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} className="sm:max-w-3xl p-4 max-h-[85vh] overflow-y-auto">
           {seciliNot && <NotKart not={seciliNot} klasorBadgeGoster={false} />}
         </DialogContent>
       </Dialog>
