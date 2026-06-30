@@ -78,9 +78,32 @@ public sealed class NotBildirimServisi : INotBildirimServisi
             .ToListAsync(ct);
     }
 
-    private async Task Tetikle(IEnumerable<Guid> hedefler, string baslik, string govde, string? url, CancellationToken ct, bool sessizSaateTabi = true)
+    // Cift kanal bildirim: (1) uygulama ici (in-app) kalici kayit; push aboneliginden bagimsiz,
+    // sessiz saatte bile yazilir, kullanici avatar ikonunda gorur. (2) Web Push; anlik ekstra, best-effort.
+    // Push hic gelmese bile in-app kaydi garanti. Tek kanala guvenmek kirilgan, cift kanal dayanikli.
+    private async Task Tetikle(IEnumerable<Guid> hedefler, string baslik, string govde, string? url,
+        Guid isletmeId, string tip, Guid? notId, CancellationToken ct, bool sessizSaateTabi = true)
     {
-        foreach (var uid in hedefler)
+        var hedefList = hedefler.ToList();
+        if (hedefList.Count == 0) return;
+
+        // (1) In-app: her hedefe kalici Bildirim kaydi (zil). Push durumundan bagimsiz, sessiz saatte de yazilir.
+        foreach (var uid in hedefList)
+        {
+            _db.Bildirimler.Add(new Bildirim
+            {
+                KullaniciId = uid,
+                IsletmeId = isletmeId,
+                Tip = tip,
+                NotId = notId,
+                Baslik = baslik,
+                Mesaj = govde,
+            });
+        }
+        await _db.SaveChangesAsync(ct);
+
+        // (2) Web Push: best-effort. Gelmese bile yukaridaki in-app kaydi durur.
+        foreach (var uid in hedefList)
         {
             try { await _push.GonderAsync(uid, baslik, govde, url, sessizSaateTabi, ct); }
             catch (Exception ex) { _log.LogError(ex, "Not bildirimi push gonderilemedi: Hedef {Uid}", uid); }
@@ -88,14 +111,14 @@ public sealed class NotBildirimServisi : INotBildirimServisi
     }
 
     private async Task NotOlayi(Not not, Guid aktorId, IReadOnlyCollection<Guid>? muaf,
-        string anahtarBaslik, string anahtarGovde, string url, CancellationToken ct)
+        string anahtarBaslik, string anahtarGovde, string url, string tip, CancellationToken ct)
     {
         var hedefler = await HedefUyeler(not.IsletmeId, aktorId, muaf, ct);
         if (hedefler.Count == 0) return;
         var (b, g) = await MetinAl(not.IsletmeId, anahtarBaslik, anahtarGovde, ct);
         var ad = await AktorAd(aktorId, ct);
         b = Doldur(b, not.Baslik, ad); g = Doldur(g, not.Baslik, ad);
-        await Tetikle(hedefler, b, g, url, ct);
+        await Tetikle(hedefler, b, g, url, not.IsletmeId, tip, not.Id, ct);
     }
 
     // Bekleyen not ana listede gorunur -> ana sayfa; tamamlanan not "Tamamlananlar" klasorune
@@ -105,13 +128,13 @@ public sealed class NotBildirimServisi : INotBildirimServisi
         => not.KlasorId is Guid kid ? $"/klasor/{kid}?focus={not.Id}" : AnaUrl(not);
 
     public Task NotOlusturuldu(Not not, Guid aktorId, IReadOnlyCollection<Guid>? muafAliciIdler, CancellationToken ct = default)
-        => NotOlayi(not, aktorId, muafAliciIdler, "not_olusturuldu_push_baslik", "not_olusturuldu_push_govde", AnaUrl(not), ct);
+        => NotOlayi(not, aktorId, muafAliciIdler, "not_olusturuldu_push_baslik", "not_olusturuldu_push_govde", AnaUrl(not), "not_olusturuldu", ct);
 
     public Task NotGuncellendi(Not not, Guid aktorId, IReadOnlyCollection<Guid>? muafAliciIdler, CancellationToken ct = default)
-        => NotOlayi(not, aktorId, muafAliciIdler, "not_guncellendi_push_baslik", "not_guncellendi_push_govde", AnaUrl(not), ct);
+        => NotOlayi(not, aktorId, muafAliciIdler, "not_guncellendi_push_baslik", "not_guncellendi_push_govde", AnaUrl(not), "not_guncellendi", ct);
 
     public Task NotTamamlandi(Not not, Guid aktorId, CancellationToken ct = default)
-        => NotOlayi(not, aktorId, null, "not_tamamlandi_push_baslik", "not_tamamlandi_push_govde", KlasorUrl(not), ct);
+        => NotOlayi(not, aktorId, null, "not_tamamlandi_push_baslik", "not_tamamlandi_push_govde", KlasorUrl(not), "not_tamamlandi", ct);
 
     public async Task HatirlaticiAliciEklendi(Not not, Guid aktorId, IReadOnlyCollection<Guid> yeniAliciIdler, CancellationToken ct = default)
     {
@@ -121,7 +144,7 @@ public sealed class NotBildirimServisi : INotBildirimServisi
         var (b, g) = await MetinAl(not.IsletmeId, "hatirlatici_alici_eklendi_push_baslik", "hatirlatici_alici_eklendi_push_govde", ct);
         var ad = await AktorAd(aktorId, ct);
         b = Doldur(b, not.Baslik, ad); g = Doldur(g, not.Baslik, ad);
-        await Tetikle(hedefler, b, g, $"/?focus={not.Id}", ct);
+        await Tetikle(hedefler, b, g, $"/?focus={not.Id}", not.IsletmeId, "hatirlatici_eklendi", not.Id, ct);
     }
 
     public async Task UyeKatildi(Guid isletmeId, Kullanici yeniUye, CancellationToken ct = default)
@@ -131,7 +154,7 @@ public sealed class NotBildirimServisi : INotBildirimServisi
         var (b, g) = await MetinAl(isletmeId, "uye_katildi_push_baslik", "uye_katildi_push_govde", ct);
         // {kullanici_adi} = katilan uye; {not_baslik} bu olayda yok; tiklamada ana sayfa
         b = Doldur(b, null, yeniUye.AdSoyad); g = Doldur(g, null, yeniUye.AdSoyad);
-        await Tetikle(hedefler, b, g, "/", ct);
+        await Tetikle(hedefler, b, g, "/", isletmeId, "uye_katildi", null, ct);
     }
 
     public async Task HatirlaticiZamani(Not not, IReadOnlyCollection<Guid> hedefler, CancellationToken ct = default)
@@ -141,7 +164,7 @@ public sealed class NotBildirimServisi : INotBildirimServisi
         var (b, g) = await MetinAl(not.IsletmeId, "hatirlatici_push_baslik", "hatirlatici_push_govde", ct);
         b = Doldur(b, not.Baslik, null); g = Doldur(g, not.Baslik, null);
         // Hatirlatici MUAF: sessiz saatte bile aninda gider (kullanici o ana hatirlatici kurmus).
-        await Tetikle(liste, b, g, $"/?focus={not.Id}", ct, sessizSaateTabi: false);
+        await Tetikle(liste, b, g, $"/?focus={not.Id}", not.IsletmeId, "hatirlatma", not.Id, ct, sessizSaateTabi: false);
     }
 
     // Test bildirimi: secili olayin metnini ornek placeholder degerleriyle admin'in kendi cihazina gonderir.

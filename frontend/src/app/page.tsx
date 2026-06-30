@@ -25,13 +25,15 @@ function Icerik() {
   const { data: metinler } = useIsletmeMetinleri();
   useFocusNot();
 
-  // Varsayilan bildirim izni: oturum acilinca kullanici henuz abone degilse
-  // otomatik abone et. Izin daha once verilmisse sessizce, hic sorulmamissa
-  // tek seferlik onayla. Reddedeni rahatsiz etme (denied durumuna dokunma).
+  // Bildirim aboneligini her oturum acilisinda backend'e yeniden yaz (self-healing).
+  // "abone" (tarayicida abonelik var) durumunda DA kaydederiz: push servisi 410 verip backend
+  // kaydi silinmis olabilir; tarayici aboneligi durdugu icin pushDurumu yine "abone" der. pushAboneOl
+  // idempotent upsert ile backend kaydini geri getirir. "kapali" ise izin varsa sessizce, sorulmamissa
+  // tek seferlik abone olur. denied'a dokunma. Boylece "izin acik ama bildirim gelmiyor" yapisal olarak biter.
   useEffect(() => {
     if (!ben) return;
     pushDurumu().then((durum) => {
-      if (durum === "kapali") {
+      if (durum === "abone" || durum === "kapali") {
         pushAboneOl().catch(() => {});
       }
     });

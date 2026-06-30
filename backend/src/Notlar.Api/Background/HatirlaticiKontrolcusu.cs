@@ -80,21 +80,8 @@ public sealed class HatirlaticiKontrolcusu : BackgroundService
 
                 var hedefler = HedefBul(kullanicilar, kuran, not);
 
-                // Uygulama ici bildirim (zil) - her zaman korunur
-                foreach (var hedef in hedefler)
-                {
-                    db.Bildirimler.Add(new Bildirim
-                    {
-                        KullaniciId = hedef.Id,
-                        IsletmeId = not.IsletmeId,  // v15 — bildirim notun tenant'ında düşer
-                        Tip = "hatirlatma",
-                        NotId = not.Id,
-                        Baslik = "Hatırlatıcı",
-                        Mesaj = $"\"{not.Baslik}\" notunun zamanı geldi"
-                    });
-                }
-
-                // Web Push -> ortak servis (tenant metni/katalog fallback + sabit "Planlama Defteri" satiri)
+                // Cift kanal bildirim (in-app zil + Web Push) artik ortak serviste; tek dogruluk kaynagi.
+                // In-app metni de tenant anahtarindan gelir (eski sabit metin yerine); HatirlaticiZamani uretir.
                 await bildirimSvc.HatirlaticiZamani(not, hedefler.Select(h => h.Id).ToList(), ct);
 
                 // Idempotent flag
