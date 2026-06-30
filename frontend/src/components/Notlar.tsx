@@ -41,35 +41,49 @@ export function YeniNotFormu({ klasorId }: { klasorId?: string | null }) {
       defaultValues: { baslik: "", icerik: "" }
     });
 
+  // Ekle'den sonra otomatik acilan duzenle modali: kullanici basligi girip ekleyince
+  // not olusur ve hemen ayni akista icerik + hatirlatici duzenlenir (kalem zorunlulugu kalkar).
+  const [olusturulanNot, setOlusturulanNot] = useState<Not | null>(null);
+
   const m = useMutation({
     mutationFn: (d: z.infer<typeof yeniSchema>) =>
       notApi.create({ ...d, klasorId: klasorId ?? null }),
-    onSuccess: () => {
+    onSuccess: (yeniNot) => {
       qc.invalidateQueries({ queryKey: ["notlar"] });
       qc.invalidateQueries({ queryKey: ["klasorler"] });
       reset();
-      toast.success("Not eklendi");
+      // Kalem zorunlulugu yok: olusan notu hemen duzenle modalinda ac (icerik + hatirlatici tek akista).
+      setOlusturulanNot(yeniNot);
     },
     onError: (err: Error) => toast.error(err.message),
   });
 
   return (
-    <form onSubmit={handleSubmit((d) => m.mutate(d))} className="flex gap-2 items-start">
-      <div className="flex-1">
-        <Input
-          {...register("baslik")}
-          placeholder={notIpucu}
-          disabled={m.isPending}
+    <>
+      <form onSubmit={handleSubmit((d) => m.mutate(d))} className="flex gap-2 items-start">
+        <div className="flex-1">
+          <Input
+            {...register("baslik")}
+            placeholder={notIpucu}
+            disabled={m.isPending}
+          />
+          {errors.baslik && (
+            <p className="text-xs text-red-600 mt-1.5 ml-1">{errors.baslik.message}</p>
+          )}
+        </div>
+        <Button type="submit" variant="secondary" disabled={m.isPending}>
+          <Plus className="h-4 w-4 mr-1.5" strokeWidth={2.5} />
+          Ekle
+        </Button>
+      </form>
+      {olusturulanNot && (
+        <DuzenleDialog
+          not={olusturulanNot}
+          open
+          onOpenChange={(v) => { if (!v) setOlusturulanNot(null); }}
         />
-        {errors.baslik && (
-          <p className="text-xs text-red-600 mt-1.5 ml-1">{errors.baslik.message}</p>
-        )}
-      </div>
-      <Button type="submit" variant="secondary" disabled={m.isPending}>
-        <Plus className="h-4 w-4 mr-1.5" strokeWidth={2.5} />
-        Ekle
-      </Button>
-    </form>
+      )}
+    </>
   );
 }
 
