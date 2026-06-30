@@ -162,7 +162,7 @@ public static class AnahtarKatalogu
             .Etiket("Hatırlatıcıya Eklendin - Metin")
             .Yonlendirme("{not_baslik} notun başlığı, {kullanici_adi} seni ekleyen kişi ile değişir.")
             .Aciklama("Push gövdesi; 'Planlama Defteri' satırı otomatik üstte yer alır.")
-            .Sira(490).Varsayilan("\"{kullanici_adi}\", \"{not_baslik}\" notunun hatırlatıcısına seni ekledi. Hemen göz atmak için tıkla!").Build(),
+            .Sira(490).Varsayilan("\"{not_baslik}\" notunun hatırlatıcısına \"{kullanici_adi}\" seni ekledi. Hemen göz atmak için tıkla!").Build(),
 
         AnahtarTanim.Tanim("uye_katildi_push_baslik")
             .Kategori(Kategori.Bildirim).Tip(AlanTipi.Baslik)
@@ -176,7 +176,7 @@ public static class AnahtarKatalogu
             .Etiket("Yeni Üye Katıldı - Metin")
             .Yonlendirme("{kullanici_adi} ekibe katılan kişinin adı ile değişir.")
             .Aciklama("Push gövdesi; 'Planlama Defteri' satırı otomatik üstte yer alır.")
-            .Sira(510).Varsayilan("\"{kullanici_adi}\" ekibe katıldı. Hemen tanışmak için tıkla!").Build(),
+            .Sira(510).Varsayilan("\"{kullanici_adi}\" ekibe katıldı. Ekibimiz büyüyor!").Build(),
 
         AnahtarTanim.Tanim("mail_tonu")
             .Kategori(Kategori.Mail).Tip(AlanTipi.PlaceholderKisa)

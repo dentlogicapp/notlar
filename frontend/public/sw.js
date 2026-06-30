@@ -1,4 +1,4 @@
-// Planlama Defterimiz - PWA service worker
+// Planlama Defteri - PWA service worker
 // Senkron ilkesi: veri (API) ASLA onbellege alinmaz (her zaman canli); sayfa icerigi network-first
 // (en guncel surum); yalnizca degismez statik varliklar (hash'li JS/CSS/ikon) cache-first.
 const CACHE = "planlama-pwa-v1";
@@ -67,7 +67,7 @@ self.addEventListener("fetch", (event) => {
 
 // Push bildirimi geldiginde goster
 self.addEventListener("push", (event) => {
-  let veri = { title: "Planlama Defterimiz", body: "" };
+  let veri = { title: "Planlama Defteri", body: "" };
   try {
     if (event.data) veri = Object.assign(veri, event.data.json());
   } catch (e) {

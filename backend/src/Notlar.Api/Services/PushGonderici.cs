@@ -75,8 +75,9 @@ public sealed class PushGonderici : IPushGonderici
         var payload = JsonSerializer.Serialize(new
         {
             title = baslik,
-            // Musa karari v19: marka satiri sabit "Planlama Defteri" (reklam gucu + marka stabilitesi; multitenant disi birakildi, degistirilemez)
-            body = $"Planlama Defteri\n{govde}",
+            // Musa karari v19.1: PWA bildirimini OS, kaynak olarak zaten uygulama adi "Planlama Defteri" ile gosteriyor.
+            // Body'ye ikinci kez marka satiri eklemek cift gosterime yol aciyordu; marka satiri OS'a birakildi, body sade.
+            body = govde,
             data = new { url },
         });
 
