@@ -30,8 +30,40 @@ const yeniSchema = z.object({
   icerik: z.string().max(5000).optional(),
 });
 
+// Yeni not icin bos taslak (id=""). DuzenleDialog bunu "yeni mod" olarak algilar; DB'de kayit YOK.
+// Not ancak modal icindeki Kaydet ile (tek POST, butunsel) olusur.
+function taslakNot(baslik: string, klasorId: string | null): Not {
+  const simdi = new Date().toISOString();
+  return {
+    id: "",
+    baslik,
+    icerik: null,
+    tamamlandi: false,
+    tamamlanmaAciklamasi: null,
+    tamamlanmaZamani: null,
+    tamamlayanAdSoyad: null,
+    klasorId,
+    klasorAdi: null,
+    olusturanId: "",
+    olusturanAdSoyad: "",
+    olusturmaZamani: simdi,
+    guncellemeZamani: simdi,
+    silindi: false,
+    silinmeZamani: null,
+    hatirlatmaZamani: null,
+    hatirlatmaKime: null,
+    hatirlatmaAliciIdler: null,
+    hatirlatmaSekli: null,
+    hatirlatmaGonderildiMi: false,
+    kilitSahibiAdi: null,
+    eskiKlasorId: null,
+    okuyanSayisi: 0,
+    okuyanlar: [],
+    benimSonGorme: null,
+  };
+}
+
 export function YeniNotFormu({ klasorId }: { klasorId?: string | null }) {
-  const qc = useQueryClient();
   // v18 - not ekleme ipucu isletme_metinleri'nden (not_form_placeholder); field tek kaynak
   const { data: metinler } = useIsletmeMetinleri();
   const notIpucu = metinDeger(metinler, "not_form_placeholder", "");
@@ -41,46 +73,32 @@ export function YeniNotFormu({ klasorId }: { klasorId?: string | null }) {
       defaultValues: { baslik: "", icerik: "" }
     });
 
-  // Ekle'den sonra otomatik acilan duzenle modali: kullanici basligi girip ekleyince
-  // not olusur ve hemen ayni akista icerik + hatirlatici duzenlenir (kalem zorunlulugu kalkar).
-  const [olusturulanNot, setOlusturulanNot] = useState<Not | null>(null);
-
-  const m = useMutation({
-    mutationFn: (d: z.infer<typeof yeniSchema>) =>
-      notApi.create({ ...d, klasorId: klasorId ?? null }),
-    onSuccess: (yeniNot) => {
-      qc.invalidateQueries({ queryKey: ["notlar"] });
-      qc.invalidateQueries({ queryKey: ["klasorler"] });
-      reset();
-      // Kalem zorunlulugu yok: olusan notu hemen duzenle modalinda ac (icerik + hatirlatici tek akista).
-      setOlusturulanNot(yeniNot);
-    },
-    onError: (err: Error) => toast.error(err.message),
-  });
+  // Ekle notu OLUSTURMAZ; sadece basligi tasiyan bir taslakla duzenle modalini acar.
+  // Not ancak modal icindeki Kaydet ile (tek POST, butunsel) olusur; Kaydet'siz cikista not olusmaz.
+  const [taslak, setTaslak] = useState<Not | null>(null);
 
   return (
     <>
-      <form onSubmit={handleSubmit((d) => m.mutate(d))} className="flex gap-2 items-start">
+      <form
+        onSubmit={handleSubmit((d) => { setTaslak(taslakNot(d.baslik, klasorId ?? null)); reset(); })}
+        className="flex gap-2 items-start"
+      >
         <div className="flex-1">
-          <Input
-            {...register("baslik")}
-            placeholder={notIpucu}
-            disabled={m.isPending}
-          />
+          <Input {...register("baslik")} placeholder={notIpucu} />
           {errors.baslik && (
             <p className="text-xs text-red-600 mt-1.5 ml-1">{errors.baslik.message}</p>
           )}
         </div>
-        <Button type="submit" variant="secondary" disabled={m.isPending}>
+        <Button type="submit" variant="secondary">
           <Plus className="h-4 w-4 mr-1.5" strokeWidth={2.5} />
           Ekle
         </Button>
       </form>
-      {olusturulanNot && (
+      {taslak && (
         <DuzenleDialog
-          not={olusturulanNot}
+          not={taslak}
           open
-          onOpenChange={(v) => { if (!v) setOlusturulanNot(null); }}
+          onOpenChange={(v) => { if (!v) setTaslak(null); }}
         />
       )}
     </>
@@ -157,8 +175,12 @@ export function DuzenleDialog({
 }: { not: Not; open: boolean; onOpenChange: (v: boolean) => void }) {
   const qc = useQueryClient();
 
-  // Edit lock — dialog açıkken kilit tutulur, kapanırken bırakılır
-  const lock = useEditLock("not", not.id, open);
+  // Yeni mod: taslak not (id=""), henuz DB'de yok. Kaydet -> create (tek POST butunsel).
+  // Dolu id -> mevcut duzenleme akisi (update). Iki akis da ayni modali paylasir (paralel yapi yok).
+  const yeniMod = not.id === "";
+
+  // Edit lock — dialog açıkken kilit tutulur, kapanırken bırakılır. Yeni notta kilit yok (kimse duzenlemiyor).
+  const lock = useEditLock("not", not.id, open && !yeniMod);
 
   // Başkası düzenliyorsa toast + kapat
   useEffect(() => {
@@ -238,16 +260,32 @@ export function DuzenleDialog({
         .join("\n")
         .trim() || null;
       const aciklamaTrim = aciklama.trim() || null;
+      const hatirlatmaIso = hatirlaticiAcik ? new Date(hatirlatmaZamani).toISOString() : null;
+
+      if (yeniMod) {
+        // Yeni not: tek POST ile butunsel olustur (baslik + icerik + klasor + varsa hatirlatici).
+        return notApi.create({
+          baslik: baslikTrim,
+          icerik: icerikTrim,
+          klasorId,
+          ...(hatirlatmaIso
+            ? {
+                hatirlatmaZamani: hatirlatmaIso,
+                hatirlatmaAliciIdler,
+                hatirlatmaSekli: hatirlatmaSekli as "uygulama" | "email" | "her_ikisi",
+              }
+            : {}),
+        });
+      }
 
       if (hatirlaticiAcik) {
         // datetime-local kullanıcı TZ'sinde → ISO UTC string
-        const iso = new Date(hatirlatmaZamani).toISOString();
         return notApi.update(not.id, {
           baslik: baslikTrim,
           icerik: icerikTrim,
           klasorId,
           degisiklikAciklamasi: aciklamaTrim,
-          hatirlatmaZamani: iso,
+          hatirlatmaZamani: hatirlatmaIso!,
           hatirlatmaAliciIdler,
           hatirlatmaSekli: hatirlatmaSekli as "uygulama" | "email" | "her_ikisi",
           hatirlatmaSil: false,
@@ -269,7 +307,7 @@ export function DuzenleDialog({
       qc.invalidateQueries({ queryKey: ["not-gecmisi", not.id] });
       qc.invalidateQueries({ queryKey: ["bildirimler"] });
       onOpenChange(false);
-      toast.success("Güncellendi");
+      toast.success(yeniMod ? "Not oluşturuldu" : "Güncellendi");
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -295,7 +333,7 @@ export function DuzenleDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
-          <DialogTitle>Notu Düzenle</DialogTitle>
+          <DialogTitle>{yeniMod ? "Yeni Not" : "Notu Düzenle"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div>
@@ -335,14 +373,16 @@ export function DuzenleDialog({
               </p>
             )}
           </div>
-          <div>
-            <Label htmlFor="aciklama">Değişiklik açıklaması (isteğe bağlı)</Label>
-            <Input
-              id="aciklama" value={aciklama}
-              onChange={(e) => setAciklama(e.target.value)}
-              placeholder="Örn. Tarihi güncelledim"
-            />
-          </div>
+          {!yeniMod && (
+            <div>
+              <Label htmlFor="aciklama">Değişiklik açıklaması (isteğe bağlı)</Label>
+              <Input
+                id="aciklama" value={aciklama}
+                onChange={(e) => setAciklama(e.target.value)}
+                placeholder="Örn. Tarihi güncelledim"
+              />
+            </div>
+          )}
 
           {/* HATIRLATICI — toggle + 3 zorunlu alt alan */}
           <div className="pt-1">
