@@ -191,7 +191,7 @@ export function DuzenleDialog({
   }, [open, lock.kilitSahibi, onOpenChange]);
 
   const [baslik, setBaslik] = useState(not.baslik);
-  const [icerik, setIcerik] = useState(not.icerik ? icerikTireli(not.icerik) : "");
+  const [icerik, setIcerik] = useState(not.icerik ? maddeBaslariniBuyut(icerikTireli(not.icerik)) : "");
   const [klasorId, setKlasorId] = useState<string | null>(not.klasorId);
   const [aciklama, setAciklama] = useState("");
 
@@ -344,10 +344,10 @@ export function DuzenleDialog({
             <Label htmlFor="icerik">İçerik</Label>
             <Textarea
               id="icerik" value={icerik}
-              onChange={(e) => setIcerik(e.target.value)}
+              onChange={(e) => setIcerik(maddeBaslariniBuyut(e.target.value))}
               onKeyDown={icerikKeyDown}
               onFocus={icerikFocus}
-              placeholder="Her satır bir madde; başına otomatik - gelir"
+              placeholder="Nota ait detayları ve gelişmeleri buraya yazın. Her satır ayrı bir madde olarak listelenir."
             />
           </div>
           <div>
@@ -619,6 +619,13 @@ function KlasorBadge({ klasorAdi }: { klasorAdi: string | null }) {
 // Tek not kartı
 
 // icerik her satirini "- madde" formatina normalize eder (cift tire onler; tire'siz eski notlara otomatik ekler)
+function maddeBaslariniBuyut(icerik: string): string {
+  return icerik.replace(
+    /(^|\n)(- )(\p{Ll})/gu,
+    (_esles, ayrac, tire, harf) => ayrac + tire + harf.toLocaleUpperCase("tr-TR")
+  );
+}
+
 function icerikTireli(icerik: string): string {
   return icerik
     .split("\n")
