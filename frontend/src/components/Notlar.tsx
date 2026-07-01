@@ -953,7 +953,13 @@ export function NotListesi({
           silindi: false,
           tamamlandi: sadeceBekleyen ? false : undefined,
         }),
-    refetchInterval: aramaVar ? false : 15_000,
+    // Goruldu verisi (okuyanlar) bu sorgudan gelir. SSE varsa anlik tazeler; SSE kurulamazsa/koparsa
+    // asagidaki kisa polling + odak/yeniden-baglanma tazelemesi garanti verir (sayfa yenilemeye gerek yok).
+    refetchInterval: aramaVar ? false : 4_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    staleTime: 0,
   });
 
   // v19 Faz 3 Adim 2 - canli okundu: tenant akisina baglan, not_okundu olayinda listeyi tazele
