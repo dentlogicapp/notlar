@@ -235,6 +235,9 @@ public static class NoteEndpoints
                 .Include(x => x.Klasor)
                 .FirstOrDefaultAsync(x => x.Id == id && !x.Silindi && x.IsletmeId == tenantId, ct);
             if (n is null) return Results.NotFound();
+            // Tamamlanan not (Tamamlananlar sistem klasorunde) duzenlenemez; once tik kaldirilmali.
+            if (n.Tamamlandi)
+                return Results.BadRequest(new { hata = "NOT_TAMAMLANMIS_DUZENLENEMEZ", mesaj = "Tamamlananlar klasöründeki bir not düzenlenemez. Düzenlemek için önce notun tamamlandı işaretini (tik) kaldırıp notu Tamamlananlar klasöründen çıkarın, ardından düzenleyebilirsiniz." });
             if (string.IsNullOrWhiteSpace(req.Baslik))
                 return Results.BadRequest(new { hata = "Başlık zorunlu." });
 
