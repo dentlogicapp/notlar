@@ -300,7 +300,7 @@ function KullaniciEkleDialog() {
             {errors.email && <p className="text-xs text-red-600 mt-1">{errors.email.message}</p>}
           </div>
           <div>
-            <Label htmlFor="cinsiyet">Eşinizin cinsiyeti</Label>
+            <Label htmlFor="cinsiyet">Cinsiyeti</Label>
             <select
               id="cinsiyet"
               defaultValue=""
