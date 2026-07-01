@@ -147,13 +147,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                             var saMevcutRol = ctx.Principal?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
                             var saJwt = ctx.HttpContext.RequestServices.GetRequiredService<Notlar.Api.Services.IJwtService>();
                             var saYeniToken = saJwt.TokenUret(saKullanici, aktifRol: saMevcutRol);
-                            ctx.HttpContext.Response.Cookies.Append("auth_token", saYeniToken, new Microsoft.AspNetCore.Http.CookieOptions
-                            {
-                                HttpOnly = true,
-                                Secure = ctx.HttpContext.Request.IsHttps,
-                                SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax,
-                                Path = "/"
-                            });
+                            var saCfg = ctx.HttpContext.RequestServices.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>();
+                            var saGun = int.Parse(saCfg["Jwt:GunOmru"] ?? "30");
+                            Notlar.Api.Endpoints.AuthEndpoints.CookieEkle(ctx.HttpContext, saYeniToken, saGun, saCfg, persistent: true);
                             var saYeniJwt = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().ReadJwtToken(saYeniToken);
                             var saKimlik = new System.Security.Claims.ClaimsIdentity(saYeniJwt.Claims, ctx.Principal!.Identity!.AuthenticationType);
                             ctx.Principal = new System.Security.Claims.ClaimsPrincipal(saKimlik);
@@ -194,13 +190,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                                     var jwt = ctx.HttpContext.RequestServices.GetRequiredService<Notlar.Api.Services.IJwtService>();
                                     var yeniToken = jwt.TokenUret(kullanici, aktifRol: baska.Rol);
 
-                                    ctx.HttpContext.Response.Cookies.Append("auth_token", yeniToken, new Microsoft.AspNetCore.Http.CookieOptions
-                                    {
-                                        HttpOnly = true,
-                                        Secure = ctx.HttpContext.Request.IsHttps,
-                                        SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax,
-                                        Path = "/"
-                                    });
+                                    var yeniCfg = ctx.HttpContext.RequestServices.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>();
+                                    var yeniGun = int.Parse(yeniCfg["Jwt:GunOmru"] ?? "30");
+                                    Notlar.Api.Endpoints.AuthEndpoints.CookieEkle(ctx.HttpContext, yeniToken, yeniGun, yeniCfg, persistent: true);
 
                                     // Bu istek de yeni tenant bağlamında çalışsın (kesintisiz): principal'i yeni token claim'leriyle yenile.
                                     var yeniJwt = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().ReadJwtToken(yeniToken);
