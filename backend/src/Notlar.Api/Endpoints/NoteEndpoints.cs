@@ -91,8 +91,13 @@ public static class NoteEndpoints
                     kilitSahipleri.TryGetValue(n.KilitKullaniciId.Value, out sahibi);
                 }
                 okuyanByNot.TryGetValue(n.Id, out var oks);
+                // Istek 1: goruldu listesi son guncellemeden sonra gorenlerle sinirli (guncelleme = sifirlama).
+                // Isleyen (olusturan/guncelleyen) OkunmaZamani = GuncellemeZamani oldugu icin listede kalir.
+                var guncelOks = oks is null
+                    ? null
+                    : (IReadOnlyList<NotOkuyanYaniti>)oks.Where(o => o.OkunmaZamani >= n.GuncellemeZamani).ToList();
                 DateTimeOffset? benim = benimOkumalarim.TryGetValue(n.Id, out var bv) ? bv : null;
-                return MapYanit(n, sahibi, oks, benim);
+                return MapYanit(n, sahibi, guncelOks, benim);
             }).ToList();
 
             return Results.Ok(list);
@@ -168,6 +173,12 @@ public static class NoteEndpoints
                 n.HatirlatmaKuranKullaniciId = uc.KullaniciId.Value;
             }
 
+            // Olusturma/guncelleme zamanini tek simdi'ye sabitle; olusturan goruldu kaydi da bu ana esitlenir
+            // (list filtresi OkunmaZamani >= GuncellemeZamani -> olusturan kendi notunu goruldu gorur).
+            var simdi = DateTimeOffset.UtcNow;
+            n.OlusturmaZamani = simdi;
+            n.GuncellemeZamani = simdi;
+
             db.Notlar.Add(n);
 
             db.NotGecmisleri.Add(new NotGecmisi
@@ -177,6 +188,15 @@ public static class NoteEndpoints
                 Eylem = "olusturuldu",
                 YeniDeger = JsonSerializer.Serialize(new { n.Baslik, n.Icerik, n.KlasorId }),
                 YapanKullaniciId = uc.KullaniciId.Value
+            });
+
+            // Istek 3: olusturan kendi notunu otomatik "goruldu" olarak yukler.
+            db.NotOkunmalari.Add(new NotOkunma
+            {
+                IsletmeId = tenantId,
+                NotId = n.Id,
+                KullaniciId = uc.KullaniciId.Value,
+                OkunmaZamani = simdi,
             });
             await db.SaveChangesAsync(ct);
 
@@ -294,6 +314,8 @@ public static class NoteEndpoints
                 n.KilitZamani = null;
             }
 
+            // Istek 1+3: guncelleyen kendi degisikligini gormus sayilir (goruldu sifirlanir, guncelleyen listede kalir).
+            await IsleyeniGorulduYap(db, tenantId, n.Id, uc.KullaniciId.Value, n.GuncellemeZamani, ct);
             await db.SaveChangesAsync(ct);
 
             await audit.YazAsync("not_guncellendi", "not", n.Id, detay: n.Baslik, ct: ct);
@@ -377,6 +399,8 @@ public static class NoteEndpoints
             n.KilitKullaniciId = null;
             n.KilitZamani = null;
 
+            // Istek 1+3: tamamlayan kendi degisikligini gormus sayilir.
+            await IsleyeniGorulduYap(db, tenantId, n.Id, uc.KullaniciId.Value, n.GuncellemeZamani, ct);
             await db.SaveChangesAsync(ct);
 
             await audit.YazAsync("not_tamamlandi", "not", n.Id, detay: n.Baslik, ct: ct);
@@ -425,6 +449,8 @@ public static class NoteEndpoints
                 Eylem = "yeniden_acildi",
                 YapanKullaniciId = uc.KullaniciId.Value
             });
+            // Istek 1+3: yeniden acan kendi degisikligini gormus sayilir.
+            await IsleyeniGorulduYap(db, tenantId, n.Id, uc.KullaniciId.Value, n.GuncellemeZamani, ct);
             await db.SaveChangesAsync(ct);
 
             await audit.YazAsync("not_yeniden_acildi", "not", n.Id, detay: n.Baslik, ct: ct);
@@ -604,6 +630,18 @@ public static class NoteEndpoints
 
             return Results.Ok(new { ok = true });
         });
+    }
+
+    // Istek 3: bir islemi yapan kullanici (olusturan/guncelleyen/tamamlayan/tasiyan) o degisikligi
+    // gormus sayilir. OkunmaZamani = islem simdisi (GuncellemeZamani ile ayni) -> list filtresinde listede kalir.
+    private static async Task IsleyeniGorulduYap(
+        AppDbContext db, Guid tenantId, Guid notId, Guid kid, DateTimeOffset simdi, CancellationToken ct)
+    {
+        var okuma = await db.NotOkunmalari.FirstOrDefaultAsync(o => o.NotId == notId && o.KullaniciId == kid, ct);
+        if (okuma is null)
+            db.NotOkunmalari.Add(new NotOkunma { IsletmeId = tenantId, NotId = notId, KullaniciId = kid, OkunmaZamani = simdi });
+        else
+            okuma.OkunmaZamani = simdi;
     }
 
     private static NotYaniti MapYanit(Not n, string? kilitSahibiAdi = null,

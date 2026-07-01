@@ -539,6 +539,25 @@ export function DetayDialog({
   );
 }
 
+// Duzenlendi kaydinda ne degistigini eski/yeni JSON snapshot'larindan cikarir (baslik/icerik/klasor).
+// Diger kullanicilar cok sonra baksa bile hangi alanin degistigini net anlar.
+function degisenAlanlar(eski: string | null, yeni: string | null): string | null {
+  if (!eski || !yeni) return null;
+  try {
+    const e = JSON.parse(eski);
+    const y = JSON.parse(yeni);
+    const degisen: string[] = [];
+    if ((e.Baslik ?? "") !== (y.Baslik ?? "")) degisen.push("başlık");
+    if ((e.Icerik ?? "") !== (y.Icerik ?? "")) degisen.push("içerik");
+    if ((e.KlasorId ?? null) !== (y.KlasorId ?? null)) degisen.push("klasör");
+    if (degisen.length === 0) return null;
+    const metin = degisen.join(", ");
+    return metin.charAt(0).toUpperCase() + metin.slice(1) + " değiştirildi";
+  } catch {
+    return null;
+  }
+}
+
 function eylemEtiketi(eylem: string) {
   switch (eylem) {
     case "olusturuldu": return { label: "Oluşturdu", renk: "bg-cream-200 dark:bg-ink-800 text-clay-700 dark:text-ink-100" };
@@ -553,6 +572,7 @@ function eylemEtiketi(eylem: string) {
 
 function GecmisSatiri({ g }: { g: NotGecmisi }) {
   const et = eylemEtiketi(g.eylem);
+  const degisenler = degisenAlanlar(g.eskiDeger, g.yeniDeger);
   return (
     <div className="flex gap-3 p-3 rounded-xl bg-cream-50 dark:bg-ink-900 border border-cream-200 dark:border-ink-700">
       <div className="h-9 w-9 shrink-0 rounded-full bg-clay-800 text-cream-50 flex items-center justify-center text-xs font-medium">
@@ -568,6 +588,9 @@ function GecmisSatiri({ g }: { g: NotGecmisi }) {
         <p className="text-xs text-clay-500 dark:text-ink-200 mt-0.5">{tarihFormat(g.yapilisZamani)}</p>
         {g.aciklama && (
           <p className="text-sm text-clay-700 dark:text-ink-100 mt-2 leading-relaxed">{g.aciklama}</p>
+        )}
+        {degisenler && (
+          <p className="text-[11px] text-clay-400 dark:text-ink-300 mt-1.5 italic">{degisenler}</p>
         )}
       </div>
     </div>
