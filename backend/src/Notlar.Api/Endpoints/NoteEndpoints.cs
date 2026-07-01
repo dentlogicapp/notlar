@@ -198,13 +198,20 @@ public static class NoteEndpoints
                 KullaniciId = uc.KullaniciId.Value,
                 OkunmaZamani = simdi,
             });
+            // Yeni akis: not create ile olusur (update cagirilmaz) -> olusturma bildirimi burada tetiklenecek; duyuruldu isaretle.
+            n.Duyuruldu = true;
             await db.SaveChangesAsync(ct);
 
             await audit.YazAsync("not_olusturuldu", "not", n.Id, detay: n.Baslik, ct: ct);
 
-            // Olusturma bildirimi ARTIK create'te tetiklenmez. Not.Duyuruldu=false olarak olusur;
-            // ilk anlamli Kaydet (update) "not_olusturuldu" bildirimini tetikler ve Duyuruldu=true yapar.
-            // Boylece "Ekle -> otomatik duzenle -> Kaydet" akisinda cift bildirim (olusturuldu+guncellendi) olmaz.
+            // Yeni akis: Ekle taslak acar, Kaydet tek POST ile create eder (update cagirilmaz).
+            // Bu yuzden olusturma bildirimi (in-app + push) BURADA tetiklenir; cift bildirim riski yok (tek islem).
+            // Hatirlatici alicilar olusturuldu bildiriminden muaf; onlara "eklendin" gider.
+            var olusturHedefler = string.IsNullOrWhiteSpace(n.HatirlatmaAliciIdler)
+                ? new List<Guid>()
+                : JsonSerializer.Deserialize<List<Guid>>(n.HatirlatmaAliciIdler) ?? new List<Guid>();
+            await bildirim.NotOlusturuldu(n, uc.KullaniciId.Value, olusturHedefler, ct);
+            await bildirim.HatirlaticiAliciEklendi(n, uc.KullaniciId.Value, olusturHedefler, ct);
 
             var loaded = await db.Notlar
                 .Include(x => x.OlusturanKullanici)
