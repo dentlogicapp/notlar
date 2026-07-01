@@ -223,7 +223,7 @@ public static class NoteEndpoints
         // UPDATE — tenant-scoped
         g.MapPut("/{id:guid}", async (
             Guid id, NotGuncelleIstegi req, AppDbContext db,
-            IUserContext uc, IAuditService audit, INotBildirimServisi bildirim, CancellationToken ct) =>
+            IUserContext uc, IAuditService audit, INotBildirimServisi bildirim, IAkisYayinci yayinci, CancellationToken ct) =>
         {
             if (uc.KullaniciId is null) return Results.Unauthorized();
             if (uc.AktifIsletmeId is null) return Results.Unauthorized();
@@ -354,13 +354,19 @@ public static class NoteEndpoints
             }
             await bildirim.HatirlaticiAliciEklendi(n, uc.KullaniciId.Value, hatirlaticiHedefler, ct);
 
+            // Anlik yansima: not degisti -> tenant akisina yayinla; diger ekranlar goruldu listesini aninda tazeler.
+            yayinci.Yayinla(new AkisOlayi(
+                Olay: "not_guncellendi", HedefTip: "not", HedefId: id, IsletmeId: tenantId,
+                AktorEmail: uc.Email, AktorAdSoyad: uc.AdSoyad,
+                Detay: null, DegisenAlanlar: null, Zaman: DateTimeOffset.UtcNow));
+
             return Results.Ok(MapYanit(n));
         });
 
         // TAMAMLA — tenant-scoped
         g.MapPost("/{id:guid}/tamamla", async (
             Guid id, NotTamamlaIstegi req, AppDbContext db,
-            IUserContext uc, IAuditService audit, INotBildirimServisi bildirim, CancellationToken ct) =>
+            IUserContext uc, IAuditService audit, INotBildirimServisi bildirim, IAkisYayinci yayinci, CancellationToken ct) =>
         {
             if (uc.KullaniciId is null) return Results.Unauthorized();
             if (uc.AktifIsletmeId is null) return Results.Unauthorized();
@@ -420,13 +426,20 @@ public static class NoteEndpoints
                 .Include(x => x.TamamlayanKullanici)
                 .Include(x => x.Klasor)
                 .FirstAsync(x => x.Id == n.Id, ct);
+
+            // Anlik yansima: not tamamlandi -> tenant akisina yayinla; goruldu listesi diger ekranlarda aninda tazelenir.
+            yayinci.Yayinla(new AkisOlayi(
+                Olay: "not_tamamlandi", HedefTip: "not", HedefId: id, IsletmeId: tenantId,
+                AktorEmail: uc.Email, AktorAdSoyad: uc.AdSoyad,
+                Detay: null, DegisenAlanlar: null, Zaman: DateTimeOffset.UtcNow));
+
             return Results.Ok(MapYanit(loaded));
         });
 
         // YENİDEN AÇ — tenant-scoped
         g.MapPost("/{id:guid}/yeniden-ac", async (
             Guid id, AppDbContext db, IUserContext uc,
-            IAuditService audit, CancellationToken ct) =>
+            IAuditService audit, IAkisYayinci yayinci, CancellationToken ct) =>
         {
             if (uc.KullaniciId is null) return Results.Unauthorized();
             if (uc.AktifIsletmeId is null) return Results.Unauthorized();
@@ -465,6 +478,13 @@ public static class NoteEndpoints
                 .Include(x => x.OlusturanKullanici)
                 .Include(x => x.Klasor)
                 .FirstAsync(x => x.Id == n.Id, ct);
+
+            // Anlik yansima: not yeniden acildi -> tenant akisina yayinla; goruldu listesi diger ekranlarda aninda tazelenir.
+            yayinci.Yayinla(new AkisOlayi(
+                Olay: "not_yeniden_acildi", HedefTip: "not", HedefId: id, IsletmeId: tenantId,
+                AktorEmail: uc.Email, AktorAdSoyad: uc.AdSoyad,
+                Detay: null, DegisenAlanlar: null, Zaman: DateTimeOffset.UtcNow));
+
             return Results.Ok(MapYanit(loaded));
         });
 

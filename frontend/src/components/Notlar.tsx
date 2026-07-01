@@ -960,7 +960,9 @@ export function NotListesi({
   useEffect(() => {
     const kapat = akisBaglan(
       (o) => {
-        if (o.olay === "not_okundu") {
+        // Anlik yansima: goruldu (okundu) + not degisikligi (guncelleme/tamamlama/yeniden acma) olaylarinda listeyi tazele.
+        // Boylece bir kullanici notu degistirince digerlerinin goruldu listesi sayfa yenilemeden aninda sifirlanir.
+        if (["not_okundu", "not_guncellendi", "not_tamamlandi", "not_yeniden_acildi"].includes(o.olay)) {
           qc.invalidateQueries({ queryKey: ["notlar"] });
         }
       },
