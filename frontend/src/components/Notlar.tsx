@@ -1193,28 +1193,12 @@ function NotSilDialog({
             </div>
           )}
 
-          {!not.tamamlandi ? (
-            <div className="flex items-center gap-1.5 text-xs text-clay-500 dark:text-ink-200">
-              <FolderHeart className="h-3.5 w-3.5 text-terracotta shrink-0" />
-              <span className="shrink-0">Klasör:</span>
-              <KlasorSecici
-                value={not.klasorId}
-                onChange={(id) => detayTasi.mutate(id)}
-                klasorler={detayKlasorler ?? []}
-                klasorEtiketi={(k) => klasorEtiketi(k, detayKlasorler)}
-                tetik={
-                  <button type="button" className="inline-flex items-center gap-1 font-medium text-clay-700 dark:text-ink-100 hover:text-terracotta transition-colors cursor-pointer underline decoration-dotted underline-offset-2 data-[state=open]:text-terracotta">
-                    {not.klasorAdi ?? "Klasöre ekle"}
-                  </button>
-                }
-              />
-            </div>
-          ) : not.klasorAdi ? (
+          {not.klasorAdi && (
             <div className="flex items-center gap-1.5 text-xs text-clay-500 dark:text-ink-200">
               <FolderHeart className="h-3.5 w-3.5 text-terracotta" />
               <span>Klasör: <span className="font-medium text-clay-700 dark:text-ink-100">{not.klasorAdi}</span></span>
             </div>
-          ) : null}
+          )}
         </div>
 
         <div className="flex flex-col-reverse sm:flex-row gap-2 mt-5 sm:justify-end">
