@@ -42,7 +42,7 @@ export function KlasorSecici({
     onSuccess: (yeni) => {
       qc.invalidateQueries({ queryKey: ["klasorler"] });
       onChange(yeni.id);
-      toast.success("KlasÃ¶r oluÅŸturuldu");
+      toast.success("Klasör oluşturuldu");
       kapat();
     },
     onError: (err: Error) => toast.error(err.message),
@@ -63,7 +63,7 @@ export function KlasorSecici({
   function olusturmayiOnayla() {
     const ad = yeniAd.trim();
     if (ad.length === 0) {
-      toast.error("KlasÃ¶r adÄ± boÅŸ olamaz");
+      toast.error("Klasör adı boş olamaz");
       return;
     }
     // Duplike guard (buyuk/kucuk harf duyarsiz, mevcut kullanici klasorleri arasinda)
@@ -71,7 +71,7 @@ export function KlasorSecici({
       (k) => k.ad.trim().toLocaleLowerCase("tr-TR") === ad.toLocaleLowerCase("tr-TR")
     );
     if (cakisma) {
-      toast.error("Bu isimde bir klasÃ¶r zaten var");
+      toast.error("Bu isimde bir klasör zaten var");
       return;
     }
     olustur.mutate(ad);
@@ -109,7 +109,7 @@ export function KlasorSecici({
         >
           {mod === "liste" ? (
             <>
-              {/* Kategorize edilmemis */}
+              {/* Kategorize edilmemiş */}
               <DM.Item
                 onSelect={(e) => { e.preventDefault(); sec(null); }}
                 className="flex items-center gap-2.5 px-3 py-2.5 text-[15px] sm:text-sm rounded-lg hover:bg-cream-200 dark:hover:bg-ink-800 cursor-pointer outline-none text-clay-700 dark:text-ink-100 min-h-[44px] sm:min-h-0"
@@ -117,7 +117,7 @@ export function KlasorSecici({
                 <span className="h-4 w-4 shrink-0 flex items-center justify-center">
                   {value === null && <Check className="h-4 w-4 text-terracotta" strokeWidth={2.5} />}
                 </span>
-                <span className="text-clay-500 dark:text-ink-300">Kategorize edilmemiÅŸ</span>
+                <span className="text-clay-500 dark:text-ink-300">Kategorize edilmemiş</span>
               </DM.Item>
 
               {secilebilir.map((k) => (
@@ -136,7 +136,7 @@ export function KlasorSecici({
 
               <DM.Separator className="my-1 h-px bg-cream-300 dark:bg-ink-700" />
 
-              {/* Yeni klasor olustur - inline moda gecer (Radix'i kapatmaz) */}
+              {/* Yeni klasör oluştur - inline moda gecer (Radix'i kapatmaz) */}
               <DM.Item
                 onSelect={(e) => { e.preventDefault(); yeniModaGec(); }}
                 className="flex items-center gap-2.5 px-3 py-2.5 text-[15px] sm:text-sm rounded-lg hover:bg-rose-50/60 dark:hover:bg-ink-800 cursor-pointer outline-none text-terracotta font-medium min-h-[44px] sm:min-h-0"
@@ -144,7 +144,7 @@ export function KlasorSecici({
                 <span className="h-4 w-4 shrink-0 flex items-center justify-center">
                   <Plus className="h-4 w-4" strokeWidth={2.5} />
                 </span>
-                Yeni klasÃ¶r oluÅŸtur
+                Yeni klasör oluştur
               </DM.Item>
             </>
           ) : (
@@ -156,7 +156,7 @@ export function KlasorSecici({
                   value={yeniAd}
                   onChange={(e) => setYeniAd(e.target.value)}
                   onKeyDown={inputKeyDown}
-                  placeholder="KlasÃ¶r adÄ±"
+                  placeholder="Klasör adı"
                   maxLength={60}
                   className="flex-1 min-w-0 h-11 rounded-lg border border-clay-200 dark:border-ink-700 bg-white dark:bg-ink-850 px-3 text-[16px] text-clay-900 dark:text-ink-50 placeholder:text-clay-400 focus:outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta/15 transition-colors"
                 />
@@ -164,7 +164,7 @@ export function KlasorSecici({
                   type="button"
                   onClick={olusturmayiOnayla}
                   disabled={olustur.isPending || yeniAd.trim().length === 0}
-                  aria-label="OluÅŸtur"
+                  aria-label="Oluştur"
                   className="h-11 w-11 shrink-0 inline-flex items-center justify-center rounded-lg bg-terracotta text-white hover:bg-terracotta-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   {olustur.isPending
@@ -174,7 +174,7 @@ export function KlasorSecici({
                 <button
                   type="button"
                   onClick={() => { setMod("liste"); setYeniAd(""); }}
-                  aria-label="VazgeÃ§"
+                  aria-label="Vazgeç"
                   className="h-11 w-11 shrink-0 inline-flex items-center justify-center rounded-lg text-clay-500 dark:text-ink-300 hover:bg-cream-200 dark:hover:bg-ink-800 transition-colors"
                 >
                   <X className="h-4 w-4" strokeWidth={2.5} />
