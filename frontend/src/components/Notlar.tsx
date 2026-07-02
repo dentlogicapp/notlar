@@ -651,9 +651,9 @@ function KlasorBadge({
   onTasi: (klasorId: string | null) => void;
 }) {
   const doluGorunum = (
-    <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full bg-terracotta/12 text-terracotta-dark font-medium text-[10px] sm:text-[11px] leading-none">
+    <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full bg-terracotta/12 text-terracotta-dark font-medium text-[10px] sm:text-[11px] leading-none min-w-0 max-w-[160px]">
       <Folder className="h-2.5 w-2.5 sm:h-3 sm:w-3" strokeWidth={2} />
-      <span className="truncate max-w-[110px] sm:max-w-[130px]">{not.klasorAdi}</span>
+      <span className="truncate min-w-0 max-w-[130px] sm:max-w-[150px]">{not.klasorAdi}</span>
     </span>
   );
 
@@ -664,9 +664,9 @@ function KlasorBadge({
   }
 
   const doluTetik = (
-    <button type="button" className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full bg-terracotta/12 text-terracotta-dark font-medium text-[10px] sm:text-[11px] leading-none hover:bg-terracotta/20 transition-colors cursor-pointer data-[state=open]:bg-terracotta/25">
+    <button type="button" className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full bg-terracotta/12 text-terracotta-dark font-medium text-[10px] sm:text-[11px] leading-none hover:bg-terracotta/20 transition-colors cursor-pointer data-[state=open]:bg-terracotta/25 min-w-0 max-w-[160px]">
       <Folder className="h-2.5 w-2.5 sm:h-3 sm:w-3" strokeWidth={2} />
-      <span className="truncate max-w-[110px] sm:max-w-[130px]">{not.klasorAdi}</span>
+      <span className="truncate min-w-0 max-w-[130px] sm:max-w-[150px]">{not.klasorAdi}</span>
     </button>
   );
 
@@ -866,7 +866,7 @@ export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { n
           {/* İçerik — her satır "- madde" (eski/yeni notlar tutarlı), iki yana yaslı */}
           {not.icerik && (
             <p className={cn(
-              "text-[13px] sm:text-sm mt-2 leading-relaxed text-justify hyphens-auto break-words [overflow-wrap:anywhere] whitespace-pre-wrap",
+              "text-[13px] sm:text-sm mt-3 leading-relaxed text-justify hyphens-auto break-words [overflow-wrap:anywhere] whitespace-pre-wrap",
               not.tamamlandi ? "text-clay-400 dark:text-ink-300" : "text-clay-600 dark:text-ink-100"
             )}>
               <Vurgula metin={icerikTireli(not.icerik)} terim={aramaTerimi} />
@@ -886,7 +886,7 @@ export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { n
           )}
 
           {/* Alt satır: [Klasör] [aksiyon ikonlar] · okuyanlar (mobilde de görünür) */}
-          <div className="flex items-center gap-2 sm:gap-3 mt-2.5 text-[11px] sm:text-xs flex-wrap">
+          <div className="flex items-center gap-2.5 sm:gap-3.5 mt-2.5 text-[11px] sm:text-xs flex-wrap">
             {klasorBadgeGoster && (
               <KlasorBadge not={not} klasorler={kartKlasorler} onTasi={(id) => tasima.mutate(id)} />
             )}
@@ -965,7 +965,7 @@ export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { n
             </div>
 
             {okuyanlarGosterilen.length > 0 && (
-              <div className="relative order-1">
+              <div className="relative order-2">
                 <button
                   type="button"
                   onClick={() => setOkuyanlarAcik((v) => !v)}
