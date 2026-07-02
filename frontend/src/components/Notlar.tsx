@@ -355,7 +355,7 @@ export function DuzenleDialog({
               value={klasorId}
               onChange={setKlasorId}
               klasorler={klasorler ?? []}
-              klasorEtiketi={klasorEtiketi}
+              klasorEtiketi={(k) => klasorEtiketi(k, klasorler)}
               tetik={
                 <button
                   type="button"
