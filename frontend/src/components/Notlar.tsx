@@ -7,7 +7,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { useState, useEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
 import {
-  Eye, Pencil, Trash2, Plus, History, CheckCircle2, Loader2, FolderHeart, Tag, Bell, Lock, AlertTriangle, Users
+  Eye, Pencil, Trash2, Plus, History, CheckCircle2, Loader2, FolderHeart, Tag, Bell, Lock, AlertTriangle, Users, ChevronDown
 } from "lucide-react";
 import { notApi, klasorApi, isletmeApi } from "@/lib/api";
 import { useBen } from "@/lib/useBen";
@@ -18,6 +18,8 @@ import { useEditLock } from "@/lib/useEditLock";
 import { Button } from "./ui/button";
 import { Input, Textarea, Label } from "./ui/input";
 import { Checkbox } from "./ui/checkbox";
+import { KlasorSecici } from "./KlasorSecici";
+import { klasorEtiketi } from "@/lib/klasor";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
   DialogClose, DialogDescription
@@ -321,11 +323,6 @@ export function DuzenleDialog({
     return a.ad.localeCompare(b.ad, "tr");
   });
 
-  function klasorEtiketi(k: Klasor) {
-    if (!k.ustKlasorId) return k.ad;
-    const ust = klasorler?.find((p) => p.id === k.ustKlasorId);
-    return ust ? `${ust.ad} / ${k.ad}` : k.ad;
-  }
 
   const klasorDegisti = klasorId !== not.klasorId;
 
@@ -354,22 +351,32 @@ export function DuzenleDialog({
             <Label htmlFor="klasor">
               {not.klasorId ? "Bulunduğu klasör" : "Klasöre taşı (isteğe bağlı)"}
             </Label>
-            <select
-              id="klasor"
-              value={klasorId ?? ""}
-              onChange={(e) => setKlasorId(e.target.value || null)}
-              className="h-11 w-full rounded-xl border border-clay-200 bg-white dark:bg-ink-850 px-4 text-[15px] text-clay-900 dark:text-ink-50 focus:outline-none focus:border-clay-400 focus:ring-2 focus:ring-clay-900/5 transition-colors"
-            >
-              <option value="">— Kategorize edilmemiş —</option>
-              {klasorSecenekleri.map((k) => (
-                <option key={k.id} value={k.id}>{klasorEtiketi(k)}</option>
-              ))}
-            </select>
+            <KlasorSecici
+              value={klasorId}
+              onChange={setKlasorId}
+              klasorler={klasorler ?? []}
+              klasorEtiketi={klasorEtiketi}
+              tetik={
+                <button
+                  type="button"
+                  className="h-11 w-full flex items-center justify-between rounded-xl border border-clay-200 dark:border-ink-700 bg-white dark:bg-ink-850 px-4 text-[15px] text-clay-900 dark:text-ink-50 focus:outline-none focus:border-clay-400 focus:ring-2 focus:ring-clay-900/5 transition-colors data-[state=open]:border-clay-400"
+                >
+                  <span className={cn("truncate", klasorId === null && "text-clay-400 dark:text-ink-300")}>
+                    {(() => {
+                      if (klasorId === null) return "Kategorize edilmemiş";
+                      const secili = klasorler?.find((k) => k.id === klasorId);
+                      return secili ? klasorEtiketi(secili, klasorler) : (not.klasorAdi ?? "");
+                    })()}
+                  </span>
+                  <ChevronDown className="h-4 w-4 text-clay-400 dark:text-ink-300 shrink-0 ml-2" strokeWidth={2} />
+                </button>
+              }
+            />
             {klasorDegisti && (
               <p className="text-xs text-terracotta-dark mt-1.5 italic">
                 {klasorId === null
                   ? "Bu not klasörden çıkarılacak."
-                  : `Bu not "${klasorEtiketi(klasorSecenekleri.find((k) => k.id === klasorId)!)}" klasörüne taşınacak.`}
+                  : `Bu not "${klasorEtiketi(klasorSecenekleri.find((k) => k.id === klasorId)!, klasorler)}" klasörüne taşınacak.`}
               </p>
             )}
           </div>
@@ -388,7 +395,21 @@ export function DuzenleDialog({
           <div className="pt-1">
             <button
               type="button"
-              onClick={() => setHatirlaticiAcik((v) => !v)}
+                            onClick={() => {
+                setHatirlaticiAcik((v) => {
+                  const yeni = !v;
+                  // Acilirken deger bossa "simdi + 1 saat" ile doldur (kutu bos gorunmesin).
+                  if (yeni && !hatirlatmaZamani) {
+                    const d = new Date();
+                    d.setHours(d.getHours() + 1);
+                    const pad = (n: number) => String(n).padStart(2, "0");
+                    setHatirlatmaZamani(
+                      `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+                    );
+                  }
+                  return yeni;
+                });
+              }}
               className={cn(
                 "w-full flex items-center justify-between gap-3 rounded-xl border px-4 py-3 transition-all",
                 hatirlaticiAcik
@@ -513,6 +534,28 @@ export function DetayDialog({
     queryFn: () => notApi.gecmis(not.id),
     enabled: open,
   });
+  const qc = useQueryClient();
+  const { data: detayKlasorler } = useQuery({
+    queryKey: ["klasorler"],
+    queryFn: klasorApi.list,
+    enabled: open,
+  });
+  const detayTasi = useMutation({
+    mutationFn: (klasorId: string | null) =>
+      notApi.update(not.id, {
+        baslik: not.baslik,
+        icerik: not.icerik,
+        klasorId,
+        hatirlatmaSil: false,
+        degisiklikAciklamasi: null,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["notlar"] });
+      qc.invalidateQueries({ queryKey: ["klasorler"] });
+      toast.success("Klasör güncellendi");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -597,22 +640,51 @@ function GecmisSatiri({ g }: { g: NotGecmisi }) {
   );
 }
 
-// Klasör badge — kategorize / değil
-function KlasorBadge({ klasorAdi }: { klasorAdi: string | null }) {
-  if (klasorAdi) {
-    return (
-      <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full bg-terracotta/12 text-terracotta-dark font-medium text-[10px] sm:text-[11px] leading-none">
-        <FolderHeart className="h-2.5 w-2.5 sm:h-3 sm:w-3" strokeWidth={2} />
-        <span className="truncate max-w-[100px] sm:max-w-[140px]">{klasorAdi}</span>
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full bg-cream-200 dark:bg-ink-800 text-clay-500 dark:text-ink-200 font-medium text-[10px] sm:text-[11px] leading-none">
-      <Tag className="h-2.5 w-2.5 sm:h-3 sm:w-3" strokeWidth={2} />
-      <span className="hidden sm:inline">Kategorize edilmedi</span>
-      <span className="sm:hidden">Kategorisiz</span>
+// Klasor badge - bekleyen notta tiklanabilir (KlasorSecici ile tasima + yeni klasor); tamamlanan notta salt gosterim.
+function KlasorBadge({
+  not,
+  klasorler,
+  onTasi,
+}: {
+  not: Not;
+  klasorler: Klasor[] | undefined;
+  onTasi: (klasorId: string | null) => void;
+}) {
+  const doluGorunum = (
+    <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full bg-terracotta/12 text-terracotta-dark font-medium text-[10px] sm:text-[11px] leading-none">
+      <FolderHeart className="h-2.5 w-2.5 sm:h-3 sm:w-3" strokeWidth={2} />
+      <span className="truncate max-w-[100px] sm:max-w-[140px]">{not.klasorAdi}</span>
     </span>
+  );
+
+  // Tamamlanan not: Tamamlananlar sistem klasorunde, tasima yok (defense in depth: backend de NOT_TAMAMLANMIS_DUZENLENEMEZ reddeder).
+  if (not.tamamlandi) {
+    if (!not.klasorAdi) return null;
+    return doluGorunum;
+  }
+
+  const doluTetik = (
+    <button type="button" className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full bg-terracotta/12 text-terracotta-dark font-medium text-[10px] sm:text-[11px] leading-none hover:bg-terracotta/20 transition-colors cursor-pointer data-[state=open]:bg-terracotta/25">
+      <FolderHeart className="h-2.5 w-2.5 sm:h-3 sm:w-3" strokeWidth={2} />
+      <span className="truncate max-w-[100px] sm:max-w-[140px]">{not.klasorAdi}</span>
+    </button>
+  );
+
+  const bosTetik = (
+    <button type="button" className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full border border-dashed border-clay-300 dark:border-ink-600 text-clay-400 dark:text-ink-300 font-medium text-[10px] sm:text-[11px] leading-none hover:border-terracotta hover:text-terracotta transition-colors cursor-pointer data-[state=open]:border-terracotta data-[state=open]:text-terracotta">
+      <Plus className="h-2.5 w-2.5 sm:h-3 sm:w-3" strokeWidth={2.5} />
+      <span>Klasöre ekle</span>
+    </button>
+  );
+
+  return (
+    <KlasorSecici
+      value={not.klasorId}
+      onChange={onTasi}
+      klasorler={klasorler ?? []}
+      klasorEtiketi={(k) => klasorEtiketi(k, klasorler)}
+      tetik={not.klasorAdi ? doluTetik : bosTetik}
+    />
   );
 }
 
@@ -655,6 +727,30 @@ export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { n
     enabled: !!not.hatirlatmaZamani,
     staleTime: 60_000,
   });
+  const { data: kartKlasorler } = useQuery({
+    queryKey: ["klasorler"],
+    queryFn: klasorApi.list,
+  });
+
+  // Klasore tasima (badge/detay uzerinden anlik). 1a: mevcut degerleri aynen gecir, sadece klasorId degisir;
+  // hatirlatma alanlari gonderilmez -> backend hatirlaticiyi korur (hatirlatmaSil:false).
+  const tasima = useMutation({
+    mutationFn: (klasorId: string | null) =>
+      notApi.update(not.id, {
+        baslik: not.baslik,
+        icerik: not.icerik,
+        klasorId,
+        hatirlatmaSil: false,
+        degisiklikAciklamasi: null,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["notlar"] });
+      qc.invalidateQueries({ queryKey: ["klasorler"] });
+      toast.success("Klasör güncellendi");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
   const hatirlatmaKisaTarih = not.hatirlatmaZamani
     ? new Date(not.hatirlatmaZamani).toLocaleString("tr-TR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
     : "";
@@ -792,7 +888,7 @@ export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { n
           {/* Alt satır: [Klasör] [aksiyon ikonlar] · okuyanlar (mobilde de görünür) */}
           <div className="flex items-center gap-1.5 sm:gap-2 mt-2.5 text-[11px] sm:text-xs flex-wrap">
             {klasorBadgeGoster && (
-              <KlasorBadge klasorAdi={not.klasorAdi} />
+              <KlasorBadge not={not} klasorler={kartKlasorler} onTasi={(id) => tasima.mutate(id)} />
             )}
 
             {/* Aksiyon ikon grubu - sag kenara sabit (ml-auto + order-last): klasor uzunlugundan bagimsiz, her notta ayni X konumu */}
@@ -1097,12 +1193,28 @@ function NotSilDialog({
             </div>
           )}
 
-          {not.klasorAdi && (
+          {!not.tamamlandi ? (
+            <div className="flex items-center gap-1.5 text-xs text-clay-500 dark:text-ink-200">
+              <FolderHeart className="h-3.5 w-3.5 text-terracotta shrink-0" />
+              <span className="shrink-0">Klasör:</span>
+              <KlasorSecici
+                value={not.klasorId}
+                onChange={(id) => detayTasi.mutate(id)}
+                klasorler={detayKlasorler ?? []}
+                klasorEtiketi={(k) => klasorEtiketi(k, detayKlasorler)}
+                tetik={
+                  <button type="button" className="inline-flex items-center gap-1 font-medium text-clay-700 dark:text-ink-100 hover:text-terracotta transition-colors cursor-pointer underline decoration-dotted underline-offset-2 data-[state=open]:text-terracotta">
+                    {not.klasorAdi ?? "Klasöre ekle"}
+                  </button>
+                }
+              />
+            </div>
+          ) : not.klasorAdi ? (
             <div className="flex items-center gap-1.5 text-xs text-clay-500 dark:text-ink-200">
               <FolderHeart className="h-3.5 w-3.5 text-terracotta" />
               <span>Klasör: <span className="font-medium text-clay-700 dark:text-ink-100">{not.klasorAdi}</span></span>
             </div>
-          )}
+          ) : null}
         </div>
 
         <div className="flex flex-col-reverse sm:flex-row gap-2 mt-5 sm:justify-end">
