@@ -5,7 +5,7 @@
 import * as DM from "@radix-ui/react-dropdown-menu";
 import { useState, useRef, type ReactNode, type KeyboardEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Check, Plus, FolderHeart, X, Loader2 } from "lucide-react";
+import { Check, Plus, Folder, X, Loader2 } from "lucide-react";
 import { klasorApi } from "@/lib/api";
 import type { Klasor } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -129,7 +129,7 @@ export function KlasorSecici({
                   <span className="h-4 w-4 shrink-0 flex items-center justify-center">
                     {value === k.id && <Check className="h-4 w-4 text-terracotta" strokeWidth={2.5} />}
                   </span>
-                  <FolderHeart className="h-4 w-4 text-terracotta shrink-0" strokeWidth={2} />
+                  <Folder className="h-4 w-4 text-terracotta shrink-0" strokeWidth={2} />
                   <span className="truncate">{klasorEtiketi(k)}</span>
                 </DM.Item>
               ))}
