@@ -732,6 +732,10 @@ using (var scope = app.Services.CreateScope())
                 ON duyuru_mesaj_okunmalar (""KullaniciId"");
             CREATE INDEX IF NOT EXISTS ""IX_duyuru_mesaj_okunmalar_IsletmeId""
                 ON duyuru_mesaj_okunmalar (""IsletmeId"");
+
+            -- v20.2 - duyuru duzenleme (B1: duzenlendi rozeti; goruldu sifirlama kod tarafinda)
+            ALTER TABLE duyurular
+                ADD COLUMN IF NOT EXISTS ""GuncellemeZamani"" timestamp with time zone NULL;
         ");
         Log.Information("Şema güncellemeleri kontrol edildi (v15 multi-tenant dahil — idempotent)");
     }

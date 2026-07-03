@@ -582,6 +582,27 @@ public static class NoteEndpoints
             return Results.NoContent();
         });
 
+        // v20.2 madde 11 (B2) - NOT ILETILDI: WhatsApp paylasimi tamamlaninca frontend bildirir;
+        // YALNIZCA audit izi yazilir (davranis/veri degisikligi yok). Iptal edilen paylasim
+        // frontend'te elenir, buraya hic gelmez. Goruntuleme modu: sessiz no-op (iz kirletmez).
+        g.MapPost("/{id:guid}/iletildi", async (
+            Guid id, AppDbContext db, IUserContext uc, IAuditService audit, CancellationToken ct) =>
+        {
+            if (uc.KullaniciId is null || uc.AktifIsletmeId is null) return Results.Unauthorized();
+            if (uc.GoruntumeModu) return Results.Ok(new { ok = true, atlandi = true });
+            var tenantId = uc.AktifIsletmeId.Value;
+
+            var n = await db.Notlar.FirstOrDefaultAsync(
+                x => x.Id == id && x.IsletmeId == tenantId && !x.Silindi, ct);
+            if (n is null) return Results.NotFound();
+
+            await audit.YazAsync("not_iletildi", "not", id,
+                degisenAlanlar: System.Text.Json.JsonSerializer.Serialize(new { kanal = "whatsapp" }),
+                detay: n.Baslik, ct: ct);
+
+            return Results.Ok(new { ok = true });
+        });
+
         // ÇÖP KUTUSUNU BOŞALT — tenant-scoped. v19 Paket 3 bonus.
         // Yetki dahilindeki tüm çöp notlarını tek seferde kalıcı siler (admin tümü, üye yalnızca kendininki).
         g.MapDelete("/cop-bosalt", async (

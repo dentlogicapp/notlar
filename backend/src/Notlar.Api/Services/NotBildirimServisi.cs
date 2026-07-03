@@ -85,7 +85,7 @@ public sealed class NotBildirimServisi : INotBildirimServisi
     // sessiz saatte bile yazilir, kullanici avatar ikonunda gorur. (2) Web Push; anlik ekstra, best-effort.
     // Push hic gelmese bile in-app kaydi garanti. Tek kanala guvenmek kirilgan, cift kanal dayanikli.
     private async Task Tetikle(IEnumerable<Guid> hedefler, string baslik, string govde, string? url,
-        Guid isletmeId, string tip, Guid? notId, CancellationToken ct, bool sessizSaateTabi = true)
+        Guid isletmeId, string tip, Guid? notId, CancellationToken ct, bool sessizSaateTabi = true, string? uygulamaIciMesaj = null)  // v20.2 K3 - zil metni push'tan ayri olabilir
     {
         var hedefList = hedefler.ToList();
         if (hedefList.Count == 0) return;
@@ -100,7 +100,7 @@ public sealed class NotBildirimServisi : INotBildirimServisi
                 Tip = tip,
                 NotId = notId,
                 Baslik = baslik,
-                Mesaj = govde,
+                Mesaj = uygulamaIciMesaj ?? govde,  // v20.2 K3
             });
         }
         await _db.SaveChangesAsync(ct);
@@ -196,15 +196,18 @@ public sealed class NotBildirimServisi : INotBildirimServisi
     }
 
     // v20 - Duyuru paylasildi: alicilara cift kanal bildirim (in-app + Web Push).
-    // Metin tenant anahtarindan (duyuru_push_baslik/govde); yonetici adi bilincli ifsa edilmez
-    // (spec karari: "Bir yonetici" - katalog varsayilaninda sabit; tenant isterse degistirir).
+    // Push metni tenant anahtarindan (duyuru_push_baslik/govde); PUSH'ta yonetici adi ifsa edilmez
+    // (kilit ekrani gizliligi). v20.2 K3 (madde 4): UYGULAMA ICI (zil) metni ayri anahtardan, {kullanici_adi} dolu.
     public async Task DuyuruPaylasildi(Duyuru duyuru, IReadOnlyCollection<Guid> aliciIdler, CancellationToken ct = default)
     {
         var hedefler = aliciIdler.Where(x => x != duyuru.OlusturanKullaniciId).Distinct().ToList();
         if (hedefler.Count == 0) return;
         var (b, g) = await MetinAl(duyuru.IsletmeId, "duyuru_push_baslik", "duyuru_push_govde", ct);
         b = Doldur(b, null, null); g = Doldur(g, null, null);
-        await Tetikle(hedefler, b, g, $"/?duyuru={duyuru.Id}", duyuru.IsletmeId, "duyuru", duyuru.Id, ct);  // NotId = duyuru id (Tip ayristirici; zil tiklamasi hedefi)
+        // v20.2 K3 - zil (in-app) metni: {kullanici_adi} = duyuruyu paylasan yonetici (madde 4)
+        var (_, uygulamaIci) = await MetinAl(duyuru.IsletmeId, "duyuru_push_baslik", "duyuru_uygulama_ici_govde", ct);
+        uygulamaIci = Doldur(uygulamaIci, null, await AktorAd(duyuru.OlusturanKullaniciId, ct));
+        await Tetikle(hedefler, b, g, $"/?duyuru={duyuru.Id}", duyuru.IsletmeId, "duyuru", duyuru.Id, ct, uygulamaIciMesaj: uygulamaIci);  // NotId = duyuru id (Tip ayristirici; zil tiklamasi hedefi)
     }
 
     // v20 - Duyuru konusmasina yanit: karsi tarafa push ({kullanici_adi} = yaniti yazan).

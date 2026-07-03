@@ -146,6 +146,8 @@ export const notApi = {
   kaliciSil: (id: string) => ist<void>(`/api/notlar/${id}/kalici`, { method: "DELETE" }),
   copBosalt: () => ist<{ silinen: number }>("/api/notlar/cop-bosalt", { method: "DELETE" }),
   gecmis: (id: string) => ist<NotGecmisi[]>(`/api/notlar/${id}/gecmis`),
+  iletildi: (id: string) =>  // v20.2 madde 11 (B2) - WhatsApp paylasim audit izi
+    ist<{ ok: boolean }>(`/api/notlar/${id}/iletildi`, { method: "POST" }),
 };
 
 export const bildirimApi = {
@@ -507,4 +509,6 @@ export const duyuruApi = {
     ist<{ ok: boolean }>(`/api/duyurular/${id}/mesajlar/${mesajId}`, { method: "DELETE" }),
   mesajGoruldu: (id: string, mesajIdler: string[]) =>
     ist<{ ok: boolean }>(`/api/duyurular/${id}/mesaj-goruldu`, { method: "POST", body: JSON.stringify({ mesajIdler }) }),
+  duzenle: (id: string, icerik: string) =>  // v20.2 madde 6 - kaydedince backend goruldu sifirlar
+    ist<{ ok: boolean; guncellemeZamani?: string; degisiklikYok?: boolean }>(`/api/duyurular/${id}`, { method: "PUT", body: JSON.stringify({ icerik }) }),
 };

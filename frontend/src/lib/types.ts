@@ -342,6 +342,7 @@ export interface DuyuruOzet {
   benGormedimMesajSayisi: number;          // v20.1 - banner: okumadigim yanit sayisi
   sonMesajGonderenAdSoyad: string | null;  // v20.1 - banner kayar yazi aktoru
   sonMesajZamani: string | null;           // v20.1 - en yeni olay karsilastirmasi
+  guncellemeZamani: string | null;         // v20.2 B1 - duzenlendi rozeti
 }
 
 export interface DuyuruAlici {
@@ -370,6 +371,7 @@ export interface DuyuruDetay {
   olusturmaZamani: string;
   alicilar: DuyuruAlici[];
   mesajlar: DuyuruMesaj[];
+  guncellemeZamani: string | null;         // v20.2 B1 - duzenlendi rozeti
 }
 
 // v20.1 - mesaj goren kaydi (K2: yalniz mesaj sahibi + duyuru sahibi gorur)

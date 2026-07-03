@@ -55,7 +55,8 @@ public static class DuyuruEndpoints
                             .Select(k => k.AdSoyad).FirstOrDefault())
                         .FirstOrDefault(),
                     db.DuyuruMesajlari.Where(m => m.DuyuruId == d.Id)
-                        .Max(m => (DateTimeOffset?)m.OlusturmaZamani)))
+                        .Max(m => (DateTimeOffset?)m.OlusturmaZamani),
+                    d.GuncellemeZamani))
                 .ToListAsync(ct);
 
             return Results.Ok(liste);
@@ -81,6 +82,7 @@ public static class DuyuruEndpoints
                 .Where(a => a.DuyuruId == id)
                 .Join(db.Kullanicilar, a => a.KullaniciId, k => k.Id,
                     (a, k) => new DuyuruAliciYaniti(a.KullaniciId, k.AdSoyad, a.Goruldu, a.GorulmeZamani))
+                .OrderByDescending(x => x.Goruldu).ThenBy(x => x.GorulmeZamani)  // v20.2 madde 7 - gorenler kronolojik once, gormeyenler sonda
                 .ToListAsync(ct);
 
             var mesajlarHam = await db.DuyuruMesajlari
@@ -124,7 +126,7 @@ public static class DuyuruEndpoints
 
             return Results.Ok(new DuyuruDetayYaniti(
                 d.Id, d.Icerik, d.AliciTipi, d.OlusturanKullaniciId, olusturanAd,
-                d.OlusturmaZamani, alicilar, mesajlar));
+                d.OlusturmaZamani, alicilar, mesajlar, d.GuncellemeZamani));
         });
 
         // OLUSTUR - yonetici duyuru paylasir (yetki otoritesi DB uyelik rolu; GoruntumeModu 403)
@@ -194,6 +196,46 @@ public static class DuyuruEndpoints
             await bildirim.DuyuruPaylasildi(d, aliciIdler, ct);
 
             return Results.Created($"/api/duyurular/{d.Id}", new { id = d.Id, olusturmaZamani = d.OlusturmaZamani });
+        });
+
+        // v20.2 - DUZENLE (madde 6): YALNIZ sahibi. Icerik degisince goruldu listesi
+        // SIFIRLANIR (not duzenleme mantigi): alicilar yeniden gorecek, avatarlar bastan.
+        // Mesaj okunmalari KORUNUR (mesajlar degismedi). Icerik + sifirlama tek SaveChanges
+        // (atomik); audit ardindan (duyuru_duzenlendi -> SSE otomatik).
+        g.MapPut("/{id:guid}", async (
+            Guid id, DuyuruDuzenleIstegi req, AppDbContext db, IUserContext uc,
+            IAuditService audit, CancellationToken ct) =>
+        {
+            if (uc.KullaniciId is null || uc.AktifIsletmeId is null) return Results.Unauthorized();
+            if (uc.GoruntumeModu) return Results.StatusCode(403);
+            var tenantId = uc.AktifIsletmeId.Value;
+            var kid = uc.KullaniciId.Value;
+
+            var icerik = (req.Icerik ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(icerik))
+                return Results.BadRequest(new { hata = "ICERIK_ZORUNLU", mesaj = "Duyuru metni zorunlu." });
+            if (icerik.Length > IcerikLimit)
+                return Results.BadRequest(new { hata = "ICERIK_UZUN", mesaj = "Duyuru metni en fazla 500 karakter olabilir." });
+
+            var esik = DateTimeOffset.UtcNow.AddHours(-TtlSaat);
+            var d = await db.Duyurular
+                .FirstOrDefaultAsync(x => x.Id == id && x.IsletmeId == tenantId && x.OlusturmaZamani > esik, ct);
+            if (d is null) return Results.NotFound();
+            if (d.OlusturanKullaniciId != kid) return Results.StatusCode(403);
+            if (d.Icerik == icerik) return Results.Ok(new { ok = true, degisiklikYok = true });
+
+            d.Icerik = icerik;
+            d.GuncellemeZamani = DateTimeOffset.UtcNow;  // B1 - "(duzenlendi)" rozeti
+            var alicilar = await db.DuyuruAlicilari.Where(a => a.DuyuruId == id).ToListAsync(ct);
+            foreach (var a in alicilar) { a.Goruldu = false; a.GorulmeZamani = null; }
+            await db.SaveChangesAsync(ct);  // icerik + goruldu sifirlama atomik
+
+            var kirp = icerik.Length <= 120 ? icerik : icerik.Substring(0, 120).TrimEnd() + "...";
+            await audit.YazAsync("duyuru_duzenlendi", "duyuru", id,
+                degisenAlanlar: JsonSerializer.Serialize(new { gorulduSifirlandi = alicilar.Count }),
+                detay: kirp, ct: ct);
+
+            return Results.Ok(new { ok = true, guncellemeZamani = d.GuncellemeZamani });
         });
 
         // GORULDU (duyuru ana metni) - not_okundu deseni: sessiz no-op, audit yok, manuel SSE
@@ -398,6 +440,7 @@ public static class DuyuruEndpoints
 // DTO'lar (endpoint dosyasinda; SuperAdminIsletmeEndpoints record deseni)
 public sealed record DuyuruOlusturIstegi(string Icerik, string AliciTipi, List<Guid>? AliciIdler);
 public sealed record DuyuruYanitIstegi(string Icerik);
+public sealed record DuyuruDuzenleIstegi(string Icerik);  // v20.2 madde 6
 public sealed record DuyuruMesajGorulduIstegi(List<Guid>? MesajIdler);  // v20.1
 
 public sealed record DuyuruAliciYaniti(Guid KullaniciId, string AdSoyad, bool Goruldu, DateTimeOffset? GorulmeZamani);
@@ -412,10 +455,11 @@ public sealed record DuyuruMesajYaniti(
 public sealed record DuyuruOzetYaniti(
     Guid Id, string Icerik, string AliciTipi, Guid OlusturanKullaniciId, string OlusturanAdSoyad,
     DateTimeOffset OlusturmaZamani, int AliciSayisi, int GorenSayisi, bool BenGordum, int MesajSayisi,
-    int BenGormedimMesajSayisi, string? SonMesajGonderenAdSoyad, DateTimeOffset? SonMesajZamani);
+    int BenGormedimMesajSayisi, string? SonMesajGonderenAdSoyad, DateTimeOffset? SonMesajZamani, DateTimeOffset? GuncellemeZamani);
 
 public sealed record DuyuruDetayYaniti(
     Guid Id, string Icerik, string AliciTipi, Guid OlusturanKullaniciId, string OlusturanAdSoyad,
     DateTimeOffset OlusturmaZamani,
     IReadOnlyList<DuyuruAliciYaniti> Alicilar,
-    IReadOnlyList<DuyuruMesajYaniti> Mesajlar);
+    IReadOnlyList<DuyuruMesajYaniti> Mesajlar,
+    DateTimeOffset? GuncellemeZamani);

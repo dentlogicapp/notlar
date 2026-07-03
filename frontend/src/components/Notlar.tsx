@@ -20,6 +20,7 @@ import { Input, Textarea, Label } from "./ui/input";
 import { Checkbox } from "./ui/checkbox";
 import { KlasorSecici } from "./KlasorSecici";
 import { klasorEtiketi } from "@/lib/klasor";
+import { NotIletButonu } from "./NotIlet";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
   DialogClose, DialogDescription
@@ -847,13 +848,17 @@ export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { n
         />
         <div className="flex-1 min-w-0">
           {/* Üst satır: oluşturan bilgisi (başlığın bir üstünde, sağa yaslı; başlığı daraltmaz). Sıra: avatar, ad, zaman */}
-          <div className="flex items-center justify-end gap-1.5 mb-1 text-[11px] text-clay-400 dark:text-ink-300">
+          <div className="flex items-center justify-between gap-2 mb-3 text-[11px] text-clay-400 dark:text-ink-300">
+            {/* v20.2 madde 11 - klasor SOL UST kosede; alt-soldaki eski yeri A4'te WhatsApp iletimine acilir */}
+            {klasorBadgeGoster ? <KlasorBadge not={not} klasorler={kartKlasorler} onTasi={(id) => tasima.mutate(id)} /> : <span />}
+            <span className="flex items-center gap-1.5 min-w-0">
             <span className="h-4 w-4 rounded-full bg-clay-200 dark:bg-ink-700 text-clay-700 dark:text-ink-100 inline-flex items-center justify-center text-[8px] font-medium shrink-0">
               {bastari(not.olusturanAdSoyad)}
             </span>
             <span className="truncate">{not.olusturanAdSoyad.split(" ")[0]}</span>
             <span className="text-clay-300 dark:text-ink-400">·</span>
             <span className="shrink-0" title={`Oluşturma: ${tarihFormat(not.olusturmaZamani)}`}>{gorelizamandan(not.guncellemeZamani)}</span>
+            </span>
           </div>
           {/* Başlık: tam genişlik, daralmaz */}
           <h4 className={cn(
@@ -886,10 +891,9 @@ export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { n
           )}
 
           {/* Alt satır: [Klasör] [aksiyon ikonlar] · okuyanlar (mobilde de görünür) */}
-          <div className="flex items-center gap-2.5 sm:gap-3.5 mt-2.5 text-[11px] sm:text-xs flex-wrap">
-            {klasorBadgeGoster && (
-              <KlasorBadge not={not} klasorler={kartKlasorler} onTasi={(id) => tasima.mutate(id)} />
-            )}
+          <div className="flex items-center gap-2.5 sm:gap-3.5 mt-3.5 text-[11px] sm:text-xs flex-wrap">
+            {/* v20.2 madde 11 - WhatsApp ilet (klasorden bosalan sol alan; snapshot + derin link) */}
+            <NotIletButonu notId={not.id} baslik={not.baslik} ikonSinifi={IKON_BUTON} />
 
             {/* Aksiyon ikon grubu - sag kenara sabit (ml-auto + order-last): klasor uzunlugundan bagimsiz, her notta ayni X konumu */}
             <div className="flex items-center gap-0 -my-1 ml-auto order-last">
@@ -973,7 +977,7 @@ export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { n
                   className="flex items-center gap-1 px-1 py-0.5 rounded-md hover:bg-cream-200 dark:hover:bg-ink-800 transition-colors"
                 >
                   <span className="flex -space-x-1.5">
-                    {okuyanlarGosterilen.slice(0, 3).map((o) => (
+                    {okuyanlarGosterilen.slice(0, 2).map((o) => (
                       <span
                         key={o.kullaniciId}
                         title={o.adSoyad}
@@ -983,8 +987,8 @@ export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { n
                       </span>
                     ))}
                   </span>
-                  {okuyanlarGosterilen.length > 3 && (
-                    <span className="text-[10px] text-clay-400 dark:text-ink-300">+{okuyanlarGosterilen.length - 3}</span>
+                  {okuyanlarGosterilen.length > 2 && (
+                    <span className="text-[10px] text-clay-400 dark:text-ink-300">+{okuyanlarGosterilen.length - 2}</span>
                   )}
                 </button>
                 {okuyanlarAcik && (
@@ -1083,7 +1087,7 @@ export function NotListesi({
 
   // Baslik + arama satiri - her durumda gorunur; arama yazarken mobil klavyenin notlari ortmemesi icin yapiskan ust
   const baslikSatiri = baslik !== undefined ? (
-    <div className="sticky top-0 z-20 -mx-1 px-1 pt-1 pb-2 mb-2 bg-cream-100/95 dark:bg-ink-900/95 backdrop-blur-sm flex items-center gap-2 sm:gap-3">
+    <div className="sticky top-0 z-20 -mx-1 px-1 pt-1 pb-2 mb-2 bg-cream-100/85 dark:bg-ink-800/85 backdrop-blur-md flex items-center gap-2 sm:gap-3">
       <h2 className="font-display text-lg sm:text-xl text-clay-900 dark:text-ink-50 shrink-0">{baslik}</h2>
       <AramaKutusu deger={aramaTerimi} onDegis={setAramaTerimi} />
     </div>
@@ -1187,7 +1191,7 @@ function NotSilDialog({
           {not.icerik && (
             <div className="rounded-lg border border-cream-300 dark:border-ink-700 bg-cream-50 dark:bg-ink-900 px-3 py-2">
               <p className="text-[11px] uppercase tracking-wider text-clay-400 dark:text-ink-300 mb-1">İçerik önizleme</p>
-              <p className="text-sm text-clay-700 dark:text-ink-100 line-clamp-3 leading-relaxed whitespace-pre-wrap">
+              <p className="text-sm text-clay-700 dark:text-ink-100 line-clamp-3 leading-relaxed whitespace-pre-wrap text-justify hyphens-auto">
                 {icerikTireli(not.icerik)}
               </p>
             </div>

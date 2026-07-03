@@ -35,11 +35,10 @@ export const DialogContent = forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%]",
+        "fixed left-[50%] top-[50%] z-50 grid w-[calc(100%-1.5rem)] max-w-lg translate-x-[-50%] translate-y-[-50%]",  // v20.2 madde 8: iki yanda esit 12px
         "gap-4 bg-white dark:bg-ink-850 p-6 sm:p-8 shadow-xl rounded-2xl border border-clay-100 dark:border-ink-700",
         "data-[state=open]:animate-fade-in",
-        "max-h-[90vh] overflow-y-auto",
-        "mx-4",
+        "max-h-[calc(100dvh-2rem)] overflow-y-auto",  // v20.2 B3: dinamik viewport (PWA alt bar/centik tasmasi biter)
         className
       )}
       {...props}
@@ -78,7 +77,7 @@ export const DialogDescription = forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
     ref={ref}
-    className={cn("text-sm text-clay-500 dark:text-ink-200", className)}
+    className={cn("text-sm text-clay-500 dark:text-ink-200 text-justify hyphens-auto", className)}
     {...props}
   />
 ));

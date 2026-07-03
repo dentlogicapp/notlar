@@ -7,7 +7,7 @@ public static class AnahtarKatalogu
 {
     // SemVer: yeni anahtar -> minor (1.1.0); tip/limit breaking -> major (2.0.0);
     // dokumantasyon (etiket/yonlendirme/aciklama) -> patch (1.0.1).
-    public const string Version = "1.6.1";
+    public const string Version = "1.7.0";
 
     public static readonly IReadOnlyList<AnahtarTanim> Tumu = new[]
     {
@@ -59,9 +59,9 @@ public static class AnahtarKatalogu
         AnahtarTanim.Tanim("duyuru_form_placeholder")
             .Kategori(Kategori.Dashboard).Tip(AlanTipi.PlaceholderKisa)
             .Etiket("Duyuru Paylaş Form İpucu")
-            .Yonlendirme("Yönetici duyuru kutusunda gösterilecek soluk ipucu. (Örn: 'Kullanıcılar ile paylaşmak için bir duyuru yazın...')")
+            .Yonlendirme("Yönetici duyuru kutusunda gösterilecek soluk ipucu. (Örn: 'Kullanıcılar ile paylaşmak için bir duyuru yaz...')")
             .Aciklama("Ana sayfada yalnızca yöneticilerin gördüğü duyuru paylaşma kutusunda görünür.")
-            .Sira(130).Varsayilan("Kullanıcılar ile paylaşmak için bir duyuru yazın...").Build(),
+            .Sira(130).Varsayilan("Kullanıcılar ile paylaşmak için bir duyuru yaz...").Build(),
 
         // --- SAYAC ---
         AnahtarTanim.Tanim("sayac_aktif")
@@ -198,6 +198,14 @@ public static class AnahtarKatalogu
             .Yonlendirme("Duyuru bildiriminin mesaj satırı. Yönetici adı bilinçli olarak gizli tutulur.")
             .Aciklama("Push gövdesi; 'Planlama Defteri' satırı otomatik üstte yer alır.")
             .Sira(530).Varsayilan("'Bir yönetici' tarafından bir duyuru paylaşıldı. Hemen göz atmak için tıkla!").Build(),
+
+        AnahtarTanim.Tanim("duyuru_uygulama_ici_govde")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Metin)
+            .Placeholderlar("kullanici_adi")
+            .Etiket("Duyuru Paylaşıldı - Uygulama İçi Metin")
+            .Yonlendirme("Zil menüsündeki (uygulama içi) duyuru bildirimi. {kullanici_adi} duyuruyu paylaşan yönetici ile değişir.")
+            .Aciklama("Push bildirimi gizlilik için yönetici adını vermez; uygulama içi bildirim adı gösterir (v20.2 madde 4).")
+            .Sira(535).Varsayilan("\"{kullanici_adi}\" tarafından bir duyuru paylaşıldı. Hemen görmek için tıkla!").Build(),
 
         AnahtarTanim.Tanim("duyuru_yanit_push_baslik")
             .Kategori(Kategori.Bildirim).Tip(AlanTipi.Baslik)

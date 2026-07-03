@@ -374,6 +374,7 @@ public sealed class Duyuru
     public required string Icerik { get; set; }          // duyuru metni (max 500, Bildirim.Mesaj ile uyumlu)
     public string AliciTipi { get; set; } = "tum";       // "tum" | "secili" (detay ekrani gosterimi)
     public DateTimeOffset OlusturmaZamani { get; set; } = DateTimeOffset.UtcNow;  // 24 saat TTL tabani
+    public DateTimeOffset? GuncellemeZamani { get; set; }              // v20.2 B1 - "(duzenlendi)" rozeti; duzenlemede goruldu sifirlanir
 }
 
 // v20 - Duyuru alicisi + goruldu takibi (NotOkunma goruldu deseni)
