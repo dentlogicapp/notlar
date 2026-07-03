@@ -22,6 +22,10 @@ public sealed class AppDbContext : DbContext
     public DbSet<MetinAnahtari> MetinAnahtarlari => Set<MetinAnahtari>();
     public DbSet<KullaniciCihaz> KullaniciCihazlari => Set<KullaniciCihaz>();  // v18 Asama 17.3
     public DbSet<ErtelenenBildirim> ErtelenenBildirimler => Set<ErtelenenBildirim>();  // v19 4d - sessiz saat kuyrugu
+    // v20 - Duyuru Paylasimi
+    public DbSet<Duyuru> Duyurular => Set<Duyuru>();
+    public DbSet<DuyuruAlicisi> DuyuruAlicilari => Set<DuyuruAlicisi>();
+    public DbSet<DuyuruMesaji> DuyuruMesajlari => Set<DuyuruMesaji>();
     // v17 - AI saglayici ayari (singleton)
     public DbSet<AiAyari> AiAyarlari => Set<AiAyari>();
 
@@ -279,6 +283,42 @@ public sealed class AppDbContext : DbContext
             e.HasOne<Isletme>().WithMany().HasForeignKey(x => x.IsletmeId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => new { x.NotId, x.KullaniciId }).IsUnique();
             e.HasIndex(x => x.IsletmeId);
+        });
+
+        // v20 - Duyuru Paylasimi: duyuru + alici (goruldu) + konusma zinciri.
+        // Duyuru silinince alici + mesaj cascade (TTL temizligi tek DELETE).
+        m.Entity<Duyuru>(e =>
+        {
+            e.ToTable("duyurular");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Icerik).HasMaxLength(500).IsRequired();
+            e.Property(x => x.AliciTipi).HasMaxLength(10).IsRequired();
+            e.HasOne<Isletme>().WithMany().HasForeignKey(x => x.IsletmeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Kullanici>().WithMany().HasForeignKey(x => x.OlusturanKullaniciId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.IsletmeId, x.OlusturmaZamani });
+        });
+
+        m.Entity<DuyuruAlicisi>(e =>
+        {
+            e.ToTable("duyuru_alicilari");
+            e.HasKey(x => x.Id);
+            e.HasOne(x => x.Duyuru).WithMany().HasForeignKey(x => x.DuyuruId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Kullanici>().WithMany().HasForeignKey(x => x.KullaniciId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Isletme>().WithMany().HasForeignKey(x => x.IsletmeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.DuyuruId, x.KullaniciId }).IsUnique();
+            e.HasIndex(x => new { x.KullaniciId, x.Goruldu });
+            e.HasIndex(x => x.IsletmeId);
+        });
+
+        m.Entity<DuyuruMesaji>(e =>
+        {
+            e.ToTable("duyuru_mesajlari");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Icerik).HasMaxLength(500).IsRequired();
+            e.HasOne(x => x.Duyuru).WithMany().HasForeignKey(x => x.DuyuruId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Kullanici>().WithMany().HasForeignKey(x => x.GonderenKullaniciId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Isletme>().WithMany().HasForeignKey(x => x.IsletmeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.DuyuruId, x.OlusturmaZamani });
         });
 
         // v19 4d - sessiz saat ertelenmis push kuyrugu

@@ -7,7 +7,7 @@ public static class AnahtarKatalogu
 {
     // SemVer: yeni anahtar -> minor (1.1.0); tip/limit breaking -> major (2.0.0);
     // dokumantasyon (etiket/yonlendirme/aciklama) -> patch (1.0.1).
-    public const string Version = "1.4.1";
+    public const string Version = "1.6.0";
 
     public static readonly IReadOnlyList<AnahtarTanim> Tumu = new[]
     {
@@ -55,6 +55,13 @@ public static class AnahtarKatalogu
             .Yonlendirme("Yeni not ekleme kutusunda kullanıcıya gösterilecek soluk ipucu. (Örn: 'Bir hatıra düşün...', 'Bir dosya notu ekle...', 'Bir menü fikri yaz...')")
             .Aciklama("Ana sayfada büyük not ekleme kutusunda görünür.")
             .Sira(120).Varsayilan("Aklına geleni not al...").Build(),
+
+        AnahtarTanim.Tanim("duyuru_form_placeholder")
+            .Kategori(Kategori.Dashboard).Tip(AlanTipi.PlaceholderKisa)
+            .Etiket("Duyuru Paylaş Form İpucu")
+            .Yonlendirme("Yönetici duyuru kutusunda gösterilecek soluk ipucu. (Örn: 'Kullanıcılara göndermek için bir duyuru yaz...')")
+            .Aciklama("Ana sayfada yalnızca yöneticilerin gördüğü duyuru paylaşma kutusunda görünür.")
+            .Sira(130).Varsayilan("Kullanıcılara göndermek için bir duyuru yaz...").Build(),
 
         // --- SAYAC ---
         AnahtarTanim.Tanim("sayac_aktif")
@@ -177,6 +184,35 @@ public static class AnahtarKatalogu
             .Yonlendirme("{kullanici_adi} ekibe katılan kişinin adı ile değişir.")
             .Aciklama("Push gövdesi; 'Planlama Defteri' satırı otomatik üstte yer alır.")
             .Sira(510).Varsayilan("\"{kullanici_adi}\" ekibe katıldı. Ekibimiz büyüyor!").Build(),
+
+        AnahtarTanim.Tanim("duyuru_push_baslik")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Baslik)
+            .Etiket("Duyuru Paylaşıldı - Başlık")
+            .Yonlendirme("Yönetici duyuru paylaştığında alıcılara düşen bildirimin başlığı.")
+            .Aciklama("Seçili alıcılara veya tüm üyelere gönderilir.")
+            .Sira(520).Varsayilan("Duyuru Paylaşıldı").Build(),
+
+        AnahtarTanim.Tanim("duyuru_push_govde")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Metin)
+            .Etiket("Duyuru Paylaşıldı - Metin")
+            .Yonlendirme("Duyuru bildiriminin mesaj satırı. Yönetici adı bilinçli olarak gizli tutulur.")
+            .Aciklama("Push gövdesi; 'Planlama Defteri' satırı otomatik üstte yer alır.")
+            .Sira(530).Varsayilan("'Bir yönetici' tarafından bir duyuru paylaşıldı. Hemen göz atmak için tıkla!").Build(),
+
+        AnahtarTanim.Tanim("duyuru_yanit_push_baslik")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Baslik)
+            .Etiket("Duyuruya Yanıt - Başlık")
+            .Yonlendirme("Duyuru konuşmasına yanıt yazıldığında karşı tarafa düşen bildirimin başlığı.")
+            .Aciklama("Alıcı yazarsa duyuru sahibine, sahibi yazarsa konuşmadaki üyelere gider.")
+            .Sira(540).Varsayilan("Duyuruya Yanıt").Build(),
+
+        AnahtarTanim.Tanim("duyuru_yanit_push_govde")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Metin)
+            .Placeholderlar("kullanici_adi")
+            .Etiket("Duyuruya Yanıt - Metin")
+            .Yonlendirme("{kullanici_adi} yanıtı yazan kişi ile değişir.")
+            .Aciklama("Push gövdesi; 'Planlama Defteri' satırı otomatik üstte yer alır.")
+            .Sira(550).Varsayilan("\"{kullanici_adi}\" duyuru konuşmasına yanıt yazdı. Hemen göz atmak için tıkla!").Build(),
 
         AnahtarTanim.Tanim("mail_tonu")
             .Kategori(Kategori.Mail).Tip(AlanTipi.PlaceholderKisa)

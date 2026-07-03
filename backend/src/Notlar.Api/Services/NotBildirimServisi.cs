@@ -23,6 +23,9 @@ public interface INotBildirimServisi
     Task UyeKatildi(Guid isletmeId, Kullanici yeniUye, CancellationToken ct = default);
     Task HatirlaticiZamani(Not not, IReadOnlyCollection<Guid> hedefler, CancellationToken ct = default);
     Task TestGonder(Guid isletmeId, Guid adminId, string olay, CancellationToken ct = default);
+    // v20 - Duyuru Paylasimi bildirimleri
+    Task DuyuruPaylasildi(Duyuru duyuru, IReadOnlyCollection<Guid> aliciIdler, CancellationToken ct = default);
+    Task DuyuruYanitlandi(Duyuru duyuru, Guid gonderenId, IReadOnlyCollection<Guid> hedefler, CancellationToken ct = default);
 }
 
 public sealed class NotBildirimServisi : INotBildirimServisi
@@ -190,5 +193,28 @@ public sealed class NotBildirimServisi : INotBildirimServisi
         b = Doldur(b, "Örnek Not", "Bir üye");
         g = Doldur(g, "Örnek Not", "Bir üye");
         await _push.GonderAsync(adminId, b, g, "/", false, ct);
+    }
+
+    // v20 - Duyuru paylasildi: alicilara cift kanal bildirim (in-app + Web Push).
+    // Metin tenant anahtarindan (duyuru_push_baslik/govde); yonetici adi bilincli ifsa edilmez
+    // (spec karari: "Bir yonetici" - katalog varsayilaninda sabit; tenant isterse degistirir).
+    public async Task DuyuruPaylasildi(Duyuru duyuru, IReadOnlyCollection<Guid> aliciIdler, CancellationToken ct = default)
+    {
+        var hedefler = aliciIdler.Where(x => x != duyuru.OlusturanKullaniciId).Distinct().ToList();
+        if (hedefler.Count == 0) return;
+        var (b, g) = await MetinAl(duyuru.IsletmeId, "duyuru_push_baslik", "duyuru_push_govde", ct);
+        b = Doldur(b, null, null); g = Doldur(g, null, null);
+        await Tetikle(hedefler, b, g, $"/?duyuru={duyuru.Id}", duyuru.IsletmeId, "duyuru", duyuru.Id, ct);  // NotId = duyuru id (Tip ayristirici; zil tiklamasi hedefi)
+    }
+
+    // v20 - Duyuru konusmasina yanit: karsi tarafa push ({kullanici_adi} = yaniti yazan).
+    public async Task DuyuruYanitlandi(Duyuru duyuru, Guid gonderenId, IReadOnlyCollection<Guid> hedefler, CancellationToken ct = default)
+    {
+        var liste = hedefler.Where(x => x != gonderenId).Distinct().ToList();
+        if (liste.Count == 0) return;
+        var (b, g) = await MetinAl(duyuru.IsletmeId, "duyuru_yanit_push_baslik", "duyuru_yanit_push_govde", ct);
+        var ad = await AktorAd(gonderenId, ct);
+        b = Doldur(b, null, ad); g = Doldur(g, null, ad);
+        await Tetikle(liste, b, g, $"/?duyuru={duyuru.Id}", duyuru.IsletmeId, "duyuru_yanit", duyuru.Id, ct);  // NotId = duyuru id (Tip ayristirici; zil tiklamasi hedefi)
     }
 }

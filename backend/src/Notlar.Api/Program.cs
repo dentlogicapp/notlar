@@ -76,6 +76,7 @@ builder.Services.AddHostedService<CopKutusuTemizleyici>();
 builder.Services.AddHostedService<HatirlaticiKontrolcusu>();
 builder.Services.AddHostedService<InaktifTenantTarayici>();  // v19 B8 - hareketsiz tenant gunluk tarama
 builder.Services.AddHostedService<SessizSaatBosaltici>();    // v19 4d - sessiz saat kuyrugu bosaltma
+builder.Services.AddHostedService<DuyuruTemizleyici>();     // v20 - duyuru gecici veri temizligi (cift kosul + audit)
 
 // JWT
 var jwtSecret = builder.Configuration["Jwt:Secret"]
@@ -678,6 +679,44 @@ using (var scope = app.Services.CreateScope())
                 ""Aciklama"" = 'Tarih ve saati seçin; sayaç bu ana kadar geri sayar.',
                 ""GuncellemeZamani"" = now()
             WHERE ""Anahtar"" = 'sayac_hedef_tarihi';
+
+            -- v20 - Duyuru Paylasimi (gecici veri: 24 saat mutlak TTL; kalici kayit audit'te)
+            CREATE TABLE IF NOT EXISTS duyurular (
+                ""Id"" uuid PRIMARY KEY,
+                ""IsletmeId"" uuid NOT NULL REFERENCES isletmeler(""Id"") ON DELETE CASCADE,
+                ""OlusturanKullaniciId"" uuid NOT NULL REFERENCES kullanicilar(""Id"") ON DELETE CASCADE,
+                ""Icerik"" character varying(500) NOT NULL,
+                ""AliciTipi"" character varying(10) NOT NULL DEFAULT 'tum',
+                ""OlusturmaZamani"" timestamp with time zone NOT NULL DEFAULT now()
+            );
+            CREATE INDEX IF NOT EXISTS ""IX_duyurular_IsletmeId_OlusturmaZamani""
+                ON duyurular (""IsletmeId"", ""OlusturmaZamani"");
+
+            CREATE TABLE IF NOT EXISTS duyuru_alicilari (
+                ""Id"" uuid PRIMARY KEY,
+                ""IsletmeId"" uuid NOT NULL REFERENCES isletmeler(""Id"") ON DELETE CASCADE,
+                ""DuyuruId"" uuid NOT NULL REFERENCES duyurular(""Id"") ON DELETE CASCADE,
+                ""KullaniciId"" uuid NOT NULL REFERENCES kullanicilar(""Id"") ON DELETE CASCADE,
+                ""Goruldu"" boolean NOT NULL DEFAULT false,
+                ""GorulmeZamani"" timestamp with time zone NULL
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS ""IX_duyuru_alicilari_DuyuruId_KullaniciId""
+                ON duyuru_alicilari (""DuyuruId"", ""KullaniciId"");
+            CREATE INDEX IF NOT EXISTS ""IX_duyuru_alicilari_KullaniciId_Goruldu""
+                ON duyuru_alicilari (""KullaniciId"", ""Goruldu"");
+            CREATE INDEX IF NOT EXISTS ""IX_duyuru_alicilari_IsletmeId""
+                ON duyuru_alicilari (""IsletmeId"");
+
+            CREATE TABLE IF NOT EXISTS duyuru_mesajlari (
+                ""Id"" uuid PRIMARY KEY,
+                ""IsletmeId"" uuid NOT NULL REFERENCES isletmeler(""Id"") ON DELETE CASCADE,
+                ""DuyuruId"" uuid NOT NULL REFERENCES duyurular(""Id"") ON DELETE CASCADE,
+                ""GonderenKullaniciId"" uuid NOT NULL REFERENCES kullanicilar(""Id"") ON DELETE CASCADE,
+                ""Icerik"" character varying(500) NOT NULL,
+                ""OlusturmaZamani"" timestamp with time zone NOT NULL DEFAULT now()
+            );
+            CREATE INDEX IF NOT EXISTS ""IX_duyuru_mesajlari_DuyuruId_OlusturmaZamani""
+                ON duyuru_mesajlari (""DuyuruId"", ""OlusturmaZamani"");
         ");
         Log.Information("Şema güncellemeleri kontrol edildi (v15 multi-tenant dahil — idempotent)");
     }
@@ -836,6 +875,7 @@ app.MapTurAuditEndpoints();  // v18 Asama 19 B2 - tur analytics
 app.MapAiAyarlariEndpoints();
 app.MapMetinlerEndpoints();   // v18 - tenant icerigi   // v17 - AI saglayici ayar yonetimi + saglik
 app.MapAiAssistEndpoints();   // v18 Asama 11/12 - AI taslak oneri (saglik + taslak-oner)
+app.MapDuyuruEndpoints();     // v20 - duyuru paylasimi
 
 // v18 Asama 11.9 - Schema-as-Code: anahtar katalogu DB'ye senkronize (idempotent, migration sonrasi)
 using (var semaScope = app.Services.CreateScope())

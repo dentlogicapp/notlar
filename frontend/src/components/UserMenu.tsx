@@ -208,6 +208,12 @@ export function UserMenu() {
     // Tikla -> bu bildirim okundu (soluklasir ama listede kalir) + nota yonlendir.
     if (!b.okunduMu) okunduYap.mutate(b.id);
     setAcik(false);
+    // v20 - duyuru bildirimi: NotId = duyuru id (Tip ayristirici; bildirimler.NotId'de FK yok).
+    // Duyuru modalini URL parametresiyle acar (DuyuruAlani isler) - push tiklamasiyla ayni yol.
+    if ((b.tip === "duyuru" || b.tip === "duyuru_yanit") && b.notId) {
+      setTimeout(() => router.push(`/?duyuru=${b.notId}`), 0);
+      return;
+    }
     if (!b.notId) return;
     // Push tiklama ile ayni mantik: not tamamlanmissa Tamamlananlar klasorune,
     // degilse ana listeye yonlendir (her ikisinde de ?focus -> scroll + highlight).

@@ -326,3 +326,43 @@ export interface Cihaz {
   olusturmaZamani: string;
   sonAktiflik: string;
 }
+
+// v20 - Duyuru Paylasimi (backend DuyuruEndpoints DTO karsiliklari)
+export interface DuyuruOzet {
+  id: string;
+  icerik: string;
+  aliciTipi: "tum" | "secili";
+  olusturanKullaniciId: string;
+  olusturanAdSoyad: string;
+  olusturmaZamani: string;
+  aliciSayisi: number;
+  gorenSayisi: number;
+  benGordum: boolean;
+  mesajSayisi: number;
+}
+
+export interface DuyuruAlici {
+  kullaniciId: string;
+  adSoyad: string;
+  goruldu: boolean;
+  gorulmeZamani: string | null;
+}
+
+export interface DuyuruMesaj {
+  id: string;
+  gonderenKullaniciId: string;
+  gonderenAdSoyad: string;
+  icerik: string;
+  olusturmaZamani: string;
+}
+
+export interface DuyuruDetay {
+  id: string;
+  icerik: string;
+  aliciTipi: "tum" | "secili";
+  olusturanKullaniciId: string;
+  olusturanAdSoyad: string;
+  olusturmaZamani: string;
+  alicilar: DuyuruAlici[];
+  mesajlar: DuyuruMesaj[];
+}

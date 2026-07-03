@@ -10,6 +10,7 @@ import type {
   IsletmeOzet, IsletmeDetay, SuperAdminOzet,
   Cihaz,
 } from "./types";
+import type { DuyuruOzet, DuyuruDetay, DuyuruMesaj } from "./types";
 
 const API = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:5000";
 
@@ -489,4 +490,15 @@ export const cihazApi = {
     }),
   liste: () => ist<Cihaz[]>("/api/cihazlar"),
   sil: (id: string) => ist<{ silindi: boolean }>(`/api/cihazlar/${id}`, { method: "DELETE" }),
+};
+
+// v20 - Duyuru Paylasimi (Asama 2 endpoint sozlesmeleri; Asama 5 goruntulemenin de temeli)
+export const duyuruApi = {
+  olustur: (data: { icerik: string; aliciTipi: "tum" | "secili"; aliciIdler: string[] | null }) =>
+    ist<{ id: string; olusturmaZamani: string }>("/api/duyurular", { method: "POST", body: JSON.stringify(data) }),
+  list: () => ist<DuyuruOzet[]>("/api/duyurular"),
+  detay: (id: string) => ist<DuyuruDetay>(`/api/duyurular/${id}`),
+  goruldu: (id: string) => ist<{ ok: boolean }>(`/api/duyurular/${id}/goruldu`, { method: "POST" }),
+  yanit: (id: string, icerik: string) =>
+    ist<DuyuruMesaj>(`/api/duyurular/${id}/yanit`, { method: "POST", body: JSON.stringify({ icerik }) }),
 };

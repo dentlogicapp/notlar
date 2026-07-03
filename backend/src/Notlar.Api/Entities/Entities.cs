@@ -363,3 +363,40 @@ public sealed class ErtelenenBildirim
     public string? Url { get; set; }
     public DateTimeOffset OlusturmaZamani { get; set; } = DateTimeOffset.UtcNow;
 }
+
+// v20 - Duyuru Paylasimi: yonetici duyurusu. Gecici veri (24 saat mutlak TTL);
+// kalici kayit denetim_gunlukleri'nde tutulur (append-only audit karari).
+public sealed class Duyuru
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid IsletmeId { get; set; }                  // tenant izolasyon (zorunlu)
+    public Guid OlusturanKullaniciId { get; set; }       // duyuruyu paylasan yonetici
+    public required string Icerik { get; set; }          // duyuru metni (max 500, Bildirim.Mesaj ile uyumlu)
+    public string AliciTipi { get; set; } = "tum";       // "tum" | "secili" (detay ekrani gosterimi)
+    public DateTimeOffset OlusturmaZamani { get; set; } = DateTimeOffset.UtcNow;  // 24 saat TTL tabani
+}
+
+// v20 - Duyuru alicisi + goruldu takibi (NotOkunma goruldu deseni)
+public sealed class DuyuruAlicisi
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid IsletmeId { get; set; }
+    public Guid DuyuruId { get; set; }
+    public Duyuru Duyuru { get; set; } = null!;
+    public Guid KullaniciId { get; set; }
+    public bool Goruldu { get; set; }
+    public DateTimeOffset? GorulmeZamani { get; set; }
+}
+
+// v20 - Duyuru konusma zinciri mesaji (kullanici yaniti + yonetici karsi yaniti).
+// Son mesaj zamani ayri kolonda TUTULMAZ; MAX(OlusturmaZamani) ile derive edilir (tek dogruluk kaynagi).
+public sealed class DuyuruMesaji
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid IsletmeId { get; set; }
+    public Guid DuyuruId { get; set; }
+    public Duyuru Duyuru { get; set; } = null!;
+    public Guid GonderenKullaniciId { get; set; }
+    public required string Icerik { get; set; }          // yanit metni (max 500)
+    public DateTimeOffset OlusturmaZamani { get; set; } = DateTimeOffset.UtcNow;
+}

@@ -66,6 +66,7 @@ self.addEventListener("fetch", (event) => {
 });
 
 // Push bildirimi geldiginde goster
+// Push bildirimi geldiginde goster (v20: duyuru push'una aksiyon butonlari eklenir)
 self.addEventListener("push", (event) => {
   let veri = { title: "Planlama Defteri", body: "" };
   try {
@@ -73,20 +74,37 @@ self.addEventListener("push", (event) => {
   } catch (e) {
     if (event.data) veri.body = event.data.text();
   }
-  event.waitUntil(
-    self.registration.showNotification(veri.title, {
-      body: veri.body,
-      icon: "/icons/icon-192.png",
-      badge: "/icons/icon-192.png",
-      data: veri.data || {},
-    })
-  );
+  const ayarlar = {
+    body: veri.body,
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+    data: veri.data || {},
+  };
+  // v20 - duyuru bildirimi (url'de duyuru= parametresi): 2 aksiyon (Web Push max 2 buton).
+  // "Kapat" ayri buton DEGIL; bildirim kaydirma/dogal kapatma ile kapanir (spec karari).
+  // iOS Safari PWA aksiyon butonlarini gostermeyebilir -> bildirime dokunma ayni URL'e
+  // duser (kabul edilen fallback); aksiyonlari desteklemeyen platform sessizce yok sayar.
+  const hedefUrl = (veri.data && veri.data.url) || "";
+  if (hedefUrl.indexOf("duyuru=") !== -1) {
+    ayarlar.actions = [
+      { action: "okey", title: "👍 Okey" },
+      { action: "yanitla", title: "Yanıtla" },
+    ];
+  }
+  event.waitUntil(self.registration.showNotification(veri.title, ayarlar));
 });
 
 // Bildirime tiklayinca uygulamayi ac/odakla
+// Bildirime tiklayinca uygulamayi ac/odakla (v20: duyuru aksiyon ayrimi)
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const hedef = (event.notification.data && event.notification.data.url) || "/";
+  let hedef = (event.notification.data && event.notification.data.url) || "/";
+  // v20 - aksiyon butonlari: okey -> hizli onay parametresi, yanitla -> yanit modali
+  // parametresi. Parametreyi frontend isler (goruldu POST + toast / modal ac - Asama 5).
+  // SW'den dogrudan API'ye POST YAPILMAZ: API farkli origin'de, adresi sw.js'e hardcode
+  // etmek yasak (Bolum 3), env erisimi yok. Buton yoksa (iOS) dokunma sade URL acar.
+  if (event.action === "okey") hedef += (hedef.indexOf("?") !== -1 ? "&" : "?") + "okey=1";
+  else if (event.action === "yanitla") hedef += (hedef.indexOf("?") !== -1 ? "&" : "?") + "yanit=1";
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
       // Mevcut pencere varsa: client-side yonlendirme icin mesaj gonder

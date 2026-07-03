@@ -7,6 +7,8 @@ import { UserMenu } from "@/components/UserMenu";
 import { KlasorListesi } from "@/components/KlasorGrid";
 import { OnboardingBanner } from "@/components/OnboardingBanner";
 import { YeniNotFormu, NotListesi } from "@/components/Notlar";
+import { DuyuruKutusu } from "@/components/DuyuruKutusu";
+import { DuyuruAlani } from "@/components/DuyuruPaneli";
 import { useBen } from "@/lib/useBen";
 import { useIsletmeMetinleri, metinDeger } from "@/lib/useIsletmeMetinleri";
 import { pushDurumu, pushAboneOl } from "@/lib/push";
@@ -80,6 +82,10 @@ function Icerik() {
         <section className="kart p-3 sm:p-5">
           <YeniNotFormu />
         </section>
+
+        {/* v20 - Duyuru Paylaş (yönetici-only) - "Tüm Notlar" kutusunun üstünde, tam genişlik */}
+        <DuyuruKutusu />
+        <DuyuruAlani />
 
         {/* 2-kolon: sol klasör listesi, sağ tüm notlar */}
         <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] lg:grid-cols-[280px_1fr] gap-4 sm:gap-6">
