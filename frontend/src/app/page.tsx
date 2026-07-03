@@ -8,9 +8,10 @@ import { KlasorListesi } from "@/components/KlasorGrid";
 import { OnboardingBanner } from "@/components/OnboardingBanner";
 import { YeniNotFormu, NotListesi } from "@/components/Notlar";
 import { DuyuruKutusu } from "@/components/DuyuruKutusu";
-import { DuyuruAlani } from "@/components/DuyuruPaneli";
+import { DuyuruAlani, DuyuruBanner } from "@/components/DuyuruPaneli";
 import { useBen } from "@/lib/useBen";
 import { useIsletmeMetinleri, metinDeger } from "@/lib/useIsletmeMetinleri";
+import { useMarkaKimligi } from "@/lib/useMarkaKimligi";
 import { pushDurumu, pushAboneOl } from "@/lib/push";
 import { useEffect } from "react";
 
@@ -41,8 +42,8 @@ function Icerik() {
     });
   }, [ben?.id]);
 
-  const markaEmoji = metinDeger(metinler, "marka_emoji", "");
-  const markaAdi = metinDeger(metinler, "marka_adi", "");
+  const { markaAdi, markaEmoji } = useMarkaKimligi();  // v20.1 A3 - stabil marka gorunumu (son bilinen kimlik onbellegi)
+
   const karsilamaBasligi = metinDeger(metinler, "dashboard_karsilama_basligi", "");
   const karsilamaAltMetni = metinDeger(metinler, "dashboard_karsilama_alt_metin", "");
 
@@ -66,6 +67,9 @@ function Icerik() {
           <UserMenu />
         </div>
       </header>
+
+      {/* v20.1 - Okunmamis duyuru/yanit uyari seridi (madde 3-4): marka blogunun altinda, sticky */}
+      <DuyuruBanner />
 
       <div className="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-10 space-y-5 sm:space-y-8">
         {/* Karşılama */}

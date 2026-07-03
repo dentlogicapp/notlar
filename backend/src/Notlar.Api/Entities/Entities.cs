@@ -400,3 +400,16 @@ public sealed class DuyuruMesaji
     public required string Icerik { get; set; }          // yanit metni (max 500)
     public DateTimeOffset OlusturmaZamani { get; set; } = DateTimeOffset.UtcNow;
 }
+
+// v20.1 - Duyuru yaniti okunma kaydi (mesaj bazli goruldu). Banner sayaclari
+// ("Okunmamis N Yeni Duyuru Yaniti") ve mesaj goren listeleri (K2) tek kaynaktan beslenir.
+// Yazan kendi mesaji icin kayit ALMAZ (gonderen kontrolu yeter; goren listesinde kendi adi gurultu olur).
+public sealed class DuyuruMesajOkunma
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid IsletmeId { get; set; }
+    public Guid MesajId { get; set; }
+    public DuyuruMesaji Mesaj { get; set; } = null!;
+    public Guid KullaniciId { get; set; }
+    public DateTimeOffset GorulmeZamani { get; set; } = DateTimeOffset.UtcNow;
+}

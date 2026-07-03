@@ -717,6 +717,21 @@ using (var scope = app.Services.CreateScope())
             );
             CREATE INDEX IF NOT EXISTS ""IX_duyuru_mesajlari_DuyuruId_OlusturmaZamani""
                 ON duyuru_mesajlari (""DuyuruId"", ""OlusturmaZamani"");
+
+            -- v20.1 - Duyuru yaniti okunma (mesaj bazli goruldu)
+            CREATE TABLE IF NOT EXISTS duyuru_mesaj_okunmalar (
+                ""Id"" uuid PRIMARY KEY,
+                ""IsletmeId"" uuid NOT NULL REFERENCES isletmeler(""Id"") ON DELETE CASCADE,
+                ""MesajId"" uuid NOT NULL REFERENCES duyuru_mesajlari(""Id"") ON DELETE CASCADE,
+                ""KullaniciId"" uuid NOT NULL REFERENCES kullanicilar(""Id"") ON DELETE CASCADE,
+                ""GorulmeZamani"" timestamp with time zone NOT NULL DEFAULT now()
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS ""IX_duyuru_mesaj_okunmalar_MesajId_KullaniciId""
+                ON duyuru_mesaj_okunmalar (""MesajId"", ""KullaniciId"");
+            CREATE INDEX IF NOT EXISTS ""IX_duyuru_mesaj_okunmalar_KullaniciId""
+                ON duyuru_mesaj_okunmalar (""KullaniciId"");
+            CREATE INDEX IF NOT EXISTS ""IX_duyuru_mesaj_okunmalar_IsletmeId""
+                ON duyuru_mesaj_okunmalar (""IsletmeId"");
         ");
         Log.Information("Şema güncellemeleri kontrol edildi (v15 multi-tenant dahil — idempotent)");
     }

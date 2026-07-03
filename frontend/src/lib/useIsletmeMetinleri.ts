@@ -65,3 +65,17 @@ export function cozMetin(sablon: string, degerler: Record<string, string>, derin
     return /\{\{/.test(v) ? cozMetin(v, degerler, derinlik + 1) : v;
   });
 }
+
+// v20.1 - K4: tenant degeri bos ise KATALOG VARSAYILANINA duser (hardcode fallback yerine
+// tek dogruluk kaynagi). metinDeger'in davranisi BILEREK korunur - orn. MarkaBaslik'in
+// "bos -> static title" mantigi varsayilana dusmemeli. Varsayilan HTML icerebilir (body
+// tipleri); soluk placeholder icin etiketler temizlenir (MetinAlani kutuPlaceholder deseni).
+export function metinDegerVarsayilanli(
+  metinler: MetinBirlesik[] | undefined,
+  anahtar: string
+): string {
+  const m = metinler?.find((x) => x.anahtar === anahtar);
+  const icerik = (m?.icerik ?? "").trim();
+  if (icerik) return icerik;
+  return (m?.varsayilan ?? "").replace(/<[^>]+>/g, "").trim();
+}

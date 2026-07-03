@@ -339,6 +339,9 @@ export interface DuyuruOzet {
   gorenSayisi: number;
   benGordum: boolean;
   mesajSayisi: number;
+  benGormedimMesajSayisi: number;          // v20.1 - banner: okumadigim yanit sayisi
+  sonMesajGonderenAdSoyad: string | null;  // v20.1 - banner kayar yazi aktoru
+  sonMesajZamani: string | null;           // v20.1 - en yeni olay karsilastirmasi
 }
 
 export interface DuyuruAlici {
@@ -352,6 +355,8 @@ export interface DuyuruMesaj {
   id: string;
   gonderenKullaniciId: string;
   gonderenAdSoyad: string;
+  benGordum: boolean;                      // v20.1 - scroll tabanli yanit goruldu
+  gorenler: DuyuruMesajGoren[] | null;     // v20.1 - K2: null = bu listeyi gorme yetkin yok
   icerik: string;
   olusturmaZamani: string;
 }
@@ -365,4 +370,11 @@ export interface DuyuruDetay {
   olusturmaZamani: string;
   alicilar: DuyuruAlici[];
   mesajlar: DuyuruMesaj[];
+}
+
+// v20.1 - mesaj goren kaydi (K2: yalniz mesaj sahibi + duyuru sahibi gorur)
+export interface DuyuruMesajGoren {
+  kullaniciId: string;
+  adSoyad: string;
+  gorulmeZamani: string;
 }

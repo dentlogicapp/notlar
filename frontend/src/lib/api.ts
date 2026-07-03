@@ -501,4 +501,10 @@ export const duyuruApi = {
   goruldu: (id: string) => ist<{ ok: boolean }>(`/api/duyurular/${id}/goruldu`, { method: "POST" }),
   yanit: (id: string, icerik: string) =>
     ist<DuyuruMesaj>(`/api/duyurular/${id}/yanit`, { method: "POST", body: JSON.stringify({ icerik }) }),
+  sil: (id: string) =>
+    ist<{ ok: boolean }>(`/api/duyurular/${id}`, { method: "DELETE" }),
+  mesajSil: (id: string, mesajId: string) =>
+    ist<{ ok: boolean }>(`/api/duyurular/${id}/mesajlar/${mesajId}`, { method: "DELETE" }),
+  mesajGoruldu: (id: string, mesajIdler: string[]) =>
+    ist<{ ok: boolean }>(`/api/duyurular/${id}/mesaj-goruldu`, { method: "POST", body: JSON.stringify({ mesajIdler }) }),
 };

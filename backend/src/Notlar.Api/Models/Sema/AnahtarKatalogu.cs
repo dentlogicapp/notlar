@@ -7,7 +7,7 @@ public static class AnahtarKatalogu
 {
     // SemVer: yeni anahtar -> minor (1.1.0); tip/limit breaking -> major (2.0.0);
     // dokumantasyon (etiket/yonlendirme/aciklama) -> patch (1.0.1).
-    public const string Version = "1.6.0";
+    public const string Version = "1.6.1";
 
     public static readonly IReadOnlyList<AnahtarTanim> Tumu = new[]
     {
@@ -59,9 +59,9 @@ public static class AnahtarKatalogu
         AnahtarTanim.Tanim("duyuru_form_placeholder")
             .Kategori(Kategori.Dashboard).Tip(AlanTipi.PlaceholderKisa)
             .Etiket("Duyuru Paylaş Form İpucu")
-            .Yonlendirme("Yönetici duyuru kutusunda gösterilecek soluk ipucu. (Örn: 'Kullanıcılara göndermek için bir duyuru yaz...')")
+            .Yonlendirme("Yönetici duyuru kutusunda gösterilecek soluk ipucu. (Örn: 'Kullanıcılar ile paylaşmak için bir duyuru yazın...')")
             .Aciklama("Ana sayfada yalnızca yöneticilerin gördüğü duyuru paylaşma kutusunda görünür.")
-            .Sira(130).Varsayilan("Kullanıcılara göndermek için bir duyuru yaz...").Build(),
+            .Sira(130).Varsayilan("Kullanıcılar ile paylaşmak için bir duyuru yazın...").Build(),
 
         // --- SAYAC ---
         AnahtarTanim.Tanim("sayac_aktif")

@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Loader2, Megaphone, Send, X } from "lucide-react";
 import { duyuruApi, isletmeApi } from "@/lib/api";
 import { useBen } from "@/lib/useBen";
-import { useIsletmeMetinleri, metinDeger } from "@/lib/useIsletmeMetinleri";
+import { useIsletmeMetinleri, metinDegerVarsayilanli } from "@/lib/useIsletmeMetinleri";
 import { cn } from "@/lib/utils";
 
 // v20 - Duyuru Paylas kutusu (yonetici-only). Ana sayfada "Tum Notlar" kutusunun ustunde,
@@ -20,7 +20,7 @@ export function DuyuruKutusu() {
   const qc = useQueryClient();
   const { data: ben } = useBen();
   const { data: metinler } = useIsletmeMetinleri();
-  const ipucu = metinDeger(metinler, "duyuru_form_placeholder", "");
+  const ipucu = metinDegerVarsayilanli(metinler, "duyuru_form_placeholder");  // v20.1 K4: katalog varsayilanina duser
 
   const [icerik, setIcerik] = useState("");
   const [aliciTipi, setAliciTipi] = useState<"tum" | "secili">("tum");

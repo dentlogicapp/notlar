@@ -50,36 +50,48 @@ function BildirimSatiri({
 }) {
   const SIL_GENISLIK = 76;
   const [kaydir, setKaydir] = useState(0);        // negatif = sola kaymis (sil blogu gorunur)
-  const baslangic = useRef<number | null>(null);
+  const baslangic = useRef<{ x: number; y: number } | null>(null);
   const suruklendi = useRef(false);
+  const yonKilit = useRef<"yatay" | "dikey" | null>(null);  // v20.1 A3 - yon kilidi
 
   function dokunBasla(e: TouchEvent) {
-    baslangic.current = e.touches[0].clientX;
+    baslangic.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     suruklendi.current = false;
+    yonKilit.current = null;
   }
   function dokunHareket(e: TouchEvent) {
     if (baslangic.current === null) return;
-    const delta = e.touches[0].clientX - baslangic.current;
+    const delta = e.touches[0].clientX - baslangic.current.x;
+    const deltaY = e.touches[0].clientY - baslangic.current.y;
+    // v20.1 A3 - yon kilidi: dikey scroll sirasindaki yatay sizinti kokten biter
+    if (yonKilit.current === null) {
+      if (Math.abs(delta) < 10 && Math.abs(deltaY) < 10) return;
+      yonKilit.current = Math.abs(delta) > Math.abs(deltaY) ? "yatay" : "dikey";
+    }
+    if (yonKilit.current !== "yatay") return;
     if (Math.abs(delta) > 6) suruklendi.current = true;
     setKaydir(Math.max(Math.min(delta, 0), -SIL_GENISLIK));   // yalniz sola, en fazla SIL_GENISLIK
   }
   function dokunBitir() {
     baslangic.current = null;
+    yonKilit.current = null;
     setKaydir((k) => (k < -SIL_GENISLIK / 2 ? -SIL_GENISLIK : 0));
   }
 
   return (
     <div className="relative overflow-hidden rounded-lg">
-      {/* Sola surukleyince sagdan gorunen kirmizi Sil blogu */}
+      {/* Sil blogu (v20.1 A3: yalniz kaydirma varken render + notr renk - "ara ara kirmizi alan" kokten biter) */}
+      {kaydir < 0 && (
       <button
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); onSil(b.id); }}
         disabled={siliniyor}
         aria-label="Bildirimi sil"
-        className="absolute inset-y-0 right-0 flex items-center justify-center bg-red-500 text-white text-[11px] font-semibold disabled:opacity-50"
+        className="absolute inset-y-0 right-0 flex items-center justify-center bg-clay-700 dark:bg-ink-600 text-cream-50 text-[11px] font-semibold disabled:opacity-50"
         style={{ width: SIL_GENISLIK }}
       >
         <Trash2 className="h-3.5 w-3.5 mr-1" /> Sil
       </button>
+      )}
 
       {/* On yuz: bildirim icerigi (swipe ile kayar). min-h ile tum satirlar esit yukseklikte. */}
       <div

@@ -26,6 +26,7 @@ public sealed class AppDbContext : DbContext
     public DbSet<Duyuru> Duyurular => Set<Duyuru>();
     public DbSet<DuyuruAlicisi> DuyuruAlicilari => Set<DuyuruAlicisi>();
     public DbSet<DuyuruMesaji> DuyuruMesajlari => Set<DuyuruMesaji>();
+    public DbSet<DuyuruMesajOkunma> DuyuruMesajOkunmalar => Set<DuyuruMesajOkunma>();  // v20.1
     // v17 - AI saglayici ayari (singleton)
     public DbSet<AiAyari> AiAyarlari => Set<AiAyari>();
 
@@ -319,6 +320,19 @@ public sealed class AppDbContext : DbContext
             e.HasOne<Kullanici>().WithMany().HasForeignKey(x => x.GonderenKullaniciId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne<Isletme>().WithMany().HasForeignKey(x => x.IsletmeId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => new { x.DuyuruId, x.OlusturmaZamani });
+        });
+
+        // v20.1 - Duyuru yaniti okunma (mesaj bazli goruldu; mesaj silinince cascade)
+        m.Entity<DuyuruMesajOkunma>(e =>
+        {
+            e.ToTable("duyuru_mesaj_okunmalar");
+            e.HasKey(x => x.Id);
+            e.HasOne(x => x.Mesaj).WithMany().HasForeignKey(x => x.MesajId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Kullanici>().WithMany().HasForeignKey(x => x.KullaniciId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Isletme>().WithMany().HasForeignKey(x => x.IsletmeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.MesajId, x.KullaniciId }).IsUnique();
+            e.HasIndex(x => x.KullaniciId);
+            e.HasIndex(x => x.IsletmeId);
         });
 
         // v19 4d - sessiz saat ertelenmis push kuyrugu
