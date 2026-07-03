@@ -86,7 +86,7 @@ export function DuyuruKutusu() {
             onFocus={() => setAcik(true)}
             placeholder={ipucu}
             rows={acik ? 2 : 1}
-            className="w-full resize-none rounded-xl border border-clay-200 dark:border-ink-700 bg-white dark:bg-ink-850 px-3.5 py-2.5 text-sm text-clay-900 dark:text-ink-50 placeholder:text-clay-400 dark:placeholder:text-ink-300 focus:outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta/15 transition-colors"
+            className="w-full resize-none rounded-xl border border-clay-200 dark:border-ink-700 bg-white dark:bg-ink-850 px-3.5 py-2.5 text-[16px] md:text-[13px] placeholder:text-[12px] text-clay-900 dark:text-ink-50 placeholder:text-clay-400 dark:placeholder:text-ink-300 focus:outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta/15 transition-colors"
           />
 
           {acik && (

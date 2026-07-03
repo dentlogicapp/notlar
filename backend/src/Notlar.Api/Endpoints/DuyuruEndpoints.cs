@@ -82,8 +82,8 @@ public static class DuyuruEndpoints
                 .Where(a => a.DuyuruId == id)
                 .Join(db.Kullanicilar, a => a.KullaniciId, k => k.Id,
                     (a, k) => new DuyuruAliciYaniti(a.KullaniciId, k.AdSoyad, a.Goruldu, a.GorulmeZamani))
-                .OrderByDescending(x => x.Goruldu).ThenBy(x => x.GorulmeZamani)  // v20.2 madde 7 - gorenler kronolojik once, gormeyenler sonda
                 .ToListAsync(ct);
+            alicilar = alicilar.OrderByDescending(x => x.Goruldu).ThenBy(x => x.GorulmeZamani).ToList();  // v20.2.1 - BELLEKTE (madde 7): EF record-projection sonrasi OrderBy'i SQL'e ceviremiyor - detay 500 kok nedeni buydu
 
             var mesajlarHam = await db.DuyuruMesajlari
                 .Where(m => m.DuyuruId == id)

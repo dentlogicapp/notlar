@@ -14,13 +14,12 @@ import {
 import { cn, gorelizamandan, bastari } from "@/lib/utils";
 import type { DuyuruOzet } from "@/lib/types";
 
-// v20.2 - Duyuru alani.
-//   Kart tipografisi NotKart ile BIREBIR (madde 3): gonderen adi = not BASLIK formatinda,
-//   duyuru icerigi = not ICERIK formatinda (yalniz ana sayfa karti; modal gorselligi ayri).
-//   Goren listeleri INLINE-EXPAND (madde 5/K2): kart/mesaj icinde asagi acilir, layout'u
-//   iter - absolute popover'in SwipeSil overflow-hidden altinda kesilme sorunu kokten biter.
-//   Modal duzenleme (madde 6): yalniz sahibi; kaydedince backend goruldu listesini SIFIRLAR
-//   (not duzenleme mantigi); "(duzenlendi)" rozeti (B1).
+// v20.2.1 - Duyuru alani.
+//   SwipeSil: overflow-hidden + transform YALNIZ kaydirma aninda (kalici halleri
+//   popover'lari kesiyor/komsu kartin altina itiyordu - G.4 kok nedenleri).
+//   Goren listeleri: estetik POPOVER (absolute z-50, golgeli) + hata durumu.
+//   Diger her sey v20.2: NotKart tipografisi (madde 3), duzenleme + goruldu
+//   sifirlama (madde 6), "(duzenlendi)" rozeti (B1), banner, observer (madde 8).
 const ICERIK_LIMIT = 500;
 const DUYURU_OMRU_SAAT = 24;  // backend DuyuruEndpoints.TtlSaat + DuyuruTemizleyici.TtlSaat ile senkron
 const SESSIZLIK_SAAT = 2;     // backend DuyuruTemizleyici.SessizlikSaat ile senkron
@@ -31,7 +30,8 @@ const DUYURU_OLAYLARI = [
 ];
 
 // ---------------------------------------------------------------------------
-// SwipeSil - yon kilitli, KIRMIZISIZ, B2 iki-dokunus onayli (v20.1 deseni)
+// SwipeSil - yon kilitli, KIRMIZISIZ, B2 iki-dokunus onayli.
+// v20.2.1: overflow/transform kosullu (popover gorunurlugu icin sart).
 // ---------------------------------------------------------------------------
 function SwipeSil({
   aktif, onSil, siliniyor, children,
@@ -77,9 +77,11 @@ function SwipeSil({
     onSil();
   }
 
+  const kayiyor = kaydir !== 0;
+
   return (
-    <div className="relative overflow-hidden rounded-xl">
-      {kaydir < 0 && (
+    <div className={cn("relative rounded-xl", kayiyor && "overflow-hidden")}>
+      {kayiyor && (
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); silTikla(); }}
@@ -100,10 +102,10 @@ function SwipeSil({
         onTouchMove={hareket}
         onTouchEnd={bitir}
         onClickCapture={(e) => {
-          if (kaydir !== 0) { e.stopPropagation(); e.preventDefault(); setKaydir(0); setOnay(false); }
+          if (kayiyor) { e.stopPropagation(); e.preventDefault(); setKaydir(0); setOnay(false); }
         }}
-        className="relative transition-transform"
-        style={{ transform: `translateX(${kaydir}px)` }}
+        className={cn("relative", kayiyor && "transition-transform")}
+        style={kayiyor ? { transform: `translateX(${kaydir}px)` } : undefined}
       >
         {children}
       </div>
@@ -112,8 +114,7 @@ function SwipeSil({
 }
 
 // ---------------------------------------------------------------------------
-// DuyuruBanner - v20.1 deseni (degisiklik yok; duzenlemede goruldu sifirlaninca
-// benGordum=false olur, banner kendiliginden canlanir - dogru yan etki)
+// DuyuruBanner (v20.2 ile ayni)
 // ---------------------------------------------------------------------------
 export function DuyuruBanner() {
   const { data: ben } = useBen();
@@ -193,28 +194,32 @@ export function DuyuruBanner() {
 }
 
 // ---------------------------------------------------------------------------
-// GorenListesiInline - madde 5/K2: kart ICINDE asagi acilir (absolute degil).
-// Layout'u ittigi icin hicbir blogun altinda kalamaz; mobilde dogal desen.
-// Veri modal ile ayni query key'ten (goruldu POST tetiklenmez - o modal effect'inde).
-// Siralama backend'den hazir gelir (madde 7).
+// GorenPopover - estetik acilir liste (v20.2.1: hata durumu eklendi; z-50).
+// Veri modal ile ayni query key'ten; goruldu POST tetiklenmez (o modal effect'inde).
+// Siralama backend'den hazir (madde 7 - bellekte, hotfix 1/2).
 // ---------------------------------------------------------------------------
-function GorenListesiInline({ duyuruId }: { duyuruId: string }) {
-  const { data: detay } = useQuery({
+function GorenPopover({ duyuruId, hiza }: { duyuruId: string; hiza: "sol" | "sag" }) {
+  const { data: detay, isError } = useQuery({
     queryKey: ["duyurular", duyuruId],
     queryFn: () => duyuruApi.detay(duyuruId),
   });
   return (
     <div
       onClick={(e) => e.stopPropagation()}
-      className="mt-2 rounded-lg border border-cream-300 dark:border-ink-600 bg-cream-50 dark:bg-ink-900 p-2.5"
+      className={cn(
+        "absolute top-full mt-1.5 z-50 w-60 p-3 rounded-xl bg-white dark:bg-ink-800 border border-cream-300 dark:border-ink-600 shadow-lg text-left",
+        hiza === "sag" ? "right-0" : "left-0"
+      )}
     >
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-clay-400 dark:text-ink-300 mb-1.5">
-        Görüldü
+      <p className="text-[11px] font-semibold text-clay-700 dark:text-ink-100 flex items-center gap-1.5 mb-2">
+        <Users className="h-3 w-3 text-terracotta" strokeWidth={2.5} /> Görüldü
       </p>
-      {!detay ? (
+      {isError ? (
+        <p className="text-[11px] text-clay-400 dark:text-ink-300">Liste yüklenemedi.</p>
+      ) : !detay ? (
         <Loader2 className="h-4 w-4 animate-spin text-clay-400 dark:text-ink-300 mx-auto my-2" />
       ) : (
-        <div className="space-y-1 max-h-40 overflow-y-auto">
+        <div className="space-y-1.5 max-h-44 overflow-y-auto">
           {detay.alicilar.map((a) => (
             <div key={a.kullaniciId} className="flex items-center gap-2">
               <span className={cn(
@@ -225,8 +230,8 @@ function GorenListesiInline({ duyuruId }: { duyuruId: string }) {
               )}>
                 {bastari(a.adSoyad)}
               </span>
-              <span className="text-[11px] text-clay-700 dark:text-ink-100 flex-1 truncate">{a.adSoyad}</span>
-              <span className="text-[10px] text-clay-400 dark:text-ink-300 shrink-0">
+              <span className="text-[11px] text-clay-600 dark:text-ink-200 flex-1 truncate">{a.adSoyad}</span>
+              <span className="text-[10px] text-clay-400 dark:text-ink-400 shrink-0">
                 {a.goruldu && a.gorulmeZamani ? gorelizamandan(a.gorulmeZamani) : "henüz görmedi"}
               </span>
             </div>
@@ -340,7 +345,6 @@ export function DuyuruAlani() {
                       <span className="h-7 w-7 rounded-lg bg-terracotta/15 text-terracotta flex items-center justify-center shrink-0">
                         <Megaphone className="h-3.5 w-3.5" />
                       </span>
-                      {/* Madde 3: gonderen adi = NOT BASLIGI formati (Notlar.tsx h4 birebir) */}
                       <span className="text-sm sm:text-[15px] leading-snug font-medium text-clay-900 dark:text-ink-50 truncate">
                         {d.olusturanAdSoyad}
                       </span>
@@ -361,7 +365,6 @@ export function DuyuruAlani() {
                       )}
                     </div>
 
-                    {/* Madde 3: duyuru icerigi = NOT ICERIGI formati (Notlar.tsx p birebir; 2 satir onizleme korunur) */}
                     <p className="text-[13px] sm:text-sm mt-2 leading-relaxed text-justify hyphens-auto break-words [overflow-wrap:anywhere] whitespace-pre-wrap line-clamp-2 text-clay-600 dark:text-ink-100">
                       {d.icerik}
                     </p>
@@ -373,22 +376,22 @@ export function DuyuruAlani() {
                         </span>
                       )}
                       {benimki && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setAcikGorenId(acikGorenId === d.id ? null : d.id);
-                          }}
-                          className="ml-auto inline-flex items-center gap-1 text-[11px] text-clay-500 dark:text-ink-300 hover:text-terracotta transition-colors"
-                        >
-                          <CheckCheck className="h-3.5 w-3.5 text-terracotta" />
-                          {d.gorenSayisi}/{d.aliciSayisi} gördü
-                        </button>
+                        <span className="relative ml-auto">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setAcikGorenId(acikGorenId === d.id ? null : d.id);
+                            }}
+                            className="inline-flex items-center gap-1 text-[11px] text-clay-500 dark:text-ink-300 hover:text-terracotta transition-colors"
+                          >
+                            <CheckCheck className="h-3.5 w-3.5 text-terracotta" />
+                            {d.gorenSayisi}/{d.aliciSayisi} gördü
+                          </button>
+                          {acikGorenId === d.id && <GorenPopover duyuruId={d.id} hiza="sag" />}
+                        </span>
                       )}
                     </div>
-
-                    {/* Madde 5: inline-expand goruldu listesi (hicbir blogun altinda kalamaz) */}
-                    {benimki && acikGorenId === d.id && <GorenListesiInline duyuruId={d.id} />}
                   </div>
                 </SwipeSil>
               );
@@ -446,7 +449,7 @@ function DuyuruDetayModal({
 
   useEffect(() => {
     if (isError) {
-      toast.error("Duyuru bulunamadı ya da süresi doldu");
+      toast.error("Duyuru açılamadı - süresi dolmuş ya da geçici bir sorun olabilir");
       onKapat();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -510,7 +513,6 @@ function DuyuruDetayModal({
     onError: (err: Error) => toast.error(err.message),
   });
 
-  // Madde 6: duzenleme - backend goruldu listesini SIFIRLAR (yeni gorenlerle bastan)
   const duzenle = useMutation({
     mutationFn: () => duyuruApi.duzenle(duyuruId, duzenleMetin.trim()),
     onSuccess: (r) => {
@@ -561,14 +563,13 @@ function DuyuruDetayModal({
         ) : (
           <div className="space-y-4">
             {duzenleModu ? (
-              /* Madde 6: duzenleme modu - kaydedince goruldu listesi sifirlanir */
               <div className="space-y-2">
                 <textarea
                   value={duzenleMetin}
                   onChange={(e) => setDuzenleMetin(e.target.value.slice(0, ICERIK_LIMIT))}
                   rows={4}
                   autoFocus
-                  className="w-full resize-none rounded-xl border border-terracotta/50 bg-white dark:bg-ink-850 px-3.5 py-2.5 text-sm text-clay-900 dark:text-ink-50 focus:outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta/15 transition-colors"
+                  className="w-full resize-none rounded-xl border border-terracotta/50 bg-white dark:bg-ink-850 px-3.5 py-2.5 text-[16px] md:text-[13px] text-clay-900 dark:text-ink-50 focus:outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta/15 transition-colors"
                 />
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[11px] text-clay-400 dark:text-ink-300 tabular-nums">
@@ -679,7 +680,7 @@ function DuyuruDetayModal({
                           {m.icerik}
                         </p>
                         {m.gorenler !== null && (
-                          <div className="mt-1">
+                          <div className="relative mt-1">
                             <button
                               type="button"
                               onClick={(e) => {
@@ -691,11 +692,10 @@ function DuyuruDetayModal({
                               <CheckCheck className={cn("h-3 w-3", m.gorenler.length > 0 && "text-terracotta")} />
                               {m.gorenler.length > 0 ? `${m.gorenler.length} gördü` : "henüz gören yok"}
                             </button>
-                            {/* Madde 5: mesaj goren listesi de INLINE (altta kalamaz) */}
                             {acikMesajGorenId === m.id && m.gorenler.length > 0 && (
                               <div
                                 onClick={(e) => e.stopPropagation()}
-                                className="mt-1 rounded-lg border border-cream-300 dark:border-ink-600 bg-cream-50 dark:bg-ink-900 p-2 space-y-1"
+                                className="absolute left-0 top-full mt-1.5 z-50 w-56 p-3 rounded-xl bg-white dark:bg-ink-800 border border-cream-300 dark:border-ink-600 shadow-lg space-y-1.5"
                               >
                                 {m.gorenler.map((gr) => (
                                   <div key={gr.kullaniciId} className="flex items-center gap-2">
@@ -734,7 +734,7 @@ function DuyuruDetayModal({
                   onChange={(e) => setYanit(e.target.value.slice(0, ICERIK_LIMIT))}
                   rows={2}
                   placeholder="Yanıtını yaz..."
-                  className="flex-1 resize-none rounded-xl border border-clay-200 dark:border-ink-600 bg-white dark:bg-ink-850 px-3.5 py-2.5 text-sm text-clay-900 dark:text-ink-50 placeholder:text-clay-400 dark:placeholder:text-ink-300 focus:outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta/15 transition-colors"
+                  className="flex-1 resize-none rounded-xl border border-clay-200 dark:border-ink-600 bg-white dark:bg-ink-850 px-3.5 py-2.5 text-[16px] md:text-[13px] placeholder:text-[12px] text-clay-900 dark:text-ink-50 placeholder:text-clay-400 dark:placeholder:text-ink-300 focus:outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta/15 transition-colors"
                 />
                 <button
                   type="button"
