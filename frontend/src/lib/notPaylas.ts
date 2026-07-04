@@ -1,6 +1,6 @@
 "use client";
 
-import { toPng } from "html-to-image";
+import { toBlob } from "html-to-image";
 
 // v20.2.1 - Notu WhatsApp'tan ilet (gesture-guvenli iki adimli akis).
 // ESKI TASARIMIN KOK HATASI: tek tikta "await toPng" user-gesture baglamini tuketiyordu;
@@ -19,8 +19,8 @@ export function notIletMetni(notId: string, baslik: string): string {
 export async function notSnapshotUret(kartEl: HTMLElement): Promise<File | null> {
   try {
     const zemin = getComputedStyle(document.body).backgroundColor || undefined;
-    const dataUrl = await toPng(kartEl, { pixelRatio: 2, backgroundColor: zemin, cacheBust: true, skipFonts: true });  // v20.2.2 - skipFonts: next/font/google stylesheet'leri cross-origin; inline denemesi SecurityError firlatiyordu (G.2 kok nedeni)
-    const blob = await (await fetch(dataUrl)).blob();
+    const blob = await toBlob(kartEl, { pixelRatio: 2, backgroundColor: zemin, cacheBust: true, skipFonts: true });  // v20.2.3 - toBlob: dataURL+fetch yolu CSP connect-src'e takiliyordu (console kaniti)
+    if (!blob) { console.warn("not snapshot: toBlob null dondu (canvas uretilemedi)"); return null; }  // v20.2.4 - sessiz null bitti
     return new File([blob], "not.png", { type: "image/png" });
   } catch (e) {
     console.warn("not snapshot uretilemedi:", e);  // v20.2.2 - sessiz yutma bitti
@@ -37,6 +37,8 @@ export function dosyaPaylasilabilir(dosya: File): boolean {
 // platform davranisi; link garantisi icin 2b her zaman sunulur.
 export async function dosyaylaPaylas(dosya: File, metin: string): Promise<"paylasildi" | "iptal" | "hata"> {
   try {
+    // v20.2.4 - share API hic yoksa (orn. masaustu Firefox) temiz "hata" don: toast -> link yolu
+    if (typeof navigator.share !== "function") return "hata";
     await navigator.share({ files: [dosya], text: metin });
     return "paylasildi";
   } catch (e) {

@@ -38,14 +38,18 @@ export function NotIletButonu({
     setAcik(true);
     setDurum("hazirlaniyor");
     if (!kart) { setDosya(null); setDurum("hazir"); return; }
-    notSnapshotUret(kart).then((f) => { setDosya(f); setDurum("hazir"); });
+    notSnapshotUret(kart).then((f) => {
+      // v20.2.4 - teshis izi: dosya boyutu + canShare sonucu (kesin kanit console'da)
+      console.debug("[notIlet] dosya:", f ? f.size + " bayt" : "null", "| canShare(files):", f ? dosyaPaylasilabilir(f) : "-");
+      setDosya(f); setDurum("hazir");
+    });
   }
 
   async function gorsellePaylas() {
     if (!dosya) return;
     const sonuc = await dosyaylaPaylas(dosya, metin);  // tik aninda, oncesinde await yok
     if (sonuc === "paylasildi") { auditYaz(); kapat(); }
-    else if (sonuc === "hata") toast.error("Paylaşım menüsü açılamadı - linki kullanabilirsin");
+    else if (sonuc === "hata") toast.error("Bu cihaz görsel paylaşımını kabul etmedi - linki kullan");
     // iptal: panel acik kalir, kullanici tekrar deneyebilir
   }
 
@@ -55,7 +59,7 @@ export function NotIletButonu({
     else toast.error("Tarayıcı yeni pencereyi engelledi - açılır pencere iznini kontrol et");
   }
 
-  const gorselHazir = durum === "hazir" && dosya !== null && dosyaPaylasilabilir(dosya);
+  const gorselHazir = durum === "hazir" && dosya !== null;  // v20.2.4 - canShare butonu GIZLEMEZ (yanlis-negatif verebiliyor); paylasim denenir, platform reddederse toast ile linke yonlendirilir
 
   return (
     <span className="relative">
@@ -105,7 +109,7 @@ export function NotIletButonu({
                 </button>
                 {!gorselHazir && (
                   <p className="text-[10px] text-clay-400 dark:text-ink-300 px-1 pt-0.5 leading-relaxed">
-                    Bu cihazda görselle paylaşım desteklenmiyor; link ile ilet.
+                    Görsel oluşturulamadı - link ile ilet.
                   </p>
                 )}
               </div>
