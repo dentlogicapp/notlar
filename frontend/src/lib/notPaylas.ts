@@ -19,10 +19,11 @@ export function notIletMetni(notId: string, baslik: string): string {
 export async function notSnapshotUret(kartEl: HTMLElement): Promise<File | null> {
   try {
     const zemin = getComputedStyle(document.body).backgroundColor || undefined;
-    const dataUrl = await toPng(kartEl, { pixelRatio: 2, backgroundColor: zemin, cacheBust: true });
+    const dataUrl = await toPng(kartEl, { pixelRatio: 2, backgroundColor: zemin, cacheBust: true, skipFonts: true });  // v20.2.2 - skipFonts: next/font/google stylesheet'leri cross-origin; inline denemesi SecurityError firlatiyordu (G.2 kok nedeni)
     const blob = await (await fetch(dataUrl)).blob();
     return new File([blob], "not.png", { type: "image/png" });
-  } catch {
+  } catch (e) {
+    console.warn("not snapshot uretilemedi:", e);  // v20.2.2 - sessiz yutma bitti
     return null;
   }
 }

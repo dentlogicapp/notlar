@@ -458,38 +458,48 @@ function DuyuruDetayModal({
   const gorulduBatch = useMutation({
     mutationFn: (ids: string[]) => duyuruApi.mesajGoruldu(duyuruId, ids),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["duyurular"] }),
+    onError: (e: Error) => console.warn("mesaj-goruldu basarisiz:", e.message),  // v20.2.2 - sessiz fail izi
   });
 
+  // v20.2.2 - deterministik yanit-goruldu (G.1). IntersectionObserver, Radix
+  // DialogContent'in transform'u (translate-x/y) altinda kesisimi layout-oncesi
+  // koordinatla hesaplayip yanlis ratio uretiyordu (yanit tam gorunse de
+  // tetiklenmiyordu). getBoundingClientRect transform SONRASI gercek ekran
+  // koordinati verir - olcum modal acilisinda + zincir scroll'unda elle yapilir.
+  // Kural ayni (madde 8): mesajin TAMAMI konteynerde gorunur VEYA konteynerden
+  // uzun mesaj konteyneri dolduruyor. 800ms debounce ile batch POST.
   useEffect(() => {
     const kok = zincirRef.current;
     if (!kok || !detay) return;
-    const hedefler = kok.querySelectorAll("[data-mid]");
-    if (hedefler.length === 0) return;
-    const obs = new IntersectionObserver(
-      (girisler) => {
-        let eklendi = false;
-        for (const g of girisler) {
-          const tamGorunur = g.intersectionRatio >= 0.99;
-          const konteyneriDolduruyor = g.intersectionRect.height >= kok.clientHeight - 8;
-          if (tamGorunur || (g.isIntersecting && konteyneriDolduruyor)) {
-            const mid = (g.target as HTMLElement).dataset.mid;
-            if (mid) { bekleyen.current.add(mid); eklendi = true; obs.unobserve(g.target); }
-          }
+
+    const olc = () => {
+      const kokRect = kok.getBoundingClientRect();
+      const hedefler = kok.querySelectorAll<HTMLElement>("[data-mid]");
+      let eklendi = false;
+      hedefler.forEach((h) => {
+        const r = h.getBoundingClientRect();
+        const tamGorunur = r.top >= kokRect.top - 4 && r.bottom <= kokRect.bottom + 4;
+        const dolduruyor =
+          r.height >= kokRect.height - 8 && r.top <= kokRect.top + 4 && r.bottom >= kokRect.bottom - 4;
+        if (tamGorunur || dolduruyor) {
+          const mid = h.dataset.mid;
+          if (mid && !bekleyen.current.has(mid)) { bekleyen.current.add(mid); eklendi = true; }
         }
-        if (eklendi) {
-          if (zamanlayici.current) clearTimeout(zamanlayici.current);
-          zamanlayici.current = setTimeout(() => {
-            const ids = Array.from(bekleyen.current);
-            bekleyen.current.clear();
-            if (ids.length > 0) gorulduBatch.mutate(ids);
-          }, 800);
-        }
-      },
-      { root: kok, threshold: [0.25, 0.5, 0.75, 1] }
-    );
-    hedefler.forEach((h) => obs.observe(h));
+      });
+      if (eklendi) {
+        if (zamanlayici.current) clearTimeout(zamanlayici.current);
+        zamanlayici.current = setTimeout(() => {
+          const ids = Array.from(bekleyen.current);
+          bekleyen.current.clear();
+          if (ids.length > 0) gorulduBatch.mutate(ids);
+        }, 800);
+      }
+    };
+
+    olc(); // modal acilisinda gorunenler (scroll gerektirmeden yakalanir)
+    kok.addEventListener("scroll", olc, { passive: true });
     return () => {
-      obs.disconnect();
+      kok.removeEventListener("scroll", olc);
       if (zamanlayici.current) clearTimeout(zamanlayici.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
