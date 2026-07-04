@@ -892,8 +892,8 @@ export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { n
 
           {/* Alt satır: [Klasör] [aksiyon ikonlar] · okuyanlar (mobilde de görünür) */}
           <div className="flex items-center gap-2.5 sm:gap-3.5 mt-3.5 text-[11px] sm:text-xs flex-wrap">
-            {/* v20.2 madde 11 - WhatsApp ilet (klasorden bosalan sol alan; snapshot + derin link) */}
-            <NotIletButonu notId={not.id} baslik={not.baslik} ikonSinifi={IKON_BUTON} />
+            {/* v20.3 - Notu Paylas (OS menusu; yalnizca goruntu - off-screen sahneden) */}
+            <NotIletButonu not={not} ikonSinifi={IKON_BUTON} />
 
             {/* Aksiyon ikon grubu - sag kenara sabit (ml-auto + order-last): klasor uzunlugundan bagimsiz, her notta ayni X konumu */}
             <div className="flex items-center gap-0 -my-1 ml-auto order-last">

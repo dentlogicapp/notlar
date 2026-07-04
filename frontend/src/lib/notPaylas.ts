@@ -2,28 +2,22 @@
 
 import { toBlob } from "html-to-image";
 
-// v20.2.1 - Notu WhatsApp'tan ilet (gesture-guvenli iki adimli akis).
-// ESKI TASARIMIN KOK HATASI: tek tikta "await toPng" user-gesture baglamini tuketiyordu;
-// sonrasindaki navigator.share bazi platformlarda NotAllowedError'la dusuyor,
-// window.open ise gesture'siz popup-block'a takilip SESSIZCE hicbir sey yapmiyordu.
-// YENI AKIS: (1) tik -> snapshot arka planda uretilir; (2) hazir olunca kullanici
-// [Gorselle paylas] veya [Linki WhatsApp'ta ac] butonuna TIKLAR - share/window.open
-// o tikin kendi gesture'i icinde cagrilir (oncesinde await yok) -> platform kisiti asilir.
-// Derin link /?focus={id}: uye -> mevcut useFocusNot (scroll + cerceve); degil -> giris.
+// v20.3 - "Notu Paylas": YALNIZCA GORUNTU paylasilir (link yok - Musa karari).
+// Goruntu, NotIlet.tsx'teki off-screen sunum sahnesinden uretilir (NotKart tek
+// dogruluk kaynagi, sabit 680px genislik -> her kanalda ozdes cikti; kaynak desen
+// TakvimModal not detayi). Onceki turlarin kalici dersleri korunur:
+//   - toBlob dogrudan Blob doner (dataURL+fetch CSP connect-src'e takiliyordu, v20.2.3)
+//   - skipFonts: next/font/google stylesheet'lerinin SecurityError'unu bypass eder (v20.2.2)
+//   - iki adimli akis: uret -> kullanici TIKLAR -> share o tikin gesture'inda (v20.2.1)
 
-export function notIletMetni(notId: string, baslik: string): string {
-  return `"${baslik}"\n${window.location.origin}/?focus=${notId}`;
-}
-
-// Adim 1 - snapshot uretimi (tik sonrasi arka planda; basarisizlik null doner, akis link'e duser)
-export async function notSnapshotUret(kartEl: HTMLElement): Promise<File | null> {
+export async function notSnapshotUret(sahneEl: HTMLElement): Promise<File | null> {
   try {
     const zemin = getComputedStyle(document.body).backgroundColor || undefined;
-    const blob = await toBlob(kartEl, { pixelRatio: 2, backgroundColor: zemin, cacheBust: true, skipFonts: true });  // v20.2.3 - toBlob: dataURL+fetch yolu CSP connect-src'e takiliyordu (console kaniti)
-    if (!blob) { console.warn("not snapshot: toBlob null dondu (canvas uretilemedi)"); return null; }  // v20.2.4 - sessiz null bitti
+    const blob = await toBlob(sahneEl, { pixelRatio: 2, backgroundColor: zemin, cacheBust: true, skipFonts: true });
+    if (!blob) { console.warn("not goruntusu: toBlob null dondu (canvas uretilemedi)"); return null; }
     return new File([blob], "not.png", { type: "image/png" });
   } catch (e) {
-    console.warn("not snapshot uretilemedi:", e);  // v20.2.2 - sessiz yutma bitti
+    console.warn("not goruntusu uretilemedi:", e);
     return null;
   }
 }
@@ -32,22 +26,14 @@ export function dosyaPaylasilabilir(dosya: File): boolean {
   return typeof navigator.canShare === "function" && navigator.canShare({ files: [dosya] });
 }
 
-// Adim 2a - OS paylasim menusu (dosya HAZIR; tek await share'in kendisi = gesture korunur).
-// Not: bazi WhatsApp surumleri dosya varken text'i caption'a alir, bazilari dusurur -
-// platform davranisi; link garantisi icin 2b her zaman sunulur.
-export async function dosyaylaPaylas(dosya: File, metin: string): Promise<"paylasildi" | "iptal" | "hata"> {
+// OS paylasim menusu - YALNIZ dosya (metin/link bilerek YOK). Gesture icinde cagrilmali
+// (oncesinde await olmadan, tikin kendi baglaminda).
+export async function dosyaylaPaylas(dosya: File): Promise<"paylasildi" | "iptal" | "hata"> {
   try {
-    // v20.2.4 - share API hic yoksa (orn. masaustu Firefox) temiz "hata" don: toast -> link yolu
     if (typeof navigator.share !== "function") return "hata";
-    await navigator.share({ files: [dosya], text: metin });
+    await navigator.share({ files: [dosya] });
     return "paylasildi";
   } catch (e) {
     return e instanceof DOMException && e.name === "AbortError" ? "iptal" : "hata";
   }
-}
-
-// Adim 2b - wa.me metin+link (SENKRON cagrilmali). false = tarayici pencereyi blokladi.
-export function linkiWhatsApptaAc(metin: string): boolean {
-  const w = window.open(`https://wa.me/?text=${encodeURIComponent(metin)}`, "_blank", "noopener");
-  return w != null;
 }

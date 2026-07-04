@@ -582,7 +582,7 @@ public static class NoteEndpoints
             return Results.NoContent();
         });
 
-        // v20.2 madde 11 (B2) - NOT ILETILDI: WhatsApp paylasimi tamamlaninca frontend bildirir;
+        // v20.3 (B2) - NOT ILETILDI: goruntu paylasimi tamamlaninca frontend bildirir (kanal OS menusunden secilir: WhatsApp/mail/vb.);
         // YALNIZCA audit izi yazilir (davranis/veri degisikligi yok). Iptal edilen paylasim
         // frontend'te elenir, buraya hic gelmez. Goruntuleme modu: sessiz no-op (iz kirletmez).
         g.MapPost("/{id:guid}/iletildi", async (
@@ -597,7 +597,7 @@ public static class NoteEndpoints
             if (n is null) return Results.NotFound();
 
             await audit.YazAsync("not_iletildi", "not", id,
-                degisenAlanlar: System.Text.Json.JsonSerializer.Serialize(new { kanal = "whatsapp" }),
+                degisenAlanlar: System.Text.Json.JsonSerializer.Serialize(new { kanal = "paylasim" }),
                 detay: n.Baslik, ct: ct);
 
             return Results.Ok(new { ok = true });
