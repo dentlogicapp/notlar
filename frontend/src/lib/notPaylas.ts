@@ -13,7 +13,7 @@ import { toBlob } from "html-to-image";
 export async function notSnapshotUret(sahneEl: HTMLElement): Promise<File | null> {
   try {
     const zemin = getComputedStyle(document.body).backgroundColor || undefined;
-    const blob = await toBlob(sahneEl, { pixelRatio: 2, backgroundColor: zemin, cacheBust: true, skipFonts: true });
+    const blob = await toBlob(sahneEl, { pixelRatio: 2, backgroundColor: zemin, cacheBust: true, skipFonts: true, style: { position: "static", left: "0", top: "0", margin: "0" } });  // v20.3.1 - klon koku konum sigortasi
     if (!blob) { console.warn("not goruntusu: toBlob null dondu (canvas uretilemedi)"); return null; }
     return new File([blob], "not.png", { type: "image/png" });
   } catch (e) {

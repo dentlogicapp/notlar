@@ -44,14 +44,14 @@ export function NotIletButonu({ not, ikonSinifi }: { not: Not; ikonSinifi: strin
     const el = sahneRef.current;
     if (!el) return;
     let iptal = false;
-    requestAnimationFrame(() => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {  // v20.3.1 - cift rAF: layout kesinlesme sigortasi
       notSnapshotUret(el).then((f) => {
         if (iptal) return;
         console.debug("[notPaylas] goruntu:", f ? f.size + " bayt" : "null", "| canShare(files):", f ? dosyaPaylasilabilir(f) : "-");
         setDosya(f);
         setDurum("hazir");
       });
-    });
+    }));
     return () => { iptal = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [acik, durum]);
@@ -106,14 +106,14 @@ export function NotIletButonu({ not, ikonSinifi }: { not: Not; ikonSinifi: strin
             )}
           </div>
 
-          {/* Off-screen sunum sahnesi - takvim not detayi gorunumu (sabit genislik = ozdes cikti) */}
-          <div
-            ref={sahneRef}
-            aria-hidden
-            className="fixed top-0 p-10 pointer-events-none"
-            style={{ left: -10000, width: SAHNE_GENISLIK }}
-          >
-            <NotKart not={not} klasorBadgeGoster={false} />
+          {/* v20.3.1 - Off-screen KONUMLANDIRICI dis katman: fixed/left BURADA kalir; snapshot
+              hedefi IC div. Kok neden: html-to-image kok elementin computed style'ini
+              (position:fixed, left:-10000px dahil) klona kopyaliyordu; foreignObject icinde
+              icerik tuvalin 10000px soluna cizilip BOS goruntu (yalniz zemin) uretiyordu. */}
+          <div aria-hidden className="fixed top-0 pointer-events-none" style={{ left: -10000 }}>
+            <div ref={sahneRef} className="p-10" style={{ width: SAHNE_GENISLIK }}>
+              <NotKart not={not} klasorBadgeGoster={false} />
+            </div>
           </div>
         </>
       )}
