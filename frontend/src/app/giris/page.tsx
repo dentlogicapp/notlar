@@ -94,6 +94,19 @@ export default function GirisSayfasi() {
             </Button>
           </form>
 
+          
+{/* v21 M7 (K6) - metne kimliksiz erisim (kanuni gereklilik) */}
+          
+<p className="text-center mt-4">
+          
+  <Link href="/kvkk" className="text-[11px] text-clay-400 dark:text-ink-300 hover:text-terracotta transition-colors underline underline-offset-2">
+          
+    KVKK Aydınlatma Metni
+          
+  </Link>
+          
+</p>
+
           <div className="mt-5 text-center">
             <Link href="/sifre-sifirla-iste" className="text-xs text-clay-500 dark:text-ink-200 hover:text-terracotta hover:underline">
               Şifremi unuttum

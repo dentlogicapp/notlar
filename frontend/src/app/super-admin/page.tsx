@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { superAdminIsletmeApi } from "@/lib/api";
 import { TenantOlusturModal } from "@/components/TenantOlusturModal";
 import { CanliAkis } from "@/components/CanliAkis";
+import { KvkkYonetim } from "@/components/KvkkYonetim";
 import type { IsletmeOzet } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -169,6 +170,7 @@ export default function SuperAdminPage() {
           </div>
         )}
 
+        <KvkkYonetim /> 
         <CanliAkis tenantlar={tenantlar} />
       </div>
     </main>

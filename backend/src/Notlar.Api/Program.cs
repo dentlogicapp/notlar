@@ -912,6 +912,7 @@ app.MapAdminEndpoints();
 app.MapFolderEndpoints();
 app.MapNoteEndpoints();
 app.MapKvkkEndpoints();  // v21 M7 (K6)
+app.MapSuperAdminDenetimEndpoints();  // v21 M6 (KN-A6)
 app.MapNotificationEndpoints();
 app.MapLockEndpoints();
 app.MapExportEndpoints();

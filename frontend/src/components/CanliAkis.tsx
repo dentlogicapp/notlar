@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { akisBaglan, type AkisOlayi } from "@/lib/akis";
+import { useQuery } from "@tanstack/react-query";
+import { superDenetimApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 // Olay tipi -> renk + okunabilir etiket. Bilinmeyen olaylar generic gosterilir.
@@ -72,16 +74,37 @@ export function CanliAkis({ tenantlar }: { tenantlar?: { id: string; markaAdi: s
 
   useEffect(() => {
     const kapat = akisBaglan(
-      (o) => setOlaylar((p) => [{ ...o, _id: sayacRef.current++ }, ...p].slice(0, 30)),
+      (o) => setOlaylar((p) => [{ ...o, _id: sayacRef.current++ }, ...p].slice(0, 500)),
       (b) => setBagli(b)
     );
     return kapat;
   }, []);
 
+  // v21 M6 (KN-A6) - DB kaynakli baslangic: son 500 denetim kaydi yuklenir; SSE
+  // canli olaylari USTUNE ekler. Kayitlar DB'de oldugundan sayfadan ayrilip donunce
+  // akis SIFIRLANMAZ (yeniden dolar) - denetim gunlukleriyle ayni kaynak/format.
+  const yuklendiRef = useRef(false);
+  const { data: gecmis } = useQuery({
+    queryKey: ["super-denetim-akis"],
+    queryFn: () => superDenetimApi.list(0, 500),
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+  });
+  useEffect(() => {
+    if (!gecmis || yuklendiRef.current) return;
+    yuklendiRef.current = true;
+    setOlaylar((p) => [...p, ...gecmis.kayitlar.map((d) => ({
+      olay: d.olay, hedefTip: d.hedefTip, hedefId: d.hedefId, isletmeId: d.isletmeId,
+      aktorEmail: d.aktorEmail, aktorAdSoyad: null, detay: d.detay,
+      degisenAlanlar: d.degisenAlanlar, zaman: d.zaman, _id: sayacRef.current++,
+    }))].slice(0, 500));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gecmis]);
+
   return (
     <div className="kart p-5">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-semibold text-clay-800 dark:text-ink-50">Canlı Akış</h2>
+        <h2 className="text-sm font-semibold text-clay-800 dark:text-ink-50">Canlı Akış <span className="text-[10px] font-normal text-clay-400 dark:text-ink-300">(son 500 kayıt · kalıcı)</span></h2>
         <span className="flex items-center gap-1.5 text-[11px] text-clay-400 dark:text-ink-300">
           <span className={cn("h-2 w-2 rounded-full", bagli ? "bg-green-500 animate-pulse" : "bg-clay-300 dark:bg-ink-600")} />
           {bagli ? "Canlı" : "Bağlanıyor…"}

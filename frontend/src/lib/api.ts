@@ -249,6 +249,39 @@ export interface IsletmeAyarGuncelleOnerisi {
   mailTonu?: string;
 }
 
+// v21 M7 (K6) + B2 - KVKK
+export interface KvkkMetin {
+  versiyon: number; icerik: string; pazarlamaIcerik: string | null;
+  sha256Hash: string; yayinZamani: string;
+}
+export interface KvkkMetinOzet {
+  id: string; versiyon: number; sha256Hash: string; yayinZamani: string; aktif: boolean;
+}
+export interface KvkkOnamKaydi {
+  id: string; adSoyad: string; email: string; versiyon: number; metinHash: string;
+  pazarlamaIzni: boolean; ip: string | null; onamZamani: string;
+}
+export const kvkkApi = {
+  aktif: () => ist<KvkkMetin>("/api/kvkk/aktif"),
+  onam: (pazarlamaIzni: boolean) =>
+    ist<{ ok: boolean; versiyon: number }>("/api/kvkk/onam", { method: "POST", body: JSON.stringify({ pazarlamaIzni }) }),
+  metinYayinla: (icerik: string, pazarlamaIcerik: string | null) =>
+    ist<{ ok: boolean; versiyon: number; hash: string }>("/api/super-admin/kvkk/metin", { method: "POST", body: JSON.stringify({ icerik, pazarlamaIcerik }) }),
+  metinler: () => ist<KvkkMetinOzet[]>("/api/super-admin/kvkk/metinler"),
+  onamlar: () => ist<KvkkOnamKaydi[]>("/api/super-admin/kvkk/onamlar"),
+};
+
+// v21 M6 (KN-A6) - super admin sistem geneli denetim (canli akisin DB kaynagi)
+export interface SuperDenetimKaydi {
+  id: string; olay: string; hedefTip: string | null; hedefId: string | null;
+  isletmeId: string | null; aktorEmail: string | null; detay: string | null;
+  degisenAlanlar: string | null; zaman: string;
+}
+export const superDenetimApi = {
+  list: (skip = 0, take = 500) =>
+    ist<{ toplam: number; kayitlar: SuperDenetimKaydi[] }>(`/api/super-admin/denetim?skip=${skip}&take=${take}`),
+};
+
 // v15 — Multi-tenant API
 export const isletmeApi = {
   uyelik: () => ist<Uyelik[]>("/api/isletmeler/uyelik"),

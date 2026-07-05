@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { useBen } from "@/lib/useBen";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
+import { KvkkGate } from "@/components/KvkkGate";
 
 export function AuthGuard({ children, requireAdmin = false, requireSuperAdmin = false }: { children: React.ReactNode; requireAdmin?: boolean; requireSuperAdmin?: boolean }) {
   const { data: ben, isLoading, isError } = useBen();
@@ -46,6 +47,9 @@ export function AuthGuard({ children, requireAdmin = false, requireSuperAdmin = 
       </div>
     );
   }
+  // v21 M7 (K6) - KVKK onam gate: aktif metne onami olmayan kullanici HICBIR sayfaya
+  // gecemez; children yerine gecilemez onam ekrani basilir (tek merkezi nokta).
+  if (ben.kvkkOnamGerekli) return <KvkkGate />;
   if (requireSuperAdmin && !ben.superAdmin) return null;
   if (requireAdmin && aktifRol !== "admin") return null;
 

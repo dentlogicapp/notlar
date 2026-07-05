@@ -51,6 +51,7 @@ export interface Ben {
   sessizSaatAktif: boolean;
   sessizSaatBaslangic: string;       // "HH:mm"
   sessizSaatBitis: string;           // "HH:mm"
+  kvkkOnamGerekli: boolean;                      // v21 M7 - gecilemez onam gate tetigi
 }
 
 export interface Kullanici {
