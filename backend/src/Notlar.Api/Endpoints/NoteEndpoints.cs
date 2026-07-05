@@ -215,7 +215,15 @@ public static class NoteEndpoints
             var olusturHedefler = string.IsNullOrWhiteSpace(n.HatirlatmaAliciIdler)
                 ? new List<Guid>()
                 : JsonSerializer.Deserialize<List<Guid>>(n.HatirlatmaAliciIdler) ?? new List<Guid>();
-            await bildirim.NotOlusturuldu(n, uc.KullaniciId.Value, olusturHedefler, ct);
+            // v21.0.1 M1 - mention (CREATE yolu): yeni notta bahsedilenler cozumlenir ve
+            // "bahsedildin" OLUSTURULDU'dan ONCE gider; bahsedilenler olusturuldu'dan MUAF
+            // (hatirlatici alici deseniyle birebir - cift bildirim yok). Onceki eksik: mention
+            // yalniz UPDATE yolundaydi; yeni akista Kaydet CREATE cagirdigi icin hic calismiyordu.
+            var bahsedilenler = (await bildirim.BahsedilenleriCoz(tenantId, $"{n.Baslik}\n{n.Icerik}", ct))
+                .Where(x => x != uc.KullaniciId.Value).ToList();
+            if (bahsedilenler.Count > 0)
+                await bildirim.NotBahsedildi(n, uc.KullaniciId.Value, bahsedilenler, ct);
+            await bildirim.NotOlusturuldu(n, uc.KullaniciId.Value, olusturHedefler.Concat(bahsedilenler).Distinct().ToList(), ct);  // v21.0.1 - bahsedilenler muaf (cift bildirim yok)
             await bildirim.HatirlaticiAliciEklendi(n, uc.KullaniciId.Value, olusturHedefler, ct);
 
             var loaded = await db.Notlar
@@ -363,6 +371,9 @@ public static class NoteEndpoints
             var bahsedilenYeniler = yeniBahsedilenler.Except(eskiBahsedilenler)
                 .Where(x => x != uc.KullaniciId.Value).ToList();
             var olusturGuncelleMuaf = hatirlaticiHedefler.Concat(bahsedilenYeniler).Distinct().ToList();
+            // v21.0.1 - SIRA (Musa karari): "bahsedildin", olusturuldu/guncellendi'den ONCE gider.
+            if (bahsedilenYeniler.Count > 0)
+                await bildirim.NotBahsedildi(n, uc.KullaniciId.Value, bahsedilenYeniler, ct);
             // Ilk anlamli Kaydet'te "olusturuldu", sonraki Kaydet'lerde (anlamli degisiklikte) "guncellendi".
             // Duyuruldu=true once persist edilir (NotOlusturuldu oncesi); hata olsa bile cift duyuru olmaz.
             if (!n.Duyuruldu)
@@ -376,8 +387,6 @@ public static class NoteEndpoints
                 await bildirim.NotGuncellendi(n, uc.KullaniciId.Value, olusturGuncelleMuaf, ct);  // v21 M1 - bahsedilenler muaf
             }
             await bildirim.HatirlaticiAliciEklendi(n, uc.KullaniciId.Value, hatirlaticiHedefler, ct);
-            if (bahsedilenYeniler.Count > 0)
-                await bildirim.NotBahsedildi(n, uc.KullaniciId.Value, bahsedilenYeniler, ct);  // v21 M1
 
             // Anlik yansima: not degisti -> tenant akisina yayinla; diger ekranlar goruldu listesini aninda tazeler.
             yayinci.Yayinla(new AkisOlayi(
