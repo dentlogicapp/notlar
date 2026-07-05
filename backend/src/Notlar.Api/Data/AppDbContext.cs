@@ -29,6 +29,9 @@ public sealed class AppDbContext : DbContext
     public DbSet<DuyuruMesajOkunma> DuyuruMesajOkunmalar => Set<DuyuruMesajOkunma>();  // v20.1
     // v17 - AI saglayici ayari (singleton)
     public DbSet<AiAyari> AiAyarlari => Set<AiAyari>();
+    // v21 M7 (K6) - KVKK (tenant-bagimsiz)
+    public DbSet<KvkkMetni> KvkkMetinleri => Set<KvkkMetni>();
+    public DbSet<KvkkOnami> KvkkOnamlari => Set<KvkkOnami>();
 
     // v18 - Sifir Sablon KATMAN 2 (tenant icerigi + version history)
     public DbSet<IsletmeMetni> IsletmeMetinleri => Set<IsletmeMetni>();
@@ -36,6 +39,22 @@ public sealed class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder m)
     {
+        // v21 M7 (K6) - KVKK (tenant-BAGIMSIZ: onam kimlige baglidir, isletmeye degil)
+        m.Entity<KvkkMetni>(e =>
+        {
+            e.ToTable("kvkk_metinleri");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Sha256Hash).HasMaxLength(64).IsRequired();
+            e.HasIndex(x => x.Versiyon).IsUnique();
+        });
+        m.Entity<KvkkOnami>(e =>
+        {
+            e.ToTable("kvkk_onamlari");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.MetinHash).HasMaxLength(64).IsRequired();
+            e.HasIndex(x => new { x.KullaniciId, x.Versiyon }).IsUnique();
+        });
+
         m.Entity<Kullanici>(e =>
         {
             e.ToTable("kullanicilar");

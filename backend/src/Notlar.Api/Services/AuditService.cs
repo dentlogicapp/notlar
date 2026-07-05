@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Notlar.Api.Data;
 using Notlar.Api.Entities;
 
@@ -46,6 +47,24 @@ public sealed class AuditService : IAuditService
         };
         _db.DenetimGunlukleri.Add(kayit);
         await _db.SaveChangesAsync(ct);
+
+        // v21 M6 (KN3) - saklama politikasi: tenant basina SON 500 kayit tutulur.
+        // Her yazimda 500'u asan EN ESKI kayitlar kalici silinir - YALNIZ tenant-scoped
+        // (IsletmeId NULL sistem kayitlarina dokunulmaz). Append-only ilkesi korunur:
+        // bu kayit degistirme degil, saklama suresi politikasidir. Parametreli SQL
+        // (interpolated ExecuteSqlAsync) - injection yuzeyi yok.
+        if (kayit.IsletmeId is not null)
+        {
+            await _db.Database.ExecuteSqlAsync($"""
+                DELETE FROM denetim_gunlukleri
+                WHERE "Id" IN (
+                    SELECT "Id" FROM denetim_gunlukleri
+                    WHERE "IsletmeId" = {kayit.IsletmeId}
+                    ORDER BY "Zaman" DESC
+                    OFFSET 500
+                )
+                """, ct);
+        }
 
         // v19 Asama 7 - SSE: audit kalici olduktan SONRA super admin feed'e yayinla.
         // TryWrite tabanli, throw etmez; audit yazimini etkilemez (paralel degil, hook).

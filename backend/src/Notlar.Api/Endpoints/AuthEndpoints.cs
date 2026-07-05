@@ -246,11 +246,23 @@ public static class AuthEndpoints
             // Etkin aktif tenant: impersonation'da hedef (JWT), normalde DB (95-109 duzeltmesi dahil)
             var etkinAktif = goruntulemeModu ? u.AktifIsletmeId : user.AktifIsletmeId;
 
+            // v21 M7 (K6) - KVKK onam gate: aktif metin varsa ve kullanicinin O versiyona
+            // onami yoksa frontend gecilemez onam ekrani basar. Aktif metin yokken gate
+            // sessizdir (sistem kilitlenmez). Super admin MUAF DEGIL (o da gercek kisi).
+            // NOT: login yanitindaki BenYaniti default false doner (bilincli - frontend /ben okur).
+            var aktifKvkk = await db.KvkkMetinleri.Where(x => x.Aktif)
+                .OrderByDescending(x => x.Versiyon)
+                .Select(x => (int?)x.Versiyon)
+                .FirstOrDefaultAsync(ct);
+            var kvkkOnamGerekli = aktifKvkk.HasValue
+                && !await db.KvkkOnamlari.AnyAsync(
+                    o => o.KullaniciId == user.Id && o.Versiyon == aktifKvkk.Value, ct);
+
             return Results.Ok(new BenYaniti(
                 user.Id, user.Email, user.AdSoyad, user.Rol, user.Cinsiyet,
                 user.SuperAdmin, etkinAktif, uyelikler,
                 goruntulemeModu, goruntulenenMarka,
-                user.SessizSaatAktif, user.SessizSaatBaslangic.ToString("HH:mm"), user.SessizSaatBitis.ToString("HH:mm")));
+                user.SessizSaatAktif, user.SessizSaatBaslangic.ToString("HH:mm"), user.SessizSaatBitis.ToString("HH:mm"), kvkkOnamGerekli));
         }).RequireAuthorization();
 
         // 5.1 Profil guncelle (kendi ad soyad + cinsiyet; email degistirilemez)

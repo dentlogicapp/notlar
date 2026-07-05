@@ -434,10 +434,15 @@ function DuyuruDetayModal({
   });
 
   useEffect(() => {
+    // v21 Talep-2a - OPTIMISTIC: modal acilir acilmaz cache'te benGordum=true yazilir
+    // -> banner ANINDA soner (sunucu beklenmez). POST teyit eder; basarisizlik
+    // refetch'le kendini duzeltir ve artik console'a iz duser.
+    qc.setQueryData<DuyuruOzet[]>(["duyurular"], (eski) =>
+      (eski ?? []).map((d) => (d.id === duyuruId ? { ...d, benGordum: true } : d)));
     duyuruApi
       .goruldu(duyuruId)
       .then(() => qc.invalidateQueries({ queryKey: ["duyurular"] }))
-      .catch(() => {});
+      .catch((e) => console.warn("duyuru goruldu gonderilemedi:", e));  // v21 Talep-2a - sessiz fail izi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [duyuruId]);
 
@@ -553,7 +558,7 @@ function DuyuruDetayModal({
                 type="button"
                 onClick={() => { setDuzenleMetin(detay.icerik); setDuzenleModu(true); }}
                 aria-label="Duyuruyu düzenle"
-                className="ml-auto text-clay-400 hover:text-terracotta dark:text-ink-300 transition-colors p-1"
+                className="text-clay-400 hover:text-terracotta dark:text-ink-300 transition-colors p-1"
               >
                 <Pencil className="h-4 w-4" />
               </button>
@@ -647,7 +652,8 @@ function DuyuruDetayModal({
 
             {detay.mesajlar.length > 0 && (
               <div ref={zincirRef} className="space-y-2 max-h-56 overflow-y-auto">
-                {detay.mesajlar.map((m) => {
+                {detay.mesajlar.map((m, mi) => {
+                  const yukariAc = mi >= detay.mesajlar.length - 2;  // v21 Talep-2b - son yanitlarin popover'i yukari acilir
                   const benimMesajim = m.gonderenKullaniciId === ben?.id;
                   const okunmamis = !benimMesajim && !m.benGordum;
                   return (
@@ -705,7 +711,7 @@ function DuyuruDetayModal({
                             {acikMesajGorenId === m.id && m.gorenler.length > 0 && (
                               <div
                                 onClick={(e) => e.stopPropagation()}
-                                className="absolute left-0 top-full mt-1.5 z-50 w-56 p-3 rounded-xl bg-white dark:bg-ink-800 border border-cream-300 dark:border-ink-600 shadow-lg space-y-1.5"
+                                className={cn("absolute left-0 z-50 w-56 p-3 rounded-xl bg-white dark:bg-ink-800 border border-cream-300 dark:border-ink-600 shadow-lg space-y-1.5", yukariAc ? "bottom-full mb-1.5" : "top-full mt-1.5")}
                               >
                                 {m.gorenler.map((gr) => (
                                   <div key={gr.kullaniciId} className="flex items-center gap-2">

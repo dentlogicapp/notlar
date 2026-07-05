@@ -79,7 +79,7 @@ public static class FolderEndpoints
         // CREATE — tenant-scoped
         g.MapPost("/", async (
             KlasorOlusturIstegi req, AppDbContext db,
-            IUserContext uc, IAuditService audit, CancellationToken ct) =>
+            IUserContext uc, IAuditService audit, INotBildirimServisi bildirim, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(req.Ad))
                 return Results.BadRequest(new { hata = "Ad zorunlu." });
@@ -117,6 +117,7 @@ public static class FolderEndpoints
             await db.SaveChangesAsync(ct);
 
             await audit.YazAsync("klasor_olusturuldu", "klasor", k.Id, detay: k.Ad, ct: ct);
+            await bildirim.KlasorOlayi(k, uc.KullaniciId.Value, silindiMi: false, ct);  // Talep-1 (v21)
 
             var olusturanAd = uc.AdSoyad ?? "";
             return Results.Created($"/api/klasorler/{k.Id}",
@@ -195,7 +196,7 @@ public static class FolderEndpoints
 
         // DELETE — tenant-scoped
         g.MapDelete("/{id:guid}", async (
-            Guid id, AppDbContext db, IUserContext uc, IAuditService audit, CancellationToken ct) =>
+            Guid id, AppDbContext db, IUserContext uc, IAuditService audit, INotBildirimServisi bildirim, CancellationToken ct) =>
         {
             if (uc.KullaniciId is null) return Results.Unauthorized();
             if (uc.AktifIsletmeId is null) return Results.Unauthorized();
@@ -240,6 +241,7 @@ public static class FolderEndpoints
                     : k.Ad,
                 degisenAlanlar: $"{{\"klasorAd\":\"{k.Ad}\",\"tasinanNotSayisi\":{tasinanSayi}}}",
                 ct: ct);
+            await bildirim.KlasorOlayi(k, uc.KullaniciId.Value, silindiMi: true, ct);   // Talep-1 (v21)
 
             return Results.NoContent();
         });

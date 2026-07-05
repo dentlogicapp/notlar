@@ -30,7 +30,8 @@ public sealed record BenYaniti(
     string? GoruntulenenMarka,
     bool SessizSaatAktif,            // v19 4d - sessiz saatler
     string SessizSaatBaslangic,      // "HH:mm"
-    string SessizSaatBitis);         // "HH:mm"
+    string SessizSaatBitis,         // "HH:mm"
+    bool KvkkOnamGerekli = false);   // v21 M7 (K6) - gecilemez onam gate tetigi (default'lu: kirilim yok)
 
 public sealed record UyelikYaniti(
     Guid IsletmeId,
@@ -130,7 +131,8 @@ public sealed record NotYaniti(
     // v19 - read receipts: avatar yigini + yeni/degisen tespiti (BenimSonGorme < GuncellemeZamani -> degismis)
     int OkuyanSayisi,
     IReadOnlyList<NotOkuyanYaniti> Okuyanlar,
-    DateTimeOffset? BenimSonGorme);
+    DateTimeOffset? BenimSonGorme,
+    bool BasaTutuldu = false);  // v21 M4 - default'lu: mevcut cagri noktalari kirilmaz
 
 // v19 - not okuyan ozeti (avatar yigini icin)
 public sealed record NotOkuyanYaniti(Guid KullaniciId, string AdSoyad, DateTimeOffset OkunmaZamani);

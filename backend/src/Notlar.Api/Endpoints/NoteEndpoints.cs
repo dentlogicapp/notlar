@@ -42,7 +42,7 @@ public static class NoteEndpoints
                 .Include(n => n.OlusturanKullanici)
                 .Include(n => n.TamamlayanKullanici)
                 .Include(n => n.Klasor)
-                .OrderByDescending(n => n.GuncellemeZamani)
+                .OrderByDescending(n => n.BasaTutuldu).ThenByDescending(n => n.GuncellemeZamani)  // v21 M4 (KN1) - pinli not tum gorunumlerde once
                 .ToListAsync(ct);
 
             var kilitSuresi = TimeSpan.FromSeconds(45);
@@ -124,6 +124,11 @@ public static class NoteEndpoints
         {
             if (string.IsNullOrWhiteSpace(req.Baslik))
                 return Results.BadRequest(new { hata = "Başlık zorunlu." });
+            // v21 M2 - backend limitleri (frontend zod max(200)/max(5000) ile cift katman)
+            if (req.Baslik.Trim().Length > 200)
+                return Results.BadRequest(new { hata = "BASLIK_UZUN", mesaj = "Başlık en fazla 200 karakter olabilir." });
+            if ((req.Icerik?.Length ?? 0) > 5000)
+                return Results.BadRequest(new { hata = "ICERIK_UZUN", mesaj = "İçerik en fazla 5000 karakter olabilir." });
             if (uc.KullaniciId is null) return Results.Unauthorized();
             if (uc.AktifIsletmeId is null) return Results.Unauthorized();
             if (uc.GoruntumeModu) return Results.StatusCode(403);
@@ -240,6 +245,11 @@ public static class NoteEndpoints
                 return Results.BadRequest(new { hata = "NOT_TAMAMLANMIS_DUZENLENEMEZ", mesaj = "Tamamlananlar klasöründeki bir not düzenlenemez. Düzenlemek için önce notun tamamlandı işaretini (tik) kaldırıp notu Tamamlananlar klasöründen çıkarın, ardından düzenleyebilirsiniz." });
             if (string.IsNullOrWhiteSpace(req.Baslik))
                 return Results.BadRequest(new { hata = "Başlık zorunlu." });
+            // v21 M2 - backend limitleri (frontend zod max(200)/max(5000) ile cift katman)
+            if (req.Baslik.Trim().Length > 200)
+                return Results.BadRequest(new { hata = "BASLIK_UZUN", mesaj = "Başlık en fazla 200 karakter olabilir." });
+            if ((req.Icerik?.Length ?? 0) > 5000)
+                return Results.BadRequest(new { hata = "ICERIK_UZUN", mesaj = "İçerik en fazla 5000 karakter olabilir." });
 
             // Hedef klasör de tenant'a ait olmalı
             if (req.KlasorId.HasValue)
@@ -343,19 +353,31 @@ public static class NoteEndpoints
             // degismediyse yalniz yeni eklenenler. Bu hedefler "guncellendi"den muaf, sadece hatirlatici bildirimi alir.
             var hatirlatmaZamaniDegisti = eskiHatirlatmaZamani != n.HatirlatmaZamani;
             var hatirlaticiHedefler = hatirlatmaZamaniDegisti ? yeniAlicilar : eklenenAlicilar;
+            // v21 M1 - mention: yalniz YENI bahsedilenler "bahsedildin" alir (eski metinde
+            // zaten bahsedilenler spam almaz). Bahsedilenler olusturuldu/guncellendi
+            // bildiriminden MUAF tutulur (cifte bildirim yok) - mevcut muaf deseni.
+            var eskiBahsedilenler = n.Duyuruldu
+                ? await bildirim.BahsedilenleriCoz(tenantId, $"{eskiBaslik}\n{eskiIcerik}", ct)
+                : new List<Guid>();
+            var yeniBahsedilenler = await bildirim.BahsedilenleriCoz(tenantId, $"{n.Baslik}\n{n.Icerik}", ct);
+            var bahsedilenYeniler = yeniBahsedilenler.Except(eskiBahsedilenler)
+                .Where(x => x != uc.KullaniciId.Value).ToList();
+            var olusturGuncelleMuaf = hatirlaticiHedefler.Concat(bahsedilenYeniler).Distinct().ToList();
             // Ilk anlamli Kaydet'te "olusturuldu", sonraki Kaydet'lerde (anlamli degisiklikte) "guncellendi".
             // Duyuruldu=true once persist edilir (NotOlusturuldu oncesi); hata olsa bile cift duyuru olmaz.
             if (!n.Duyuruldu)
             {
                 n.Duyuruldu = true;
                 await db.SaveChangesAsync(ct);
-                await bildirim.NotOlusturuldu(n, uc.KullaniciId.Value, hatirlaticiHedefler, ct);
+                await bildirim.NotOlusturuldu(n, uc.KullaniciId.Value, olusturGuncelleMuaf, ct);  // v21 M1 - bahsedilenler muaf
             }
             else if (icerikDegisti)
             {
-                await bildirim.NotGuncellendi(n, uc.KullaniciId.Value, hatirlaticiHedefler, ct);
+                await bildirim.NotGuncellendi(n, uc.KullaniciId.Value, olusturGuncelleMuaf, ct);  // v21 M1 - bahsedilenler muaf
             }
             await bildirim.HatirlaticiAliciEklendi(n, uc.KullaniciId.Value, hatirlaticiHedefler, ct);
+            if (bahsedilenYeniler.Count > 0)
+                await bildirim.NotBahsedildi(n, uc.KullaniciId.Value, bahsedilenYeniler, ct);  // v21 M1
 
             // Anlik yansima: not degisti -> tenant akisina yayinla; diger ekranlar goruldu listesini aninda tazeler.
             yayinci.Yayinla(new AkisOlayi(
@@ -391,6 +413,7 @@ public static class NoteEndpoints
                 return Results.Json(new { hata = $"{kilitSahibi} şu anda bu notu düzenliyor." }, statusCode: 409);
 
             n.Tamamlandi = true;
+            n.BasaTutuldu = false;  // v21 M4 (KN2) - tamamlanan not pinli kalamaz
             n.TamamlanmaAciklamasi = req.TamamlanmaAciklamasi.Trim();
             n.TamamlanmaZamani = DateTimeOffset.UtcNow;
             n.TamamlayanKullaniciId = uc.KullaniciId.Value;
@@ -442,7 +465,7 @@ public static class NoteEndpoints
         // YENİDEN AÇ — tenant-scoped
         g.MapPost("/{id:guid}/yeniden-ac", async (
             Guid id, AppDbContext db, IUserContext uc,
-            IAuditService audit, IAkisYayinci yayinci, CancellationToken ct) =>
+            IAuditService audit, IAkisYayinci yayinci, INotBildirimServisi bildirim, CancellationToken ct) =>
         {
             if (uc.KullaniciId is null) return Results.Unauthorized();
             if (uc.AktifIsletmeId is null) return Results.Unauthorized();
@@ -477,6 +500,7 @@ public static class NoteEndpoints
             await db.SaveChangesAsync(ct);
 
             await audit.YazAsync("not_yeniden_acildi", "not", n.Id, detay: n.Baslik, ct: ct);
+            await bildirim.NotYenidenAcildi(n, uc.KullaniciId.Value, ct);  // Talep-1
             var loaded = await db.Notlar
                 .Include(x => x.OlusturanKullanici)
                 .Include(x => x.Klasor)
@@ -494,7 +518,7 @@ public static class NoteEndpoints
         // SOFT DELETE — tenant-scoped
         g.MapDelete("/{id:guid}", async (
             Guid id, AppDbContext db, IUserContext uc,
-            IAuditService audit, CancellationToken ct) =>
+            IAuditService audit, INotBildirimServisi bildirim, CancellationToken ct) =>
         {
             if (uc.KullaniciId is null) return Results.Unauthorized();
             if (uc.AktifIsletmeId is null) return Results.Unauthorized();
@@ -506,6 +530,7 @@ public static class NoteEndpoints
             if (n is null) return Results.NotFound();
 
             n.Silindi = true;
+            n.BasaTutuldu = false;  // v21 M4 (KN2) - silinen not pinli kalamaz
             n.SilinmeZamani = DateTimeOffset.UtcNow;
             n.SilenKullaniciId = uc.KullaniciId.Value;
 
@@ -519,13 +544,14 @@ public static class NoteEndpoints
             await db.SaveChangesAsync(ct);
 
             await audit.YazAsync("not_silindi", "not", n.Id, detay: n.Baslik, ct: ct);
+            await bildirim.NotSilindi(n, uc.KullaniciId.Value, ct);  // Talep-1
             return Results.NoContent();
         });
 
         // GERİ YÜKLE — tenant-scoped
         g.MapPost("/{id:guid}/geri-yukle", async (
             Guid id, AppDbContext db, IUserContext uc,
-            IAuditService audit, CancellationToken ct) =>
+            IAuditService audit, INotBildirimServisi bildirim, CancellationToken ct) =>
         {
             if (uc.KullaniciId is null) return Results.Unauthorized();
             if (uc.AktifIsletmeId is null) return Results.Unauthorized();
@@ -551,6 +577,7 @@ public static class NoteEndpoints
             await db.SaveChangesAsync(ct);
 
             await audit.YazAsync("not_geri_yuklendi", "not", n.Id, detay: n.Baslik, ct: ct);
+            await bildirim.NotGeriYuklendi(n, uc.KullaniciId.Value, ct);  // Talep-1
             return Results.Ok(MapYanit(n));
         });
 
@@ -560,7 +587,7 @@ public static class NoteEndpoints
         // NotGecmisi FK Cascade ile otomatik silinir; Bildirim Not'a FK değil (etkilenmez); DenetimGunlugu izi kalır.
         g.MapDelete("/{id:guid}/kalici", async (
             Guid id, AppDbContext db, IUserContext uc,
-            IAuditService audit, CancellationToken ct) =>
+            IAuditService audit, INotBildirimServisi bildirim, CancellationToken ct) =>
         {
             if (uc.KullaniciId is null) return Results.Unauthorized();
             if (uc.AktifIsletmeId is null) return Results.Unauthorized();
@@ -579,6 +606,7 @@ public static class NoteEndpoints
             await db.SaveChangesAsync(ct);
 
             await audit.YazAsync("not_kalici_silindi", "not", id, detay: baslik, ct: ct);
+            await bildirim.NotKaliciSilindi(n, uc.KullaniciId.Value, ct);  // Talep-1
             return Results.NoContent();
         });
 
@@ -650,6 +678,56 @@ public static class NoteEndpoints
         });
 
         // v19 - read receipt: notu okundu isaretle (scroll ile gorununce). Upsert: OkunmaZamani=now.
+        // v21 M4 - BASA TUTTUR (pin). Toggle: pinli degilse pinler (tenant'taki mevcut
+        // pinli not AYNI SaveChanges icinde duser = ATOMIK, tenant basina TEK pin garanti);
+        // pinliyse kaldirir. KN2: tamamlanan not pinlenemez; tamamla/sil pin'i otomatik dusurur.
+        // B1: audit + SSE ile tum ekip ekranlarinda aninda yansir.
+        g.MapPost("/{id:guid}/basa-tuttur", async (
+            Guid id, AppDbContext db, IUserContext uc,
+            IAuditService audit, IAkisYayinci yayinci, CancellationToken ct) =>
+        {
+            if (uc.KullaniciId is null || uc.AktifIsletmeId is null) return Results.Unauthorized();
+            if (uc.GoruntumeModu) return Results.StatusCode(403);
+            var tenantId = uc.AktifIsletmeId.Value;
+
+            var n = await db.Notlar.FirstOrDefaultAsync(
+                x => x.Id == id && !x.Silindi && x.IsletmeId == tenantId, ct);
+            if (n is null) return Results.NotFound();
+            if (!n.BasaTutuldu && n.Tamamlandi)
+                return Results.BadRequest(new { hata = "TAMAMLANAN_PINLENEMEZ", mesaj = "Tamamlanan not başa tutturulamaz." });
+
+            string olay;
+            Guid? dusenNotId = null;
+            if (n.BasaTutuldu)
+            {
+                n.BasaTutuldu = false;
+                olay = "not_pin_kaldirildi";
+            }
+            else
+            {
+                var eskiPinliler = await db.Notlar
+                    .Where(x => x.IsletmeId == tenantId && x.BasaTutuldu && x.Id != id)
+                    .ToListAsync(ct);
+                foreach (var e in eskiPinliler) { e.BasaTutuldu = false; dusenNotId = e.Id; }
+                n.BasaTutuldu = true;
+                olay = "not_basa_tutuldu";
+            }
+            await db.SaveChangesAsync(ct);  // eski pin dususu + yeni pin TEK transaction (atomik)
+
+            await audit.YazAsync(olay, "not", n.Id,
+                degisenAlanlar: dusenNotId.HasValue
+                    ? JsonSerializer.Serialize(new { dusenNotId })
+                    : null,
+                detay: n.Baslik, ct: ct);
+
+            yayinci.Yayinla(new AkisOlayi(
+                Olay: olay, HedefTip: "not", HedefId: n.Id, IsletmeId: tenantId,
+                AktorEmail: uc.Email, AktorAdSoyad: uc.AdSoyad,
+                Detay: null, DegisenAlanlar: null, Zaman: DateTimeOffset.UtcNow));
+
+            return Results.Ok(new { ok = true, basaTutuldu = n.BasaTutuldu });
+        });
+
         g.MapPost("/{id:guid}/okundu", async (Guid id, AppDbContext db, IUserContext uc, IAkisYayinci yayinci, CancellationToken ct) =>
         {
             if (uc.AktifIsletmeId is null || uc.KullaniciId is null) return Results.Unauthorized();
@@ -712,5 +790,5 @@ public static class NoteEndpoints
         n.EskiKlasorId,
         okuyanlar?.Count ?? 0,
         okuyanlar ?? Array.Empty<NotOkuyanYaniti>(),
-        benimSonGorme);
+        benimSonGorme, n.BasaTutuldu);
 }

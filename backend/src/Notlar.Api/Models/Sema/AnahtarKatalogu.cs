@@ -7,7 +7,7 @@ public static class AnahtarKatalogu
 {
     // SemVer: yeni anahtar -> minor (1.1.0); tip/limit breaking -> major (2.0.0);
     // dokumantasyon (etiket/yonlendirme/aciklama) -> patch (1.0.1).
-    public const string Version = "1.7.0";
+    public const string Version = "1.8.0";
 
     public static readonly IReadOnlyList<AnahtarTanim> Tumu = new[]
     {
@@ -206,6 +206,112 @@ public static class AnahtarKatalogu
             .Yonlendirme("Zil menüsündeki (uygulama içi) duyuru bildirimi. {kullanici_adi} duyuruyu paylaşan yönetici ile değişir.")
             .Aciklama("Push bildirimi gizlilik için yönetici adını vermez; uygulama içi bildirim adı gösterir (v20.2 madde 4).")
             .Sira(535).Varsayilan("\"{kullanici_adi}\" tarafından bir duyuru paylaşıldı. Hemen görmek için tıkla!").Build(),
+
+        // ===== v21 M1 + Talep-1: not yasam dongusu + mention bildirimleri =====
+        AnahtarTanim.Tanim("not_bahsedildi_push_baslik")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Baslik)
+            .Etiket("Notta Bahsedildin - Başlık")
+            .Yonlendirme("Bir notta @ ile bahsedilen kullanıcıya giden bildirimin başlığı.")
+            .Aciklama("Kullanıcı bir notta @Ad Soyad ile anıldığında gönderilir (v21 M1).")
+            .Sira(550).Varsayilan("Senden bahsedildi").Build(),
+
+        AnahtarTanim.Tanim("not_bahsedildi_push_govde")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Metin)
+            .Placeholderlar("not_baslik", "kullanici_adi")
+            .Etiket("Notta Bahsedildin - Metin")
+            .Yonlendirme("{not_baslik} not başlığı, {kullanici_adi} bahseden kişi ile değişir.")
+            .Aciklama("Bildirime tıklayan kullanıcı doğrudan ilgili nota odaklanır.")
+            .Sira(551).Varsayilan("\"{not_baslik}\" notunda \"{kullanici_adi}\" senden bahsetti. Hemen göz atmak için tıkla!").Build(),
+
+        AnahtarTanim.Tanim("not_silindi_push_baslik")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Baslik)
+            .Etiket("Not Silindi - Başlık")
+            .Yonlendirme("Bir not çöp kutusuna taşındığında ekibe giden bildirimin başlığı.")
+            .Aciklama("Talep-1 (v21): notun çöpe taşınması ekibe duyurulur.")
+            .Sira(552).Varsayilan("Bir not çöp kutusuna taşındı").Build(),
+
+        AnahtarTanim.Tanim("not_silindi_push_govde")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Metin)
+            .Placeholderlar("not_baslik", "kullanici_adi")
+            .Etiket("Not Silindi - Metin")
+            .Yonlendirme("{not_baslik} not başlığı, {kullanici_adi} silen kişi ile değişir.")
+            .Aciklama("Not çöp kutusundadır; geri yüklenebilir.")
+            .Sira(553).Varsayilan("\"{not_baslik}\" notu \"{kullanici_adi}\" tarafından çöp kutusuna taşındı.").Build(),
+
+        AnahtarTanim.Tanim("not_yeniden_acildi_push_baslik")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Baslik)
+            .Etiket("Not Yeniden Açıldı - Başlık")
+            .Yonlendirme("Tamamlanan bir not yeniden açıldığında ekibe giden bildirimin başlığı.")
+            .Aciklama("Talep-1 (v21): tamamlananlar klasöründen çıkan not ekibe duyurulur.")
+            .Sira(554).Varsayilan("Bir not yeniden açıldı").Build(),
+
+        AnahtarTanim.Tanim("not_yeniden_acildi_push_govde")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Metin)
+            .Placeholderlar("not_baslik", "kullanici_adi")
+            .Etiket("Not Yeniden Açıldı - Metin")
+            .Yonlendirme("{not_baslik} not başlığı, {kullanici_adi} yeniden açan kişi ile değişir.")
+            .Aciklama("Bildirime tıklayan kullanıcı doğrudan nota odaklanır.")
+            .Sira(555).Varsayilan("\"{not_baslik}\" notu \"{kullanici_adi}\" tarafından yeniden açıldı. Göz atmak için tıkla!").Build(),
+
+        AnahtarTanim.Tanim("not_geri_yuklendi_push_baslik")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Baslik)
+            .Etiket("Not Geri Yüklendi - Başlık")
+            .Yonlendirme("Çöp kutusundaki bir not geri yüklendiğinde ekibe giden bildirimin başlığı.")
+            .Aciklama("Talep-1 (v21): çöpten kurtarılan not ekibe duyurulur.")
+            .Sira(556).Varsayilan("Bir not geri yüklendi").Build(),
+
+        AnahtarTanim.Tanim("not_geri_yuklendi_push_govde")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Metin)
+            .Placeholderlar("not_baslik", "kullanici_adi")
+            .Etiket("Not Geri Yüklendi - Metin")
+            .Yonlendirme("{not_baslik} not başlığı, {kullanici_adi} geri yükleyen kişi ile değişir.")
+            .Aciklama("Bildirime tıklayan kullanıcı doğrudan nota odaklanır.")
+            .Sira(557).Varsayilan("\"{not_baslik}\" notu \"{kullanici_adi}\" tarafından çöp kutusundan geri yüklendi.").Build(),
+
+        AnahtarTanim.Tanim("not_kalici_silindi_push_baslik")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Baslik)
+            .Etiket("Not Kalıcı Silindi - Başlık")
+            .Yonlendirme("Bir not kalıcı olarak silindiğinde ekibe giden bildirimin başlığı.")
+            .Aciklama("Talep-1 (v21): kalıcı silme geri alınamaz; ekip bilgilendirilir.")
+            .Sira(558).Varsayilan("Bir not kalıcı olarak silindi").Build(),
+
+        AnahtarTanim.Tanim("not_kalici_silindi_push_govde")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Metin)
+            .Placeholderlar("not_baslik", "kullanici_adi")
+            .Etiket("Not Kalıcı Silindi - Metin")
+            .Yonlendirme("{not_baslik} not başlığı, {kullanici_adi} silen kişi ile değişir.")
+            .Aciklama("Not geri getirilemez; bildirim yalnızca bilgilendirme amaçlıdır.")
+            .Sira(559).Varsayilan("\"{not_baslik}\" notu \"{kullanici_adi}\" tarafından kalıcı olarak silindi.").Build(),
+
+        AnahtarTanim.Tanim("klasor_olusturuldu_push_baslik")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Baslik)
+            .Etiket("Klasör Oluşturuldu - Başlık")
+            .Yonlendirme("Yeni bir klasör oluşturulduğunda ekibe giden bildirimin başlığı.")
+            .Aciklama("Talep-1 (v21): yeni klasör ekibe duyurulur.")
+            .Sira(560).Varsayilan("Yeni klasör oluşturuldu").Build(),
+
+        AnahtarTanim.Tanim("klasor_olusturuldu_push_govde")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Metin)
+            .Placeholderlar("klasor_adi", "kullanici_adi")
+            .Etiket("Klasör Oluşturuldu - Metin")
+            .Yonlendirme("{klasor_adi} klasör adı, {kullanici_adi} oluşturan kişi ile değişir.")
+            .Aciklama("Bildirime tıklayan kullanıcı klasöre yönlendirilir.")
+            .Sira(561).Varsayilan("\"{klasor_adi}\" klasörü \"{kullanici_adi}\" tarafından oluşturuldu. Göz atmak için tıkla!").Build(),
+
+        AnahtarTanim.Tanim("klasor_silindi_push_baslik")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Baslik)
+            .Etiket("Klasör Silindi - Başlık")
+            .Yonlendirme("Bir klasör silindiğinde ekibe giden bildirimin başlığı.")
+            .Aciklama("Talep-1 (v21): klasör silinmesi ekibe duyurulur.")
+            .Sira(562).Varsayilan("Bir klasör silindi").Build(),
+
+        AnahtarTanim.Tanim("klasor_silindi_push_govde")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Metin)
+            .Placeholderlar("klasor_adi", "kullanici_adi")
+            .Etiket("Klasör Silindi - Metin")
+            .Yonlendirme("{klasor_adi} klasör adı, {kullanici_adi} silen kişi ile değişir.")
+            .Aciklama("Klasör içeriği sistem kurallarına göre taşınır/temizlenir.")
+            .Sira(563).Varsayilan("\"{klasor_adi}\" klasörü \"{kullanici_adi}\" tarafından silindi.").Build(),
 
         AnahtarTanim.Tanim("duyuru_yanit_push_baslik")
             .Kategori(Kategori.Bildirim).Tip(AlanTipi.Baslik)

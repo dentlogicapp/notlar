@@ -7,9 +7,9 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { useState, useEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
 import {
-  Eye, Pencil, Trash2, Plus, History, CheckCircle2, Loader2, FolderHeart, Folder, Tag, Bell, Lock, AlertTriangle, Users, ChevronDown
+  Eye, Pencil, Trash2, Plus, History, CheckCircle2, Loader2, FolderHeart, Folder, Tag, Bell, Lock, AlertTriangle, Users, ChevronDown, Pin
 } from "lucide-react";
-import { notApi, klasorApi, isletmeApi } from "@/lib/api";
+import { notApi, klasorApi, isletmeApi, bildirimApi } from "@/lib/api";
 import { useBen } from "@/lib/useBen";
 import { akisBaglan } from "@/lib/akis";
 import { AramaKutusu, Vurgula } from "./AramaKutusu";
@@ -26,7 +26,7 @@ import {
   DialogClose, DialogDescription
 } from "./ui/dialog";
 import { cn, tarihFormat, gorelizamandan, bastari } from "@/lib/utils";
-import type { Not, NotGecmisi, Klasor } from "@/lib/types";
+import type { Not, NotGecmisi, Klasor, TenantUye } from "@/lib/types";
 
 const yeniSchema = z.object({
   baslik: z.string().min(1, "Başlık zorunlu").max(200),
@@ -63,6 +63,7 @@ function taslakNot(baslik: string, klasorId: string | null): Not {
     okuyanSayisi: 0,
     okuyanlar: [],
     benimSonGorme: null,
+    basaTutuldu: false,
   };
 }
 
@@ -184,6 +185,37 @@ export function DuzenleDialog({
 
   // Edit lock — dialog açıkken kilit tutulur, kapanırken bırakılır. Yeni notta kilit yok (kimse duzenlemiyor).
   const lock = useEditLock("not", not.id, open && !yeniMod);
+
+  // v21 M1 - mention picker (WhatsApp deseni): imlecten geriye son "@" yakalanir,
+  // uyeler filtrelenir; secim TAM adi gomer (backend Ordinal cozumlemesiyle birebir).
+  const { data: mentionUyeler } = useQuery({
+    queryKey: ["uyeler"],
+    queryFn: isletmeApi.uyeler,
+    enabled: open,
+    staleTime: 60_000,
+  });
+  const [mentionAktif, setMentionAktif] = useState<"baslik" | "icerik" | null>(null);
+  const [mentionSorgu, setMentionSorgu] = useState("");
+  const mentionYakala = (deger: string, imlec: number, alan: "baslik" | "icerik") => {
+    const oncesi = deger.slice(0, imlec);
+    const at = oncesi.lastIndexOf("@");
+    if (at === -1) { setMentionAktif(null); return; }
+    const sorgu = oncesi.slice(at + 1);
+    if (sorgu.length > 30 || sorgu.includes("\n") || sorgu.includes("@")) { setMentionAktif(null); return; }
+    setMentionAktif(alan);
+    setMentionSorgu(sorgu);
+  };
+  const mentionSec = (adSoyad: string) => {
+    const uygula = (deger: string) => {
+      const at = deger.lastIndexOf("@" + mentionSorgu);
+      if (at === -1) return deger;
+      return deger.slice(0, at) + "@" + adSoyad + " " + deger.slice(at + 1 + mentionSorgu.length);
+    };
+    if (mentionAktif === "baslik") setBaslik((v) => uygula(v).slice(0, 200));
+    else if (mentionAktif === "icerik") setIcerik((v) => uygula(v).slice(0, 5000));
+    setMentionAktif(null);
+    setMentionSorgu("");
+  };
 
   // Başkası düzenliyorsa toast + kapat
   useEffect(() => {
@@ -334,19 +366,23 @@ export function DuzenleDialog({
           <DialogTitle>{yeniMod ? "Yeni Not" : "Notu Düzenle"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
-          <div>
+          <div className="relative">
             <Label htmlFor="baslik">Başlık</Label>
-            <Input id="baslik" value={baslik} onChange={(e) => setBaslik(e.target.value)} />
+            <Textarea id="baslik" rows={3} value={baslik} onChange={(e) => { const v = e.target.value.slice(0, 200); setBaslik(v); mentionYakala(v, e.target.selectionStart ?? v.length, "baslik"); }} className="resize-none" />
+            <p className="text-right text-[11px] text-clay-400 dark:text-ink-300 mt-1 tabular-nums">{baslik.length}/200</p>
+            {mentionAktif === "baslik" && <MentionOneriler sorgu={mentionSorgu} uyeler={mentionUyeler ?? []} onSec={mentionSec} />}
           </div>
-          <div>
+          <div className="relative">
             <Label htmlFor="icerik">İçerik</Label>
             <Textarea
               id="icerik" value={icerik}
-              onChange={(e) => setIcerik(maddeBaslariniBuyut(e.target.value))}
+              onChange={(e) => { const v = maddeBaslariniBuyut(e.target.value.slice(0, 5000)); setIcerik(v); mentionYakala(v, e.target.selectionStart ?? v.length, "icerik"); }}
               onKeyDown={icerikKeyDown}
               onFocus={icerikFocus}
               placeholder="Nota ait detayları ve gelişmeleri buraya yazın. Her satır ayrı bir madde olarak listelenir."
             />
+            <p className="text-right text-[11px] text-clay-400 dark:text-ink-300 mt-1 tabular-nums">{icerik.length}/5000</p>
+            {mentionAktif === "icerik" && <MentionOneriler sorgu={mentionSorgu} uyeler={mentionUyeler ?? []} onSec={mentionSec} />}
           </div>
           <div>
             <Label htmlFor="klasor">
@@ -711,6 +747,111 @@ function icerikTireli(icerik: string): string {
 }
 
 // madde 5 - aksiyon ikonlari icin ortak touch target: mobilde >=44px (kazara dokunma onleme), desktopta kompakt 36px
+// ============================================================================
+// v21 M1 - MentionMetin: metindeki "@Ad Soyad" gecislerini MAVI gosterir.
+// Adlar uyeler cache'inden gelir; EN UZUN ad once denenir (kismi golgeleme
+// onlenir). Eslesmeyen "@" duz metin kalir (backend Ordinal ile ayni felsefe).
+// ============================================================================
+function MentionMetin({ metin, terim, adlar }: { metin: string; terim: string; adlar: string[] }) {
+  if (adlar.length === 0 || !metin.includes("@")) return <Vurgula metin={metin} terim={terim} />;
+  const sirali = [...adlar].sort((a, b) => b.length - a.length);
+  const parcalar: ReactNode[] = [];
+  let kalan = metin;
+  let k = 0;
+  while (kalan.length > 0) {
+    const i = kalan.indexOf("@");
+    if (i === -1) { parcalar.push(<Vurgula key={k++} metin={kalan} terim={terim} />); break; }
+    if (i > 0) parcalar.push(<Vurgula key={k++} metin={kalan.slice(0, i)} terim={terim} />);
+    const ad = sirali.find((a) => kalan.startsWith("@" + a, i));
+    if (ad) {
+      parcalar.push(
+        <span key={k++} className="text-blue-600 dark:text-blue-400 font-medium">@{ad}</span>
+      );
+      kalan = kalan.slice(i + ad.length + 1);
+    } else {
+      parcalar.push(<span key={k++}>@</span>);
+      kalan = kalan.slice(i + 1);
+    }
+  }
+  return <>{parcalar}</>;
+}
+
+// ============================================================================
+// v21 M1 - MentionOneriler: @ yazarken filtreli uye onerileri (WhatsApp deseni).
+// onMouseDown preventDefault: textarea odagi kaybolmadan tiklama islenir.
+// ============================================================================
+function MentionOneriler({
+  sorgu, uyeler, onSec,
+}: { sorgu: string; uyeler: TenantUye[]; onSec: (ad: string) => void }) {
+  const filtreli = uyeler
+    .filter((u) => u.adSoyad.toLowerCase().includes(sorgu.toLowerCase()))
+    .slice(0, 6);
+  if (filtreli.length === 0) return null;
+  return (
+    <div className="absolute z-50 left-0 right-0 top-full mt-1 p-1.5 rounded-xl bg-white dark:bg-ink-800 border border-cream-300 dark:border-ink-600 shadow-lg max-h-44 overflow-y-auto">
+      {filtreli.map((u) => (
+        <button
+          key={u.kullaniciId}
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => onSec(u.adSoyad)}
+          className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left hover:bg-cream-100 dark:hover:bg-ink-700 transition-colors"
+        >
+          <span className="h-5 w-5 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 text-[9px] font-semibold inline-flex items-center justify-center shrink-0">
+            {bastari(u.adSoyad)}
+          </span>
+          <span className="text-[13px] text-clay-800 dark:text-ink-50 truncate">{u.adSoyad}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ============================================================================
+// v21 M5 - kelime bazli diff (LCS; kutuphanesiz). Bosluk token'lari korunur
+// ama vurgulanmaz. Silinen: ustu cizili soluk kirmizi; eklenen: terracotta.
+// ============================================================================
+type DiffParca = { tip: "ayni" | "silindi" | "eklendi"; kelime: string };
+
+function kelimeDiff(eski: string, yeni: string): DiffParca[] {
+  const a = eski.split(/(\s+)/).filter((x) => x.length > 0);
+  const b = yeni.split(/(\s+)/).filter((x) => x.length > 0);
+  const m = a.length, n = b.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array<number>(n + 1).fill(0));
+  for (let i = m - 1; i >= 0; i--)
+    for (let j = n - 1; j >= 0; j--)
+      dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+  const sonuc: DiffParca[] = [];
+  let i = 0, j = 0;
+  while (i < m && j < n) {
+    if (a[i] === b[j]) { sonuc.push({ tip: "ayni", kelime: a[i] }); i++; j++; }
+    else if (dp[i + 1][j] >= dp[i][j + 1]) { sonuc.push({ tip: "silindi", kelime: a[i] }); i++; }
+    else { sonuc.push({ tip: "eklendi", kelime: b[j] }); j++; }
+  }
+  while (i < m) { sonuc.push({ tip: "silindi", kelime: a[i] }); i++; }
+  while (j < n) { sonuc.push({ tip: "eklendi", kelime: b[j] }); j++; }
+  return sonuc;
+}
+
+function DiffGoster({ eski, yeni }: { eski: string; yeni: string }) {
+  const parcalar = kelimeDiff(eski, yeni);
+  return (
+    <p className="text-[13px] sm:text-sm mt-3 leading-relaxed break-words [overflow-wrap:anywhere] whitespace-pre-wrap text-clay-600 dark:text-ink-100">
+      {parcalar.map((p, i) =>
+        p.kelime.trim() === "" ? (
+          <span key={i}>{p.kelime}</span>
+        ) : p.tip === "silindi" ? (
+          <del key={i} className="text-red-400/80 dark:text-red-400/70">{p.kelime}</del>
+        ) : p.tip === "eklendi" ? (
+          <mark key={i} className="bg-terracotta/20 text-terracotta rounded px-0.5">{p.kelime}</mark>
+        ) : (
+          <span key={i}>{p.kelime}</span>
+        )
+      )}
+    </p>
+  );
+}
+
 const IKON_BUTON = "min-w-[44px] min-h-[44px] sm:min-w-[36px] sm:min-h-[36px] inline-flex items-center justify-center rounded-md transition-colors";
 
 export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { not: Not; klasorBadgeGoster?: boolean; aramaTerimi?: string }) {
@@ -725,7 +866,7 @@ export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { n
   const { data: tenantUyeler } = useQuery({
     queryKey: ["uyeler"],
     queryFn: isletmeApi.uyeler,
-    enabled: !!not.hatirlatmaZamani,
+    enabled: !!not.hatirlatmaZamani || (not.baslik + (not.icerik ?? "")).includes("@"),  // v21 M1 - mention render icin de uyeler
     staleTime: 60_000,
   });
   const { data: kartKlasorler } = useQuery({
@@ -786,6 +927,60 @@ export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { n
 
   const okunduMut = useMutation({ mutationFn: () => notApi.okundu(not.id) });
 
+  // v21 M5 - diff vurgusu (KN-A5a): bildirimden odaklanmada son duzenlemenin farki
+  // 8sn gosterilir; sonra "degisikligi gor" rozetiyle tekrar acilabilir (oturum-ici).
+  const [diffVeri, setDiffVeri] = useState<{ eski: string; yeni: string } | null>(null);
+  const [diffAcik, setDiffAcik] = useState(false);
+  const diffZamanRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const diffAc = (veri: { eski: string; yeni: string }) => {
+    setDiffVeri(veri);
+    setDiffAcik(true);
+    if (diffZamanRef.current) clearTimeout(diffZamanRef.current);
+    diffZamanRef.current = setTimeout(() => setDiffAcik(false), 8000);
+  };
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const d = (e as CustomEvent).detail;
+      if (d?.notId !== not.id) return;
+      notApi.gecmis(not.id).then((g) => {
+        const son = g.find((x) => x.eylem === "duzenlendi" && (x.eskiDeger || x.yeniDeger));
+        if (son) diffAc({ eski: son.eskiDeger ?? "", yeni: son.yeniDeger ?? "" });
+      }).catch(() => {});
+    };
+    window.addEventListener("notlar-focus-diff", handler);
+    return () => {
+      window.removeEventListener("notlar-focus-diff", handler);
+      if (diffZamanRef.current) clearTimeout(diffZamanRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [not.id]);
+
+  // v21 B3 - okunmamis "bahsedildi" bildirimi olan kartta rozet (cache aboneligi;
+  // enabled:false = ekstra istek yok, UserMenu'nun sorgusuna ortak olur)
+  const { data: bildirimVeri } = useQuery({
+    queryKey: ["bildirimler"],
+    queryFn: () => bildirimApi.list(),
+    enabled: false,
+  });
+  const bendenBahsedildi = !not.tamamlandi && (bildirimVeri?.bildirimler ?? []).some(
+    (b) => b.tip === "bahsedildi" && b.notId === not.id && !b.okunduMu
+  );
+
+  // v21 M1 - mention render adlari: yalniz @ iceren kartta uye adlari kullanilir
+  const mentionAdlar = (not.baslik + " " + (not.icerik ?? "")).includes("@")
+    ? (tenantUyeler ?? []).map((u) => u.adSoyad)
+    : [];
+
+  // v21 M4 - basa tuttur (tenant basina TEK pin; eski pin backend'te AYNI transaction'da duser)
+  const pinle = useMutation({
+    mutationFn: () => notApi.basaTuttur(not.id),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["notlar"] });
+      toast.success(r.basaTutuldu ? "Not başa tutturuldu" : "Başa tutturma kaldırıldı");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
   // kart ekranin %60'i kadar gorununce okundu isaretle (yeni/degisen ise, bir kez)
   useEffect(() => {
     const el = kartRef.current;
@@ -837,15 +1032,38 @@ export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { n
       data-not-id={not.id}
       className={cn(
         "kart p-3 sm:p-4 group transition-all duration-500 hover:shadow-md",
+        not.basaTutuldu && "border-terracotta/50",  // v21 M4 - pinli kart ayrimi
         not.tamamlandi && "bg-cream-200 dark:bg-ink-800/40 border-cream-300 dark:border-ink-700",
         yeniVeyaDegismis && "ring-2 ring-terracotta border-terracotta bg-terracotta/[0.05] shadow-md"
       )}>
       <div className="flex items-start gap-2.5 sm:gap-3">
+        {/* v21 M4 (K3) - sol sutun: ustte tamamlandi karesi, altta pin (ayni dusey hiza) */}
+        <div className="flex flex-col items-center justify-between self-stretch shrink-0 gap-2">
         <Checkbox
           checked={not.tamamlandi}
           onCheckedChange={() => not.tamamlandi ? yenidenAc.mutate() : setTamamlaAcik(true)}
           className="mt-0.5 shrink-0"
         />
+          {/* v21 M4 (K3) - basa tuttur: checkbox ile AYNI SUTUN = ayni dusey hiza;
+              paylas ikonunun hemen solunda, alt menu kipirdamadan */}
+          {!not.tamamlandi && !not.silindi && (
+            <button
+              type="button"
+              onClick={() => pinle.mutate()}
+              disabled={pinle.isPending}
+              aria-label={not.basaTutuldu ? "Başa tutturmayı kaldır" : "Başa tuttur"}
+              title={not.basaTutuldu ? "Başa tutturmayı kaldır" : "Başa tuttur"}
+              className={cn(
+                "p-1 rounded-md transition-colors",
+                not.basaTutuldu
+                  ? "text-terracotta hover:bg-terracotta/10"
+                  : "text-clay-300 dark:text-ink-500 hover:text-terracotta hover:bg-cream-200 dark:hover:bg-ink-800"
+              )}
+            >
+              <Pin className={cn("h-4 w-4", not.basaTutuldu && "fill-current")} />
+            </button>
+          )}
+        </div>
         <div className="flex-1 min-w-0">
           {/* Üst satır: oluşturan bilgisi (başlığın bir üstünde, sağa yaslı; başlığı daraltmaz). Sıra: avatar, ad, zaman */}
           <div className="flex items-center justify-between gap-2 mb-3 text-[11px] text-clay-400 dark:text-ink-300">
@@ -865,17 +1083,29 @@ export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { n
             "text-sm sm:text-[15px] leading-snug font-medium break-words [overflow-wrap:anywhere] text-justify hyphens-auto",
             not.tamamlandi ? "line-through text-clay-400 dark:text-ink-300" : "text-clay-900 dark:text-ink-50"
           )}>
-            <Vurgula metin={not.baslik} terim={aramaTerimi} />
+            <MentionMetin metin={not.baslik} terim={aramaTerimi} adlar={mentionAdlar} />
           </h4>
+          {/* v21 B3 - okunmamis bahsedildi bildirimi olan kartta rozet */}
+          {bendenBahsedildi && (
+            <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded-full bg-terracotta/15 text-terracotta text-[10px] font-medium">senden bahsedildi</span>
+          )}
 
           {/* İçerik — her satır "- madde" (eski/yeni notlar tutarlı), iki yana yaslı */}
-          {not.icerik && (
+          {diffAcik && diffVeri ? (<DiffGoster eski={diffVeri.eski} yeni={diffVeri.yeni} />) : not.icerik && (
             <p className={cn(
               "text-[13px] sm:text-sm mt-3 leading-relaxed text-justify hyphens-auto break-words [overflow-wrap:anywhere] whitespace-pre-wrap",
               not.tamamlandi ? "text-clay-400 dark:text-ink-300" : "text-clay-600 dark:text-ink-100"
             )}>
-              <Vurgula metin={icerikTireli(not.icerik)} terim={aramaTerimi} />
+              <MentionMetin metin={icerikTireli(not.icerik)} terim={aramaTerimi} adlar={mentionAdlar} />
             </p>
+          )}
+
+          {/* v21 M5 (KN-A5a) - vurgu kapaninca oturum-ici rozet: tekrar acilabilir */}
+          {diffVeri && !diffAcik && (
+            <button type="button" onClick={() => diffAc(diffVeri)}
+              className="mt-1.5 inline-flex items-center gap-1 text-[10px] text-terracotta hover:underline">
+              <History className="h-3 w-3" /> değişikliği gör
+            </button>
           )}
 
           {/* Tamamlanma açıklaması varsa terracotta vurgulu blok */}
@@ -968,7 +1198,9 @@ export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { n
               </button>
             </div>
 
-            {okuyanlarGosterilen.length > 0 && (
+            {/* v21 M9 - tamamlanan notta goruldu listesi gosterilmez (herkes gordu kabul);
+                yeniden acilirsa okundu verisi durdugundan liste kendiliginden geri gelir */}
+            {!not.tamamlandi && okuyanlarGosterilen.length > 0 && (
               <div className="relative order-2">
                 <button
                   type="button"

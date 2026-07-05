@@ -32,6 +32,9 @@ export function useFocusNot() {
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "center" });
         el.classList.add("animate-focus-pulse");
+        // v21 M5 - karta diff tetigi: NotKart bu olayi dinler, son duzenlemenin
+        // farkini 8sn vurgulu gosterir (silinen ustu cizili, eklenen isaretli)
+        window.dispatchEvent(new CustomEvent("notlar-focus-diff", { detail: { notId: focusId } }));
         setTimeout(() => el.classList.remove("animate-focus-pulse"), 4700);
         router.replace(pathname, { scroll: false }); // focus paramini temizle, mevcut sayfada kal
       } else if (denemeler < 25) {

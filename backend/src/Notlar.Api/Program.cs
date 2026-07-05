@@ -736,6 +736,37 @@ using (var scope = app.Services.CreateScope())
             -- v20.2 - duyuru duzenleme (B1: duzenlendi rozeti; goruldu sifirlama kod tarafinda)
             ALTER TABLE duyurular
                 ADD COLUMN IF NOT EXISTS ""GuncellemeZamani"" timestamp with time zone NULL;
+
+            -- v21 M4 - basa tuttur (pin); tenant basina teklik kod tarafinda atomik saglanir
+            ALTER TABLE notlar
+                ADD COLUMN IF NOT EXISTS ""BasaTutuldu"" boolean NOT NULL DEFAULT FALSE;
+
+            -- v21 M7 (K6) - KVKK: tenant-BAGIMSIZ (onam kimlige bagli; veri sorumlusu tek)
+            CREATE TABLE IF NOT EXISTS kvkk_metinleri (
+                ""Id"" uuid NOT NULL PRIMARY KEY,
+                ""Versiyon"" integer NOT NULL,
+                ""Icerik"" text NOT NULL,
+                ""PazarlamaIcerik"" text NULL,
+                ""Sha256Hash"" character varying(64) NOT NULL,
+                ""YayinZamani"" timestamp with time zone NOT NULL DEFAULT now(),
+                ""Aktif"" boolean NOT NULL DEFAULT false,
+                ""YayinlayanKullaniciId"" uuid NULL
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS ""IX_kvkk_metinleri_Versiyon""
+                ON kvkk_metinleri (""Versiyon"");
+
+            CREATE TABLE IF NOT EXISTS kvkk_onamlari (
+                ""Id"" uuid NOT NULL PRIMARY KEY,
+                ""KullaniciId"" uuid NOT NULL REFERENCES kullanicilar(""Id"") ON DELETE CASCADE,
+                ""Versiyon"" integer NOT NULL,
+                ""MetinHash"" character varying(64) NOT NULL,
+                ""PazarlamaIzni"" boolean NOT NULL DEFAULT false,
+                ""Ip"" character varying(64) NULL,
+                ""KullaniciAjan"" character varying(300) NULL,
+                ""OnamZamani"" timestamp with time zone NOT NULL DEFAULT now()
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS ""IX_kvkk_onamlari_KullaniciId_Versiyon""
+                ON kvkk_onamlari (""KullaniciId"", ""Versiyon"");
         ");
         Log.Information("Şema güncellemeleri kontrol edildi (v15 multi-tenant dahil — idempotent)");
     }
@@ -880,6 +911,7 @@ app.MapAuthEndpoints();
 app.MapAdminEndpoints();
 app.MapFolderEndpoints();
 app.MapNoteEndpoints();
+app.MapKvkkEndpoints();  // v21 M7 (K6)
 app.MapNotificationEndpoints();
 app.MapLockEndpoints();
 app.MapExportEndpoints();

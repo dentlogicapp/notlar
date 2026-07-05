@@ -26,6 +26,14 @@ public interface INotBildirimServisi
     // v20 - Duyuru Paylasimi bildirimleri
     Task DuyuruPaylasildi(Duyuru duyuru, IReadOnlyCollection<Guid> aliciIdler, CancellationToken ct = default);
     Task DuyuruYanitlandi(Duyuru duyuru, Guid gonderenId, IReadOnlyCollection<Guid> hedefler, CancellationToken ct = default);
+    // v21 M1 + Talep-1
+    Task<List<Guid>> BahsedilenleriCoz(Guid isletmeId, string metin, CancellationToken ct = default);
+    Task NotBahsedildi(Not not, Guid aktorId, IReadOnlyCollection<Guid> hedefler, CancellationToken ct = default);
+    Task NotSilindi(Not not, Guid aktorId, CancellationToken ct = default);
+    Task NotYenidenAcildi(Not not, Guid aktorId, CancellationToken ct = default);
+    Task NotGeriYuklendi(Not not, Guid aktorId, CancellationToken ct = default);
+    Task NotKaliciSilindi(Not not, Guid aktorId, CancellationToken ct = default);
+    Task KlasorOlayi(Klasor klasor, Guid aktorId, bool silindiMi, CancellationToken ct = default);
 }
 
 public sealed class NotBildirimServisi : INotBildirimServisi
@@ -54,9 +62,10 @@ public sealed class NotBildirimServisi : INotBildirimServisi
     private static string KatalogVarsayilan(string anahtar)
         => AnahtarKatalogu.Tumu.FirstOrDefault(a => a.Anahtar == anahtar)?.Varsayilan ?? "";
 
-    private static string Doldur(string metin, string? notBaslik, string? kullaniciAdi)
+    private static string Doldur(string metin, string? notBaslik, string? kullaniciAdi, string? klasorAdi = null)  // v21 - klasorAdi default'lu (sifir kirilim)
         => metin.Replace("{not_baslik}", Kirp(notBaslik, 40))
-                .Replace("{kullanici_adi}", Kirp(kullaniciAdi, 30));
+                .Replace("{kullanici_adi}", Kirp(kullaniciAdi, 30))
+                .Replace("{klasor_adi}", Kirp(klasorAdi, 40));  // v21 - klasor olaylari
 
     // Bildirim ekranina sigsin diye yer tutucu degerlerini kirpar (sonu "..." ile);
     // boylece sabit kuyruk ("... tikla!") her zaman gorunur kalir.
@@ -219,5 +228,59 @@ public sealed class NotBildirimServisi : INotBildirimServisi
         var ad = await AktorAd(gonderenId, ct);
         b = Doldur(b, null, ad); g = Doldur(g, null, ad);
         await Tetikle(liste, b, g, $"/?duyuru={duyuru.Id}", duyuru.IsletmeId, "duyuru_yanit", duyuru.Id, ct);  // NotId = duyuru id (Tip ayristirici; zil tiklamasi hedefi)
+    }
+
+    // ================= v21 M1 + Talep-1: mention + yasam dongusu bildirimleri =================
+    // Hepsi mevcut desenle BIREBIR: HedefUyeler -> MetinAl -> Doldur -> Tetikle.
+
+    // v21 M1 - metindeki "@Ad Soyad" gecislerini tenant AKTIF uyeleriyle esler.
+    // Ordinal karsilastirma: frontend picker TAM adi gomer; elle yazim sahte-pozitifi olmaz.
+    public async Task<List<Guid>> BahsedilenleriCoz(Guid isletmeId, string metin, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(metin) || !metin.Contains('@')) return new List<Guid>();
+        var uyeler = await _db.IsletmeUyelikleri
+            .Where(u => u.IsletmeId == isletmeId && u.Aktif)
+            .Join(_db.Kullanicilar, u => u.KullaniciId, k => k.Id, (u, k) => new { k.Id, k.AdSoyad })
+            .ToListAsync(ct);
+        return uyeler
+            .Where(u => !string.IsNullOrWhiteSpace(u.AdSoyad) && metin.Contains("@" + u.AdSoyad, StringComparison.Ordinal))
+            .Select(u => u.Id).Distinct().ToList();
+    }
+
+    // v21 M1 - "bahsedildin": tip "bahsedildi" (B3 rozeti bu tipten turetilir);
+    // tiklama hedefi notun bulundugu yer (bekleyen -> ana sayfa, tamamlanan -> klasor).
+    public async Task NotBahsedildi(Not not, Guid aktorId, IReadOnlyCollection<Guid> hedefler, CancellationToken ct = default)
+    {
+        var liste = hedefler.Where(x => x != aktorId).Distinct().ToList();
+        if (liste.Count == 0) return;
+        var (b, g) = await MetinAl(not.IsletmeId, "not_bahsedildi_push_baslik", "not_bahsedildi_push_govde", ct);
+        var ad = await AktorAd(aktorId, ct);
+        b = Doldur(b, not.Baslik, ad); g = Doldur(g, not.Baslik, ad);
+        await Tetikle(liste, b, g, not.Tamamlandi ? KlasorUrl(not) : AnaUrl(not), not.IsletmeId, "bahsedildi", not.Id, ct);
+    }
+
+    // Talep-1 (v21) - yasam dongusu olaylari (tek satirlik NotOlayi delegasyonu)
+    public Task NotSilindi(Not not, Guid aktorId, CancellationToken ct = default)
+        => NotOlayi(not, aktorId, null, "not_silindi_push_baslik", "not_silindi_push_govde", AnaUrl(not), "not_silindi", ct);
+
+    public Task NotYenidenAcildi(Not not, Guid aktorId, CancellationToken ct = default)
+        => NotOlayi(not, aktorId, null, "not_yeniden_acildi_push_baslik", "not_yeniden_acildi_push_govde", AnaUrl(not), "not_yeniden_acildi", ct);
+
+    public Task NotGeriYuklendi(Not not, Guid aktorId, CancellationToken ct = default)
+        => NotOlayi(not, aktorId, null, "not_geri_yuklendi_push_baslik", "not_geri_yuklendi_push_govde", AnaUrl(not), "not_geri_yuklendi", ct);
+
+    public Task NotKaliciSilindi(Not not, Guid aktorId, CancellationToken ct = default)
+        => NotOlayi(not, aktorId, null, "not_kalici_silindi_push_baslik", "not_kalici_silindi_push_govde", AnaUrl(not), "not_kalici_silindi", ct);
+
+    // Talep-1 (v21) - klasor olaylari ({klasor_adi}; cagrilar KlasorEndpoints'te - A2b)
+    public async Task KlasorOlayi(Klasor klasor, Guid aktorId, bool silindiMi, CancellationToken ct = default)
+    {
+        var hedefler = await HedefUyeler(klasor.IsletmeId, aktorId, null, ct);
+        if (hedefler.Count == 0) return;
+        var on = silindiMi ? "klasor_silindi" : "klasor_olusturuldu";
+        var (b, g) = await MetinAl(klasor.IsletmeId, $"{on}_push_baslik", $"{on}_push_govde", ct);
+        var ad = await AktorAd(aktorId, ct);
+        b = Doldur(b, null, ad, klasor.Ad); g = Doldur(g, null, ad, klasor.Ad);
+        await Tetikle(hedefler, b, g, silindiMi ? "/" : $"/klasor/{klasor.Id}", klasor.IsletmeId, on, null, ct);
     }
 }

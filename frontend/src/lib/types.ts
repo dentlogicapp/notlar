@@ -122,6 +122,7 @@ export interface Not {
   okuyanSayisi: number;
   okuyanlar: NotOkuyan[];
   benimSonGorme: string | null;
+  basaTutuldu: boolean;                          // v21 M4 - tenant basina TEK pinli not
 }
 
 // v19 - not okuyan ozeti (avatar yigini icin)

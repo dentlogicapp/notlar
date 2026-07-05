@@ -137,6 +137,8 @@ export const notApi = {
     ist<Not>(`/api/notlar/${id}/tamamla`, { method: "POST", body: JSON.stringify({ tamamlanmaAciklamasi }) }),
   yenidenAc: (id: string) =>
     ist<Not>(`/api/notlar/${id}/yeniden-ac`, { method: "POST" }),
+  basaTuttur: (id: string) =>  // v21 M4 - toggle; tenant basina TEK pin (backend atomik)
+    ist<{ ok: boolean; basaTutuldu: boolean }>(`/api/notlar/${id}/basa-tuttur`, { method: "POST" }),
   okundu: (id: string) =>  // v19 - read receipt: scroll ile gorununce okundu isaretle
     ist<{ ok: boolean }>(`/api/notlar/${id}/okundu`, { method: "POST" }),
   remove: (id: string) => ist<void>(`/api/notlar/${id}`, { method: "DELETE" }),

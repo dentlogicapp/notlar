@@ -59,6 +59,39 @@ public sealed class AuthToken
 }
 
 /// <summary>
+/// v21 M7 (K6) - KVKK metin versiyonlari (SISTEM seviyesi; super admin yayinlar).
+/// Her yayin YENI satirdir (Versiyon artar); yayinlanmis Icerik degistirilmez -
+/// Sha256Hash butunluk kanitidir. Tenant-BAGIMSIZ: veri sorumlusu tek.
+/// </summary>
+public sealed class KvkkMetni
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public int Versiyon { get; set; }
+    public required string Icerik { get; set; }              // KVKK aydinlatma + onam metni
+    public string? PazarlamaIcerik { get; set; }             // AYRI pazarlama izni metni (acik riza ayristirilir)
+    public required string Sha256Hash { get; set; }          // Icerik(+Pazarlama) SHA256 hex
+    public DateTimeOffset YayinZamani { get; set; } = DateTimeOffset.UtcNow;
+    public bool Aktif { get; set; }                          // tek aktif versiyon (yayin atomik)
+    public Guid? YayinlayanKullaniciId { get; set; }
+}
+
+/// <summary>
+/// v21 M7 (K6) - Kullanici onam kayitlari (KULLANICI seviyesi; kimlikli, IP + UA +
+/// zaman damgali). Append-only: onam guncellenmez, yeni versiyona yeni kayit atilir.
+/// </summary>
+public sealed class KvkkOnami
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid KullaniciId { get; set; }
+    public int Versiyon { get; set; }                        // onam verilen metin versiyonu
+    public required string MetinHash { get; set; }           // onam anindaki metin hash'i (kanit)
+    public bool PazarlamaIzni { get; set; }                  // AYRI acik riza (zorunlu DEGIL)
+    public string? Ip { get; set; }
+    public string? KullaniciAjan { get; set; }
+    public DateTimeOffset OnamZamani { get; set; } = DateTimeOffset.UtcNow;
+}
+
+/// <summary>
 /// 2 seviye klasör. UstKlasorId null = kök seviye.
 /// </summary>
 public sealed class Klasor
@@ -116,6 +149,10 @@ public sealed class Not
     public Kullanici OlusturanKullanici { get; set; } = null!;
     public DateTimeOffset OlusturmaZamani { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset GuncellemeZamani { get; set; } = DateTimeOffset.UtcNow;
+
+    // v21 M4 - basa tuttur: tenant basina TEK pinli not ("Tum Notlar" sirasinin en ustu).
+    // Atomiklik endpoint'te: yeni pin yazilirken eski pin AYNI SaveChanges'te duser.
+    public bool BasaTutuldu { get; set; }
 
     // Hatırlatıcı — tek hatırlatma per not (sade). Tümü NULL = hatırlatıcı yok.
     public DateTimeOffset? HatirlatmaZamani { get; set; }

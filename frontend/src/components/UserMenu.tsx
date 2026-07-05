@@ -10,7 +10,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type TouchEvent } from "react";
-import { authApi, bildirimApi, defteriIndir, isletmeApi, type DefteriIndirFormat } from "@/lib/api";
+import { authApi, bildirimApi, defteriIndir, isletmeApi, type DefteriIndirFormat , notApi } from "@/lib/api";
 import { useBen } from "@/lib/useBen";
 import { useIsletmeMetinleri, metinDeger } from "@/lib/useIsletmeMetinleri";
 import { useTema } from "@/lib/tema";
@@ -229,13 +229,22 @@ export function UserMenu() {
     if (!b.notId) return;
     // Push tiklama ile ayni mantik: not tamamlanmissa Tamamlananlar klasorune,
     // degilse ana listeye yonlendir (her ikisinde de ?focus -> scroll + highlight).
-    const notlar = qc.getQueryData<Not[]>(["notlar"]) ?? [];
-    const not = notlar.find((n) => n.id === b.notId);
-    const hedef = not?.tamamlandi && not.klasorId
-      ? `/klasor/${not.klasorId}?focus=${b.notId}`
-      : `/?focus=${b.notId}`;
-    // Radix dropdown kapanirken navigation yutulmasin diye bir tick ertele
-    setTimeout(() => router.push(hedef), 0);
+    // v21 M8 - cache'e GUVENME: tamamlanan not ana liste cache'inde olmadigindan
+    // yanlis hedefe (ana sayfa) yonlendiriliyordu. Gercek not sunucudan cekilir;
+    // tamamlanmissa Tamamlananlar klasorune, degilse ana listeye (?focus -> scroll +
+    // highlight, bekleyenle BIREBIR ayni). Silinmis/ulasilamayan -> duyuru deseninde uyari.
+    notApi.get(b.notId).then((not: Not) => {
+      if (not.silindi) {
+        toast.error("Görüntülemek istediğin nota ulaşılamıyor - silinmiş veya kaldırılmış olabilir");
+        return;
+      }
+      const hedef = not.tamamlandi && not.klasorId
+        ? `/klasor/${not.klasorId}?focus=${not.id}`
+        : `/?focus=${not.id}`;
+      setTimeout(() => router.push(hedef), 0);
+    }).catch(() => {
+      toast.error("Görüntülemek istediğin nota ulaşılamıyor - silinmiş veya kaldırılmış olabilir");
+    });
   };
 
   if (!ben) return null;
