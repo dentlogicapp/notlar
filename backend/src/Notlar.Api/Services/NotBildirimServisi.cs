@@ -281,6 +281,6 @@ public sealed class NotBildirimServisi : INotBildirimServisi
         var (b, g) = await MetinAl(klasor.IsletmeId, $"{on}_push_baslik", $"{on}_push_govde", ct);
         var ad = await AktorAd(aktorId, ct);
         b = Doldur(b, null, ad, klasor.Ad); g = Doldur(g, null, ad, klasor.Ad);
-        await Tetikle(hedefler, b, g, silindiMi ? "/" : $"/klasor/{klasor.Id}", klasor.IsletmeId, on, null, ct);
+        await Tetikle(hedefler, b, g, silindiMi ? "/" : $"/klasor/{klasor.Id}", klasor.IsletmeId, on, klasor.Id, ct);  // v21-r M2 - NotId=klasor id (duyuru deseni; FE tiklamada hedefler)
     }
 }

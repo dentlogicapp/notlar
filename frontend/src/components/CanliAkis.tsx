@@ -124,7 +124,7 @@ export function CanliAkis({ tenantlar }: { tenantlar?: { id: string; markaAdi: s
                   )}
 
                   {/* KIM · HANGI TENANT · NE ZAMAN */}
-                  <p className="text-[11px] text-clay-400 dark:text-ink-300 mt-1 truncate">
+                  <p className="text-[11px] text-clay-400 dark:text-ink-300 mt-1 break-words [overflow-wrap:anywhere]">
                     <span className="text-clay-500 dark:text-ink-200">{kim}</span>
                     {o.aktorAdSoyad && o.aktorEmail && <span> ({o.aktorEmail})</span>}
                     {tAd && <> · <span className="text-clay-500 dark:text-ink-200">{tAd}</span></>}

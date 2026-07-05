@@ -86,7 +86,7 @@ function Icerik() {
                       <td className="py-2.5 px-4 text-xs text-clay-500 dark:text-ink-200 hidden lg:table-cell font-mono">
                         {d.ip ?? "—"}
                       </td>
-                      <td className="py-2.5 px-4 text-xs text-clay-600 dark:text-ink-100 hidden md:table-cell max-w-xs truncate" title={d.detay ?? ""}>
+                      <td className="py-2.5 px-4 text-xs text-clay-600 dark:text-ink-100 hidden md:table-cell max-w-xs break-words [overflow-wrap:anywhere] whitespace-pre-wrap">
                         {d.detay ?? "—"}
                       </td>
                     </tr>

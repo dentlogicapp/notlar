@@ -10,7 +10,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type TouchEvent } from "react";
-import { authApi, bildirimApi, defteriIndir, isletmeApi, type DefteriIndirFormat , notApi } from "@/lib/api";
+import { authApi, bildirimApi, defteriIndir, isletmeApi, type DefteriIndirFormat , notApi, klasorApi } from "@/lib/api";
 import { useBen } from "@/lib/useBen";
 import { useIsletmeMetinleri, metinDeger } from "@/lib/useIsletmeMetinleri";
 import { useTema } from "@/lib/tema";
@@ -224,6 +224,22 @@ export function UserMenu() {
     // Duyuru modalini URL parametresiyle acar (DuyuruAlani isler) - push tiklamasiyla ayni yol.
     if ((b.tip === "duyuru" || b.tip === "duyuru_yanit") && b.notId) {
       setTimeout(() => router.push(`/?duyuru=${b.notId}`), 0);
+      return;
+    }
+    // v21-r M2 - klasor bildirimleri: NotId = klasor id (duyuru deseni; Tip ayristirici).
+    // Silinmis/ulasilamayan klasorde duyuru desenindeki uyari verilir.
+    if ((b.tip === "klasor_olusturuldu" || b.tip === "klasor_silindi") && b.notId) {
+      if (b.tip === "klasor_silindi") {
+        toast.error("Görüntülemek istediğin klasöre ulaşılamıyor - silinmiş veya kaldırılmış olabilir");
+        return;
+      }
+      const kid = b.notId;
+      klasorApi.list().then((ks) => {
+        if (ks.some((k) => k.id === kid)) setTimeout(() => router.push(`/klasor/${kid}`), 0);
+        else toast.error("Görüntülemek istediğin klasöre ulaşılamıyor - silinmiş veya kaldırılmış olabilir");
+      }).catch(() => {
+        toast.error("Görüntülemek istediğin klasöre ulaşılamıyor - silinmiş veya kaldırılmış olabilir");
+      });
       return;
     }
     if (!b.notId) return;

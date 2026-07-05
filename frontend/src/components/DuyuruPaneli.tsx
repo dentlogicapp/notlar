@@ -708,7 +708,9 @@ function DuyuruDetayModal({
                               <CheckCheck className={cn("h-3 w-3", m.gorenler.length > 0 && "text-terracotta")} />
                               {m.gorenler.length > 0 ? `${m.gorenler.length} gördü` : "henüz gören yok"}
                             </button>
-                            {acikMesajGorenId === m.id && m.gorenler.length > 0 && (
+                            {acikMesajGorenId === m.id && m.gorenler.length > 0 && (<>
+                              {/* v21-r M5 - dis tiklama kapatir (not okuyanlar deseni) */}
+                              <div className="fixed inset-0 z-40" onClick={() => setAcikMesajGorenId(null)} />
                               <div
                                 onClick={(e) => e.stopPropagation()}
                                 className={cn("absolute left-0 z-50 w-56 p-3 rounded-xl bg-white dark:bg-ink-800 border border-cream-300 dark:border-ink-600 shadow-lg space-y-1.5", yukariAc ? "bottom-full mb-1.5" : "top-full mt-1.5")}
@@ -725,6 +727,7 @@ function DuyuruDetayModal({
                                   </div>
                                 ))}
                               </div>
+                              </>
                             )}
                           </div>
                         )}
