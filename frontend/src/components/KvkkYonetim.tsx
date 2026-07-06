@@ -21,7 +21,8 @@ export function KvkkYonetim() {
   const [sekme, setSekme] = useState<"yayin" | "onamlar">("yayin");
 
   const { data: metinler } = useQuery({ queryKey: ["kvkk-metinler"], queryFn: kvkkApi.metinler });
-  const { data: onamlar, isLoading: onamYukleniyor } = useQuery({
+  const { data: onamlar, isLoading: onamYukleniyor, isError: onamHata,
+    error: onamHataNesnesi, refetch: onamYenile } = useQuery({
     queryKey: ["kvkk-onamlar"],
     queryFn: kvkkApi.onamlar,
     enabled: sekme === "onamlar",
@@ -98,6 +99,13 @@ export function KvkkYonetim() {
         </div>
       ) : onamYukleniyor ? (
         <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-clay-400 dark:text-ink-300" /></div>
+      ) : onamHata ? (
+        <div className="py-6 text-center space-y-3">
+          <p className="text-[12px] text-red-600 dark:text-red-400">
+            Onam kayitlari yuklenemedi: {(onamHataNesnesi as Error)?.message ?? "sunucu hatasi"}
+          </p>
+          <Button size="sm" onClick={() => onamYenile()}>Tekrar Dene</Button>
+        </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-[11px]">
@@ -112,7 +120,7 @@ export function KvkkYonetim() {
             </thead>
             <tbody>
               {(onamlar ?? []).map((o) => (
-                <tr key={o.id} className="border-t border-cream-300 dark:border-ink-700">
+                <tr key={o.id} title={o.kullaniciAjan ?? undefined} className="border-t border-cream-300 dark:border-ink-700">
                   <td className="py-1.5 pr-3">
                     <span className="text-clay-800 dark:text-ink-50">{o.adSoyad}</span>
                     <span className="text-clay-400 dark:text-ink-300 hidden md:inline"> · {o.email}</span>

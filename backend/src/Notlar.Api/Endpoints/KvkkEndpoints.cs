@@ -126,12 +126,16 @@ public static class KvkkEndpoints
         // B2 - ONAM KAYITLARI (salt-okunur; kim / ne zaman / versiyon / hash / pazarlama / IP)
         sa.MapGet("/onamlar", async (AppDbContext db, CancellationToken ct) =>
         {
+            // G.2 - EF Core, parametreli constructor (positional record) projeksiyonundan
+            // SONRA o tipin uyesi uzerinden OrderBy'i SQL'e ceviremez (bilinen sinirlilik -> 500).
+            // Dogru sira: anonim tip join -> siralama -> Take -> record projeksiyonu EN SONDA.
             var liste = await db.KvkkOnamlari
-                .Join(db.Kullanicilar, o => o.KullaniciId, k => k.Id, (o, k) => new KvkkOnamKaydiYaniti(
-                    o.Id, k.AdSoyad, k.Email, o.Versiyon, o.MetinHash,
-                    o.PazarlamaIzni, o.Ip, o.OnamZamani))
-                .OrderByDescending(x => x.OnamZamani)
+                .Join(db.Kullanicilar, o => o.KullaniciId, k => k.Id, (o, k) => new { o, k })
+                .OrderByDescending(x => x.o.OnamZamani)
                 .Take(500)
+                .Select(x => new KvkkOnamKaydiYaniti(
+                    x.o.Id, x.k.AdSoyad, x.k.Email, x.o.Versiyon, x.o.MetinHash,
+                    x.o.PazarlamaIzni, x.o.Ip, x.o.KullaniciAjan, x.o.OnamZamani))
                 .ToListAsync(ct);
             return Results.Ok(liste);
         });
@@ -145,4 +149,4 @@ public sealed record KvkkMetinYaniti(
     int Versiyon, string Icerik, string? PazarlamaIcerik, string Sha256Hash, DateTimeOffset YayinZamani);
 public sealed record KvkkOnamKaydiYaniti(
     Guid Id, string AdSoyad, string Email, int Versiyon, string MetinHash,
-    bool PazarlamaIzni, string? Ip, DateTimeOffset OnamZamani);
+    bool PazarlamaIzni, string? Ip, string? KullaniciAjan, DateTimeOffset OnamZamani);

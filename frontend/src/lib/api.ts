@@ -259,7 +259,7 @@ export interface KvkkMetinOzet {
 }
 export interface KvkkOnamKaydi {
   id: string; adSoyad: string; email: string; versiyon: number; metinHash: string;
-  pazarlamaIzni: boolean; ip: string | null; onamZamani: string;
+  pazarlamaIzni: boolean; ip: string | null; kullaniciAjan: string | null; onamZamani: string;
 }
 export const kvkkApi = {
   aktif: () => ist<KvkkMetin>("/api/kvkk/aktif"),
