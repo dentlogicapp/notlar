@@ -22,7 +22,8 @@ function yetkisizYakala() {
 
   // Giriş ve şifre belirle sayfalarında zaten yetkisiziz — sonsuz döngü önle
   const yol = window.location.pathname;
-  if (yol.startsWith("/giris") || yol.startsWith("/sifre-belirle")) return;
+  // /kvkk: anonim kanuni metin sayfasi - /ben 401'i burada logout-redirect tetiklememeli.
+  if (yol.startsWith("/giris") || yol.startsWith("/sifre-belirle") || yol.startsWith("/kvkk")) return;
 
   yonlendiriliyorMu = true;
   // Toast (sonner) sayfa yönlenmeden gözükebilsin
@@ -257,6 +258,10 @@ export interface KvkkMetin {
 export interface KvkkMetinOzet {
   id: string; versiyon: number; sha256Hash: string; yayinZamani: string; aktif: boolean;
 }
+export interface KvkkMetinDetay {
+  id: string; versiyon: number; icerik: string; pazarlamaIcerik: string | null;
+  sha256Hash: string; yayinZamani: string; aktif: boolean; yayinlayanAdSoyad: string | null;
+}
 export interface KvkkOnamKaydi {
   id: string; adSoyad: string; email: string; versiyon: number; metinHash: string;
   pazarlamaIzni: boolean; ip: string | null; kullaniciAjan: string | null; onamZamani: string;
@@ -268,6 +273,7 @@ export const kvkkApi = {
   metinYayinla: (icerik: string, pazarlamaIcerik: string | null) =>
     ist<{ ok: boolean; versiyon: number; hash: string }>("/api/super-admin/kvkk/metin", { method: "POST", body: JSON.stringify({ icerik, pazarlamaIcerik }) }),
   metinler: () => ist<KvkkMetinOzet[]>("/api/super-admin/kvkk/metinler"),
+  metinDetay: (id: string) => ist<KvkkMetinDetay>(`/api/super-admin/kvkk/metinler/${id}`),
   onamlar: () => ist<KvkkOnamKaydi[]>("/api/super-admin/kvkk/onamlar"),
 };
 

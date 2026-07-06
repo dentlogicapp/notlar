@@ -48,9 +48,17 @@ export default function KvkkSayfasi() {
                 </p>
               </div>
             )}
-            <p className="text-[10px] text-clay-400 dark:text-ink-300 font-mono pt-2">
-              Versiyon {metin.versiyon} · Yayın: {new Date(metin.yayinZamani).toLocaleDateString("tr-TR")} · SHA-256: {metin.sha256Hash}
-            </p>
+            <div className="pt-3 mt-2 border-t border-cream-300 dark:border-ink-600 space-y-1">
+              <p className="text-[10px] text-clay-400 dark:text-ink-300">
+                Versiyon {metin.versiyon} · Yayın: {new Date(metin.yayinZamani).toLocaleDateString("tr-TR")}
+              </p>
+              <p className="text-[10px] text-clay-400 dark:text-ink-300">
+                <span className="uppercase tracking-wider">SHA-256</span>
+                <span className="block font-mono break-all leading-relaxed mt-0.5 text-clay-500 dark:text-ink-200">
+                  {metin.sha256Hash}
+                </span>
+              </p>
+            </div>
           </div>
         )}
       </div>

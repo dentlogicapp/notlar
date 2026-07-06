@@ -123,6 +123,32 @@ public static class KvkkEndpoints
             return Results.Ok(liste);
         });
 
+        // METIN DETAYI (tek versiyonun tam icerigi + yayinlayan ad) - Versiyon Gecmisi
+        // butunsel goruntuleme + Kopyala/Yazdir/Taslaga Al + belge disa aktarim kaynagi.
+        // Yayinlanmis Icerik degistirilmez; bu salt-okunur bir kanit goruntulemesidir.
+        sa.MapGet("/metinler/{id:guid}", async (Guid id, AppDbContext db, CancellationToken ct) =>
+        {
+            var d = await db.KvkkMetinleri
+                .Where(x => x.Id == id)
+                .Select(x => new
+                {
+                    x.Id, x.Versiyon, x.Icerik, x.PazarlamaIcerik,
+                    x.Sha256Hash, x.YayinZamani, x.Aktif, x.YayinlayanKullaniciId
+                })
+                .FirstOrDefaultAsync(ct);
+            if (d is null)
+                return Results.NotFound(new { hata = "KVKK_METNI_YOK", mesaj = "Belirtilen KVKK versiyonu bulunamadi." });
+
+            string? yayinlayanAd = null;
+            if (d.YayinlayanKullaniciId is Guid yid)
+                yayinlayanAd = await db.Kullanicilar
+                    .Where(k => k.Id == yid).Select(k => k.AdSoyad).FirstOrDefaultAsync(ct);
+
+            return Results.Ok(new KvkkMetinDetayYaniti(
+                d.Id, d.Versiyon, d.Icerik, d.PazarlamaIcerik,
+                d.Sha256Hash, d.YayinZamani, d.Aktif, yayinlayanAd));
+        });
+
         // B2 - ONAM KAYITLARI (salt-okunur; kim / ne zaman / versiyon / hash / pazarlama / IP)
         sa.MapGet("/onamlar", async (AppDbContext db, CancellationToken ct) =>
         {
@@ -150,3 +176,6 @@ public sealed record KvkkMetinYaniti(
 public sealed record KvkkOnamKaydiYaniti(
     Guid Id, string AdSoyad, string Email, int Versiyon, string MetinHash,
     bool PazarlamaIzni, string? Ip, string? KullaniciAjan, DateTimeOffset OnamZamani);
+public sealed record KvkkMetinDetayYaniti(
+    Guid Id, int Versiyon, string Icerik, string? PazarlamaIcerik,
+    string Sha256Hash, DateTimeOffset YayinZamani, bool Aktif, string? YayinlayanAdSoyad);

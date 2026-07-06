@@ -95,17 +95,18 @@ export default function GirisSayfasi() {
           </form>
 
           
-{/* v21 M7 (K6) - metne kimliksiz erisim (kanuni gereklilik) */}
-          
-<p className="text-center mt-4">
-          
-  <Link href="/kvkk" className="text-[11px] text-clay-400 dark:text-ink-300 hover:text-terracotta transition-colors underline underline-offset-2">
-          
-    KVKK Aydınlatma Metni
-          
-  </Link>
-          
-</p>
+        {/* Kurumsal alt-bilgi: hesap yardimi + KVKK kanuni erisim (kimliksiz).
+            Dunya deseni (Stripe/Linear/Notion): gizlilik/KVKK login altinda sade footer link. */}
+        <div className="mt-6 space-y-2 text-center">
+          <p className="text-xs text-clay-400 dark:text-ink-300">
+            Hesabın yoksa yöneticinden davet iste.
+          </p>
+          <p className="text-[11px] text-clay-400 dark:text-ink-300">
+            <Link href="/kvkk" className="hover:text-terracotta transition-colors underline underline-offset-2">
+              KVKK Aydınlatma Metni
+            </Link>
+          </p>
+        </div>
 
           <div className="mt-5 text-center">
             <Link href="/sifre-sifirla-iste" className="text-xs text-clay-500 dark:text-ink-200 hover:text-terracotta hover:underline">
@@ -114,9 +115,6 @@ export default function GirisSayfasi() {
           </div>
         </div>
 
-        <p className="text-center text-xs text-clay-400 dark:text-ink-300 mt-6">
-          Hesabın yoksa yöneticinden davet iste.
-        </p>
       </div>
     </main>
   );
