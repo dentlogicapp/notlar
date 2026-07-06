@@ -277,6 +277,40 @@ export const kvkkApi = {
   onamlar: () => ist<KvkkOnamKaydi[]>("/api/super-admin/kvkk/onamlar"),
 };
 
+// v21 M7 (B3) - KVKK belge indirme (defteriIndir blob deseni; credentials + content-disposition).
+export type KvkkMetinFormat = "pdf" | "html";
+export type KvkkOnamFormat = "pdf" | "xlsx";
+
+async function kvkkBlobIndir(url: string, varsayilanAd: string): Promise<void> {
+  const r = await fetch(`${API}${url}`, { credentials: "include" });
+  if (!r.ok) {
+    let m = `Belge indirilemedi (${r.status})`;
+    try { const b = await r.json(); if (b?.hata) m = b.hata; } catch {}
+    throw new Error(m);
+  }
+  const blob = await r.blob();
+  const cd = r.headers.get("content-disposition") || "";
+  const match = /filename="?([^";]+)"?/i.exec(cd);
+  const filename = match ? match[1].trim() : varsayilanAd;
+  const href = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = href; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(href);
+}
+
+export function kvkkBelgeIndir(id: string, format: KvkkMetinFormat): Promise<void> {
+  return kvkkBlobIndir(
+    `/api/super-admin/kvkk/metinler/${id}/belge?format=${format}`,
+    `kvkk-metni.${format}`);
+}
+
+export function kvkkOnamBelgeIndir(format: KvkkOnamFormat): Promise<void> {
+  return kvkkBlobIndir(
+    `/api/super-admin/kvkk/onamlar/belge?format=${format}`,
+    `kvkk-onam-kayitlari.${format}`);
+}
+
 // v21 M6 (KN-A6) - super admin sistem geneli denetim (canli akisin DB kaynagi)
 export interface SuperDenetimKaydi {
   id: string; olay: string; hedefTip: string | null; hedefId: string | null;

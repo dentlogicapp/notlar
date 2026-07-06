@@ -149,6 +149,84 @@ public static class KvkkEndpoints
                 d.Sha256Hash, d.YayinZamani, d.Aktif, yayinlayanAd));
         });
 
+        // BELGE - metin belgesi disa aktarim (PDF gorsel zirve / HTML tarayici).
+        // KvkkBelgeTasarimcisi TEK KAYNAK HTML -> PdfRender Chromium (DefteriIndir deseni).
+        sa.MapGet("/metinler/{id:guid}/belge", async (
+            Guid id, string? format, AppDbContext db, IPdfRender pdfRender,
+            CancellationToken ct) =>
+        {
+            var d = await db.KvkkMetinleri
+                .Where(x => x.Id == id)
+                .Select(x => new
+                {
+                    x.Versiyon, x.Icerik, x.PazarlamaIcerik,
+                    x.Sha256Hash, x.YayinZamani, x.Aktif, x.YayinlayanKullaniciId
+                })
+                .FirstOrDefaultAsync(ct);
+            if (d is null)
+                return Results.NotFound(new { hata = "KVKK_METNI_YOK", mesaj = "Versiyon bulunamadi." });
+
+            string? yayinlayanAd = null;
+            if (d.YayinlayanKullaniciId is Guid yid)
+                yayinlayanAd = await db.Kullanicilar
+                    .Where(k => k.Id == yid).Select(k => k.AdSoyad).FirstOrDefaultAsync(ct);
+
+            var markaAdi = await db.Isletmeler.OrderBy(i => i.OlusturmaZamani)
+                .Select(i => i.MarkaAdi).FirstOrDefaultAsync(ct) ?? "Planlama Defteri";
+
+            var html = KvkkBelgeTasarimcisi.MetinBelgesi(
+                markaAdi, d.Versiyon, d.Icerik, d.PazarlamaIcerik,
+                d.Sha256Hash, d.YayinZamani, yayinlayanAd, d.Aktif);
+
+            var dosyaAd = $"kvkk-metni-v{d.Versiyon}";
+            return (format?.ToLowerInvariant()) switch
+            {
+                "html" => Results.File(Encoding.UTF8.GetBytes(html),
+                    "text/html; charset=utf-8", $"{dosyaAd}.html"),
+                _ => Results.File(await pdfRender.HtmlPdfeAsync(html, ct),
+                    "application/pdf", $"{dosyaAd}.pdf"),
+            };
+        });
+
+        // ONAM SICILI - onam kayitlari disa aktarim (PDF sicil / XLSX tablo).
+        // PDF: KvkkBelgeTasarimcisi.OnamKayitDefteri; XLSX: KvkkOnamXlsxTasarimcisi (XlsxPaleti).
+        sa.MapGet("/onamlar/belge", async (
+            string? format, AppDbContext db, IPdfRender pdfRender,
+            CancellationToken ct) =>
+        {
+            var kayitlar = await db.KvkkOnamlari
+                .Join(db.Kullanicilar, o => o.KullaniciId, k => k.Id, (o, k) => new { o, k })
+                .OrderByDescending(x => x.o.OnamZamani)
+                .Take(500)
+                .Select(x => new
+                {
+                    x.k.AdSoyad, x.k.Email, x.o.Versiyon,
+                    x.o.PazarlamaIzni, x.o.Ip, x.o.KullaniciAjan, x.o.OnamZamani
+                })
+                .ToListAsync(ct);
+
+            var markaAdi = await db.Isletmeler.OrderBy(i => i.OlusturmaZamani)
+                .Select(i => i.MarkaAdi).FirstOrDefaultAsync(ct) ?? "Planlama Defteri";
+
+            if ((format?.ToLowerInvariant()) == "xlsx")
+            {
+                var satirlar = kayitlar.Select(x => new KvkkOnamSicilSatiri(
+                    x.AdSoyad, x.Email, x.Versiyon, x.PazarlamaIzni,
+                    x.Ip, x.KullaniciAjan, x.OnamZamani)).ToList();
+                var xlsx = KvkkOnamXlsxTasarimcisi.Uret(markaAdi, satirlar);
+                return Results.File(xlsx,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "kvkk-onam-kayitlari.xlsx");
+            }
+
+            var pdfSatirlar = kayitlar.Select(x => new OnamSatirVeri(
+                x.AdSoyad, x.Email, x.Versiyon, x.PazarlamaIzni,
+                x.Ip, x.OnamZamani)).ToList();
+            var html = KvkkBelgeTasarimcisi.OnamKayitDefteri(markaAdi, pdfSatirlar);
+            return Results.File(await pdfRender.HtmlPdfeAsync(html, ct),
+                "application/pdf", "kvkk-onam-kayitlari.pdf");
+        });
+
         // B2 - ONAM KAYITLARI (salt-okunur; kim / ne zaman / versiyon / hash / pazarlama / IP)
         sa.MapGet("/onamlar", async (AppDbContext db, CancellationToken ct) =>
         {

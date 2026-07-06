@@ -1,6 +1,7 @@
 using System.Globalization;
 using ClosedXML.Excel;
 using Notlar.Api.Entities;
+using static Notlar.Api.Services.XlsxPaleti;
 
 namespace Notlar.Api.Services;
 
@@ -27,16 +28,7 @@ public static class XlsxTasarimcisi
         return null;
     }
 
-    // Davetiye paleti — XLSX'te de tutarlılık
-    private static readonly XLColor Terracotta = XLColor.FromArgb(196, 112, 77);
-    private static readonly XLColor TerracottaDark = XLColor.FromArgb(168, 90, 62);
-    private static readonly XLColor CreamLight = XLColor.FromArgb(253, 250, 244);
-    private static readonly XLColor CreamMedium = XLColor.FromArgb(243, 235, 218);
-    private static readonly XLColor Clay900 = XLColor.FromArgb(42, 27, 15);
-    private static readonly XLColor Clay700 = XLColor.FromArgb(78, 55, 34);
-    private static readonly XLColor Clay500 = XLColor.FromArgb(138, 101, 65);
-    private static readonly XLColor Amber50 = XLColor.FromArgb(255, 251, 235);
-    private static readonly XLColor Yesil = XLColor.FromArgb(77, 110, 47);
+    // Davetiye paleti artik XlsxPaleti'de (2A) - using static ile ciplak kullanilir.
 
     public static byte[] Uret(
         List<(string Ad, bool SistemMi, List<Not> Notlar)> gruplar,
