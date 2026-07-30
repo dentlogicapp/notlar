@@ -492,7 +492,7 @@ public static class AdminEndpoints
             var detay = devret == true && (notSayisi > 0 || klasorSayisi > 0)
                 ? $"{uyelik.Kullanici.Email} (devir: {notSayisi} not, {klasorSayisi} klasör)"
                 : uyelik.Kullanici.Email;
-            await audit.YazAsync("kullanici_silindi", "kullanici", id, detay: detay, ct: ct);
+            await audit.YazAsync("kullanici_markadan_cikarildi", "kullanici", id, detay: detay, ct: ct);
 
             return Results.NoContent();
         });

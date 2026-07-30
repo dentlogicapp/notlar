@@ -416,6 +416,10 @@ function KullaniciSilDialog({
   beklemede: boolean;
 }) {
   const veriVar = kullanici.notSayisi > 0 || kullanici.klasorSayisi > 0;
+  const adminMi = kullanici.rol === "admin";  // B1 - yoneticilik uyarisi
+  // Marka adi useBen'den (ek API yok); aktif tenant uyeliginden cozulur.
+  const { data: ben } = useBen();
+  const markaAdi = (ben?.uyelikler ?? []).find((u) => u.isletmeId === ben?.aktifIsletmeId)?.markaAdi ?? "bu marka";
 
   return (
     <Dialog open={true} onOpenChange={(v) => !v && onClose()}>
@@ -423,18 +427,37 @@ function KullaniciSilDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-terracotta" />
-            Kullanıcıyı Sil
+            Kullanıcıyı Bu Markadan Çıkar
           </DialogTitle>
           <DialogDescription>
             <strong className="text-clay-900 dark:text-ink-50">{kullanici.adSoyad}</strong> ({kullanici.email})
           </DialogDescription>
         </DialogHeader>
 
+        {/* kapsam guvence blogu - her senaryoda gorunur (2-i): islem marka-kapsamli */}
+        <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-400 rounded-r-lg">
+          <p className="text-[13px] text-blue-900 dark:text-blue-200 leading-relaxed">
+            Bu işlem yalnızca <strong>{markaAdi}</strong> markası kapsamındadır. Kullanıcının başka
+            markalardaki üyelikleri, yöneticilik yetkileri ve verileri bu işlemden <strong>etkilenmez</strong>;
+            o markalarda kesintisiz devam eder.
+          </p>
+        </div>
+
+        {/* B1 - kullanici bu markada admin ise yoneticilik uyarisi */}
+        {adminMi && (
+          <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-950/30 border-l-4 border-amber-400 rounded-r-lg">
+            <p className="text-[13px] text-amber-900 dark:text-amber-200 leading-relaxed">
+              Bu kullanıcı <strong>{markaAdi}</strong> markasında yönetici. Çıkarıldığında yalnızca bu
+              markadaki yöneticilik yetkisi sona erer; diğer markalardaki rolleri korunur.
+            </p>
+          </div>
+        )}
+
         {veriVar ? (
           <>
-            <div className="mt-2 space-y-2">
+            <div className="mt-3 space-y-2">
               <p className="text-sm text-clay-700 dark:text-ink-100">
-                Bu kullanıcının aşağıdaki verileri var:
+                Bu kullanıcının <strong>{markaAdi}</strong> markasında aşağıdaki verileri var:
               </p>
               <div className="bg-cream-100/60 dark:bg-ink-800/60 border border-cream-300 dark:border-ink-700 rounded-xl p-3 space-y-1.5">
                 {kullanici.notSayisi > 0 && (
@@ -451,11 +474,10 @@ function KullaniciSilDialog({
                 )}
               </div>
               <p className="text-xs text-clay-500 dark:text-ink-200 italic leading-relaxed">
-                Silersen bu veriler senin üzerine devredilir — kaybolmaz. Audit kayıtlarında
-                kullanıcı referansları "(Silinmiş kullanıcı)" olarak gösterilir.
+                Çıkarırsan bu markadaki notlar ve klasörler senin üzerine devredilir - kaybolmaz.
+                Audit kayıtlarında kullanıcı referansları "(Çıkarılmış kullanıcı)" olarak gösterilir.
               </p>
             </div>
-
             <div className="flex flex-col-reverse sm:flex-row gap-2 mt-5 sm:justify-end">
               <Button variant="outline" onClick={onClose} disabled={beklemede}>
                 İptal
@@ -467,15 +489,16 @@ function KullaniciSilDialog({
                 className="bg-red-600 hover:bg-red-700 text-white"
               >
                 {beklemede
-                  ? <><Loader2 className="h-4 w-4 animate-spin mr-1.5" /> Siliniyor</>
-                  : <><Trash2 className="h-4 w-4 mr-1.5" /> Verileri Devret + Sil</>}
+                  ? <><Loader2 className="h-4 w-4 animate-spin mr-1.5" /> Çıkarılıyor</>
+                  : <><Trash2 className="h-4 w-4 mr-1.5" /> Verileri Devret + Çıkar</>}
               </Button>
             </div>
           </>
         ) : (
           <>
-            <p className="mt-2 text-sm text-clay-700 dark:text-ink-100">
-              Bu kullanıcının notu veya klasörü yok. Hesap kalıcı olarak silinecek.
+            <p className="mt-3 text-sm text-clay-700 dark:text-ink-100">
+              Bu kullanıcının <strong>{markaAdi}</strong> markasında notu veya klasörü yok.
+              Yalnızca bu markadan çıkarılacak.
             </p>
             <div className="flex flex-col-reverse sm:flex-row gap-2 mt-5 sm:justify-end">
               <Button variant="outline" onClick={onClose} disabled={beklemede}>
@@ -488,12 +511,17 @@ function KullaniciSilDialog({
                 className="bg-red-600 hover:bg-red-700 text-white"
               >
                 {beklemede
-                  ? <><Loader2 className="h-4 w-4 animate-spin mr-1.5" /> Siliniyor</>
-                  : <><Trash2 className="h-4 w-4 mr-1.5" /> Kullanıcıyı Sil</>}
+                  ? <><Loader2 className="h-4 w-4 animate-spin mr-1.5" /> Çıkarılıyor</>
+                  : <><Trash2 className="h-4 w-4 mr-1.5" /> Bu Markadan Çıkar</>}
               </Button>
             </div>
           </>
         )}
+
+        {/* B3 - geri davet ipucu: cikarma geri-alinabilir, yoneticiye guven verir */}
+        <p className="mt-3 text-[11px] text-clay-400 dark:text-ink-300 text-center leading-relaxed">
+          Çıkarılan kullanıcıyı istediğin zaman bu markaya tekrar davet edebilirsin.
+        </p>
       </DialogContent>
     </Dialog>
   );

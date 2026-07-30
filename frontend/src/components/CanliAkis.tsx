@@ -17,6 +17,8 @@ const OLAY_STIL: Record<string, { renk: string; etiket: string }> = {
   goruntuleme_modu_write_engellendi: { renk: "bg-orange-500", etiket: "Görüntüleme modunda yazma engellendi" },
   kullanici_olusturuldu: { renk: "bg-teal-500", etiket: "Kullanıcı oluşturuldu" },
   kullanici_kalici_silindi: { renk: "bg-red-600", etiket: "Kullanıcı kalıcı silindi" },
+  kullanici_markadan_cikarildi: { renk: "bg-orange-500", etiket: "Kullanıcı markadan çıkarıldı" },
+  kullanici_silindi: { renk: "bg-red-500", etiket: "Kullanıcı çıkarıldı (eski kayıt)" },
 };
 
 function olayStili(olay?: string) {
