@@ -509,7 +509,7 @@ export function DuzenleDialog({
                     const pad = (n: number) => String(n).padStart(2, "0");
                     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
                   })()}
-                  className="h-11 w-full rounded-xl border border-clay-200 bg-white dark:bg-ink-850 px-4 text-[15px] text-clay-900 dark:text-ink-50 focus:outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta/15 transition-colors"
+                  className="h-11 w-full appearance-none rounded-xl border border-cream-300 dark:border-ink-700 bg-white dark:bg-ink-850 px-4 text-[15px] text-clay-900 dark:text-ink-50 text-left [&::-webkit-date-and-time-value]:text-left focus:outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta/15 transition-colors"
                 />
               </div>
               <div>

@@ -215,3 +215,24 @@ button, a, input, textarea, select, [role="button"], [tabindex] {
   to { opacity: 1; transform: translateX(0); }
 }
 .animate-slide-right { animation: slide-right 0.22s ease-out; }
+
+
+/* datetime-local sag border fix - iOS Safari native ic eleman (::-webkit-date-and-time-value)
+   genislik/ortalama davranisi sag border'i ortuyordu. appearance-none (Notlar.tsx) +
+   asagidaki kurallar: ic deger tam genislik + sola yasla + picker ikonu gorunur kalir. */
+input[type="datetime-local"], input[type="date"], input[type="time"] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+input[type="datetime-local"]::-webkit-date-and-time-value,
+input[type="date"]::-webkit-date-and-time-value,
+input[type="time"]::-webkit-date-and-time-value {
+  text-align: left;
+  margin: 0;
+}
+input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  opacity: 0.5;
+  cursor: pointer;
+}
