@@ -22,8 +22,11 @@ function yetkisizYakala() {
 
   // Giriş ve şifre belirle sayfalarında zaten yetkisiziz — sonsuz döngü önle
   const yol = window.location.pathname;
-  // /kvkk: anonim kanuni metin sayfasi - /ben 401'i burada logout-redirect tetiklememeli.
-  if (yol.startsWith("/giris") || yol.startsWith("/sifre-belirle") || yol.startsWith("/kvkk")) return;
+  // Kimliksiz erisilen (public) sayfalar: bu sayfalarda arka plan 401'i (orn.
+  // tokenDogrula, /ben) logout-redirect TETIKLEMEZ. Yeni public sayfa -> tek satir ekle.
+  // startsWith prefix: "/sifre-sifirla" hem /sifre-sifirla hem /sifre-sifirla-iste kapsar.
+  const PUBLIC_YOLLAR = ["/giris", "/sifre-belirle", "/sifre-sifirla", "/kvkk"];
+  if (PUBLIC_YOLLAR.some((p) => yol.startsWith(p))) return;
 
   yonlendiriliyorMu = true;
   // Toast (sonner) sayfa yönlenmeden gözükebilsin
