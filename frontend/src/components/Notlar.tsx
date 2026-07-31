@@ -70,6 +70,33 @@ function taslakNot(baslik: string, klasorId: string | null): Not {
   };
 }
 
+// v21 M8 - iOS tarzi hatirlatici ozeti (canli, kullanici dostu tek cumle).
+function hatirlaticiOzet(
+  zamanIso: string, tekrar: string, erkenDk: number | null, bitisTarih: string
+): string {
+  const d = new Date(zamanIso);
+  const saat = d.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+  const tekrarMetin: Record<string, string> = {
+    gunluk: "Her gün", haftalik: "Her hafta", iki_haftalik: "İki haftada bir",
+    aylik: "Her ay", yillik: "Her yıl",
+  };
+  const erkenMetin: Record<number, string> = {
+    5: "5 dakika", 15: "15 dakika", 60: "1 saat", 1440: "1 gün",
+  };
+  let s = tekrar && tekrarMetin[tekrar]
+    ? `${tekrarMetin[tekrar]} ${saat}'te`
+    : `${d.toLocaleDateString("tr-TR", { day: "numeric", month: "long" })} ${saat}`;
+  if (erkenDk && erkenMetin[erkenDk]) s += `, ${erkenMetin[erkenDk]} önce anımsatılacak`;
+  else s += " hatırlatılacak";
+  if (tekrar && bitisTarih) {
+    const b = new Date(bitisTarih);
+    s += ` · ${b.toLocaleDateString("tr-TR", { day: "numeric", month: "short" })}'e kadar`;
+  } else if (tekrar) {
+    s += " · süresiz";
+  }
+  return s;
+}
+
 export function YeniNotFormu({ klasorId }: { klasorId?: string | null }) {
   // v18 - not ekleme ipucu isletme_metinleri'nden (not_form_placeholder); field tek kaynak
   const { data: metinler } = useIsletmeMetinleri();
@@ -279,6 +306,15 @@ export function DuzenleDialog({
     not.hatirlatmaAliciIdler ?? []
   );
   // v19: hatirlatici hep uygulama (Web Push + zil); ayri sekil secimi kaldirildi
+  // v21 M8 - iOS tarzi: yinele + erken animsatici + tekrar bitis state
+  const [hatirlatmaTekrar, setHatirlatmaTekrar] = useState<string>(not.hatirlatmaTekrar ?? "");
+  const [hatirlatmaErkenDakika, setHatirlatmaErkenDakika] = useState<number | null>(not.hatirlatmaErkenDakika ?? null);
+  const [hatirlatmaTekrarBitis, setHatirlatmaTekrarBitis] = useState<string>(() => {
+    if (!not.hatirlatmaTekrarBitis) return "";
+    const d = new Date(not.hatirlatmaTekrarBitis);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  });
   const hatirlatmaSekli = "uygulama" as const;
 
   const { data: klasorler } = useQuery({
@@ -313,6 +349,9 @@ export function DuzenleDialog({
                 hatirlatmaZamani: hatirlatmaIso,
                 hatirlatmaAliciIdler,
                 hatirlatmaSekli: hatirlatmaSekli as "uygulama" | "email" | "her_ikisi",
+                hatirlatmaTekrar: hatirlatmaTekrar || null,
+                hatirlatmaTekrarBitis: hatirlatmaTekrarBitis ? new Date(hatirlatmaTekrarBitis).toISOString() : null,
+                hatirlatmaErkenDakika: hatirlatmaErkenDakika,
               }
             : {}),
         });
@@ -328,6 +367,9 @@ export function DuzenleDialog({
           hatirlatmaZamani: hatirlatmaIso!,
           hatirlatmaAliciIdler,
           hatirlatmaSekli: hatirlatmaSekli as "uygulama" | "email" | "her_ikisi",
+          hatirlatmaTekrar: hatirlatmaTekrar || null,
+          hatirlatmaTekrarBitis: hatirlatmaTekrarBitis ? new Date(hatirlatmaTekrarBitis).toISOString() : null,
+          hatirlatmaErkenDakika: hatirlatmaErkenDakika,
           hatirlatmaSil: false,
         });
       } else {
@@ -515,6 +557,60 @@ export function DuzenleDialog({
                   className="h-11 w-full appearance-none rounded-xl border border-cream-300 dark:border-ink-700 bg-white dark:bg-ink-850 px-4 text-[15px] text-clay-900 dark:text-ink-50 text-left [&::-webkit-date-and-time-value]:text-left focus:outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta/15 transition-colors"
                 />
               </div>
+              {/* v21 M8 - Yinele + Erken animsatici (iOS Reminders deseni) */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label htmlFor="hatirlatma-tekrar">Yinele</Label>
+                  <select
+                    id="hatirlatma-tekrar"
+                    value={hatirlatmaTekrar}
+                    onChange={(e) => setHatirlatmaTekrar(e.target.value)}
+                    className="h-11 w-full appearance-none rounded-xl border border-cream-300 dark:border-ink-700 bg-white dark:bg-ink-850 px-3 text-[14px] text-clay-900 dark:text-ink-50 focus:outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta/15 transition-colors"
+                  >
+                    <option value="">Hiç</option>
+                    <option value="gunluk">Her gün</option>
+                    <option value="haftalik">Her hafta</option>
+                    <option value="iki_haftalik">İki haftada bir</option>
+                    <option value="aylik">Her ay</option>
+                    <option value="yillik">Her yıl</option>
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="hatirlatma-erken">Erken anımsatıcı</Label>
+                  <select
+                    id="hatirlatma-erken"
+                    value={hatirlatmaErkenDakika ?? ""}
+                    onChange={(e) => setHatirlatmaErkenDakika(e.target.value === "" ? null : Number(e.target.value))}
+                    className="h-11 w-full appearance-none rounded-xl border border-cream-300 dark:border-ink-700 bg-white dark:bg-ink-850 px-3 text-[14px] text-clay-900 dark:text-ink-50 focus:outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta/15 transition-colors"
+                  >
+                    <option value="">Yok</option>
+                    <option value="5">5 dakika önce</option>
+                    <option value="15">15 dakika önce</option>
+                    <option value="60">1 saat önce</option>
+                    <option value="1440">1 gün önce</option>
+                  </select>
+                </div>
+              </div>
+              {/* Tekrar seciliyse bitis tarihi (opsiyonel; bos = suresiz) */}
+              {hatirlatmaTekrar !== "" && (
+                <div>
+                  <Label htmlFor="hatirlatma-bitis">Tekrarı şu tarihe kadar sürdür (isteğe bağlı)</Label>
+                  <input
+                    id="hatirlatma-bitis"
+                    type="date"
+                    value={hatirlatmaTekrarBitis}
+                    min={hatirlatmaZamani ? hatirlatmaZamani.slice(0, 10) : undefined}
+                    onChange={(e) => setHatirlatmaTekrarBitis(e.target.value)}
+                    className="h-11 w-full appearance-none rounded-xl border border-cream-300 dark:border-ink-700 bg-white dark:bg-ink-850 px-4 text-[15px] text-clay-900 dark:text-ink-50 text-left [&::-webkit-date-and-time-value]:text-left focus:outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta/15 transition-colors"
+                  />
+                </div>
+              )}
+              {/* B1 - canli ozet satiri (iOS deseni): secimlerin sonucu tek cumlede */}
+              {hatirlatmaZamani && (
+                <p className="text-[12px] text-clay-500 dark:text-ink-200 leading-relaxed px-1">
+                  {hatirlaticiOzet(hatirlatmaZamani, hatirlatmaTekrar, hatirlatmaErkenDakika, hatirlatmaTekrarBitis)}
+                </p>
+              )}
               <div>
                 <Label>Kime hatırlatılsın</Label>
                 <div className="space-y-1 rounded-xl border border-clay-200 dark:border-ink-700 bg-white dark:bg-ink-850 p-2 max-h-44 overflow-y-auto">
@@ -1073,6 +1169,9 @@ export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { n
                   >
                     <Bell className="h-3.5 w-3.5" fill={not.hatirlatmaGonderildiMi ? "none" : "currentColor"} strokeWidth={2} />
                     <span className="text-[9px] leading-none mt-0.5 font-medium whitespace-nowrap">{hatirlatmaKisaTarih}</span>
+                    {not.hatirlatmaTekrar && (
+                      <span className="text-[8px] leading-none text-terracotta" title="Yinelenen hatırlatıcı">↻</span>
+                    )}
                   </button>
                   {hatirlatmaDokumAcik && (
                     <>
