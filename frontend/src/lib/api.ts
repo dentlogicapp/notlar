@@ -108,6 +108,9 @@ export interface NotOlusturOnerisi {
   hatirlatmaKime?: HatirlatmaKime | null;       // DEPRECATED v19 P4
   hatirlatmaAliciIdler?: string[] | null;       // v19 P4 - secili uye id'leri
   hatirlatmaSekli?: HatirlatmaSekli | null;
+  hatirlatmaTekrar?: string | null;             // v21 M8 - yinele
+  hatirlatmaTekrarBitis?: string | null;        // v21 M8 - tekrar bitis
+  hatirlatmaErkenDakika?: number | null;        // v21 M8 - erken animsatici dk
 }
 
 export interface NotGuncelleOnerisi {
@@ -119,6 +122,9 @@ export interface NotGuncelleOnerisi {
   hatirlatmaKime?: HatirlatmaKime | null;       // DEPRECATED v19 P4
   hatirlatmaAliciIdler?: string[] | null;       // v19 P4 - secili uye id'leri
   hatirlatmaSekli?: HatirlatmaSekli | null;
+  hatirlatmaTekrar?: string | null;             // v21 M8 - yinele
+  hatirlatmaTekrarBitis?: string | null;        // v21 M8 - tekrar bitis
+  hatirlatmaErkenDakika?: number | null;        // v21 M8 - erken animsatici dk
   hatirlatmaSil?: boolean;
 }
 

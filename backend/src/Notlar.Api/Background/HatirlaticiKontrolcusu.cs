@@ -50,54 +50,104 @@ public sealed class HatirlaticiKontrolcusu : BackgroundService
         var bildirimSvc = scope.ServiceProvider.GetRequiredService<INotBildirimServisi>();
 
         var simdi = DateTimeOffset.UtcNow;
+        var kullanicilar = await db.Kullanicilar.ToListAsync(ct);
+        bool degisiklikVar = false;
 
-        // Zamanı gelmiş + gönderilmemiş + silinmemiş notlar
+        // ===== 1) ERKEN ANIMSATICI (v21 M8) - asil zamandan once ikinci bildirim =====
+        // Erken dakika dolu + henuz erken gonderilmemis + asil gonderilmemis + silinmemis.
+        var erkenBekleyenler = await db.Notlar
+            .Include(n => n.Klasor).Include(n => n.OlusturanKullanici)
+            .Where(n => n.HatirlatmaZamani != null
+                     && n.HatirlatmaErkenDakika != null
+                     && !n.ErkenGonderildiMi
+                     && !n.HatirlatmaGonderildiMi
+                     && !n.Silindi)
+            .ToListAsync(ct);
+
+        foreach (var not in erkenBekleyenler)
+        {
+            // Erken ani = asil zaman - erken dakika. Henuz gelmediyse atla.
+            var erkenAn = not.HatirlatmaZamani!.Value.AddMinutes(-not.HatirlatmaErkenDakika!.Value);
+            if (erkenAn > simdi) continue;
+            try
+            {
+                var kuran = KuranBul(kullanicilar, not);
+                var hedefler = HedefBul(kullanicilar, kuran, not);
+                await bildirimSvc.HatirlaticiZamani(not, hedefler.Select(h => h.Id).ToList(), ct);
+                not.ErkenGonderildiMi = true;
+                degisiklikVar = true;
+            }
+            catch (Exception ex) { _log.LogError(ex, "Erken animsatici hatasi: Not {NotId}", not.Id); }
+        }
+
+        // ===== 2) ASIL HATIRLATICI (+ tekrar, v21 M8) =====
         var bekleyenler = await db.Notlar
-            .Include(n => n.Klasor)
-            .Include(n => n.OlusturanKullanici)
+            .Include(n => n.Klasor).Include(n => n.OlusturanKullanici)
             .Where(n => n.HatirlatmaZamani != null
                      && !n.HatirlatmaGonderildiMi
                      && !n.Silindi
                      && n.HatirlatmaZamani <= simdi)
             .ToListAsync(ct);
 
-        if (bekleyenler.Count == 0) return;
-
-        _log.LogInformation("Hatırlatıcı kontrolcüsü: {Sayi} not işlenecek", bekleyenler.Count);
-
-        // Bütün kullanıcıları tek seferde çek (alıcı belirlemek için)
-        var kullanicilar = await db.Kullanicilar.ToListAsync(ct);
-
-        foreach (var not in bekleyenler)
+        if (bekleyenler.Count > 0)
         {
-            try
+            _log.LogInformation("Hatirlatici kontrolcusu: {Sayi} not islenecek", bekleyenler.Count);
+            foreach (var not in bekleyenler)
             {
-                // Hedef kullanıcıları belirle
-                var kuran = not.HatirlatmaKuranKullaniciId is null
-                    ? not.OlusturanKullanici
-                    : kullanicilar.FirstOrDefault(k => k.Id == not.HatirlatmaKuranKullaniciId.Value)
-                        ?? not.OlusturanKullanici;
+                try
+                {
+                    var kuran = KuranBul(kullanicilar, not);
+                    var hedefler = HedefBul(kullanicilar, kuran, not);
+                    await bildirimSvc.HatirlaticiZamani(not, hedefler.Select(h => h.Id).ToList(), ct);
 
-                var hedefler = HedefBul(kullanicilar, kuran, not);
-
-                // Cift kanal bildirim (in-app zil + Web Push) artik ortak serviste; tek dogruluk kaynagi.
-                // In-app metni de tenant anahtarindan gelir (eski sabit metin yerine); HatirlaticiZamani uretir.
-                await bildirimSvc.HatirlaticiZamani(not, hedefler.Select(h => h.Id).ToList(), ct);
-
-                // Idempotent flag
-                not.HatirlatmaGonderildiMi = true;
-                not.HatirlatmaGonderimZamani = simdi;
-            }
-            catch (Exception ex)
-            {
-                _log.LogError(ex, "Hatırlatıcı işlenirken hata: Not {NotId}", not.Id);
+                    // Tekrar mantigi: tekrar varsa zamani ileri al + flaglari sifirla (yeni dongu);
+                    // bitis tarihini asiyorsa dur (gonderildi=true). Erken flag da sifirlanir -> her
+                    // tekrarda erken animsatici yeniden tetiklenir (iOS davranisi).
+                    var sonraki = SonrakiTekrarZamani(not.HatirlatmaZamani!.Value, not.HatirlatmaTekrar);
+                    if (sonraki is DateTimeOffset s
+                        && (not.HatirlatmaTekrarBitis is null || s <= not.HatirlatmaTekrarBitis.Value))
+                    {
+                        not.HatirlatmaZamani = s;
+                        not.HatirlatmaGonderildiMi = false;
+                        not.ErkenGonderildiMi = false;
+                        not.HatirlatmaGonderimZamani = simdi;
+                    }
+                    else
+                    {
+                        not.HatirlatmaGonderildiMi = true;
+                        not.HatirlatmaGonderimZamani = simdi;
+                    }
+                    degisiklikVar = true;
+                }
+                catch (Exception ex) { _log.LogError(ex, "Hatirlatici islenirken hata: Not {NotId}", not.Id); }
             }
         }
 
-        await db.SaveChangesAsync(ct);
-
-        _log.LogInformation("Hatırlatıcı kontrolcüsü: {Sayi} not işlendi", bekleyenler.Count);
+        if (degisiklikVar)
+        {
+            await db.SaveChangesAsync(ct);
+            _log.LogInformation("Hatirlatici kontrolcusu: erken={Erken} asil={Asil} islendi",
+                erkenBekleyenler.Count, bekleyenler.Count);
+        }
     }
+
+    // Hatirlaticiyi kuran kullaniciyi bul (kuran yoksa olusturan).
+    private static Kullanici KuranBul(IReadOnlyList<Kullanici> kullanicilar, Not not)
+        => not.HatirlatmaKuranKullaniciId is null
+            ? not.OlusturanKullanici
+            : kullanicilar.FirstOrDefault(k => k.Id == not.HatirlatmaKuranKullaniciId.Value) ?? not.OlusturanKullanici;
+
+    // Sonraki tekrar zamani (null = tekrar yok/gecersiz -> dur). iOS standart set.
+    private static DateTimeOffset? SonrakiTekrarZamani(DateTimeOffset mevcut, string? tekrar)
+        => tekrar switch
+        {
+            "gunluk" => mevcut.AddDays(1),
+            "haftalik" => mevcut.AddDays(7),
+            "iki_haftalik" => mevcut.AddDays(14),
+            "aylik" => mevcut.AddMonths(1),
+            "yillik" => mevcut.AddYears(1),
+            _ => null
+        };
 
     private static IReadOnlyList<Kullanici> HedefBul(IReadOnlyList<Kullanici> tumu, Kullanici kuran, Not not)
     {

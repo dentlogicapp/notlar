@@ -295,6 +295,10 @@ public static class NoteEndpoints
                 n.HatirlatmaGonderildiMi = false;
                 n.HatirlatmaGonderimZamani = null;
                 n.HatirlatmaKuranKullaniciId = null;
+                n.HatirlatmaTekrar = null;
+                n.HatirlatmaTekrarBitis = null;
+                n.HatirlatmaErkenDakika = null;
+                n.ErkenGonderildiMi = false;
             }
             else if (req.HatirlatmaZamani.HasValue)
             {
@@ -795,6 +799,7 @@ public static class NoteEndpoints
         n.HatirlatmaAliciIdler is null ? null : JsonSerializer.Deserialize<List<Guid>>(n.HatirlatmaAliciIdler),
         n.HatirlatmaSekli,
         n.HatirlatmaGonderildiMi,
+        n.HatirlatmaTekrar, n.HatirlatmaTekrarBitis, n.HatirlatmaErkenDakika,  // v21 M8
         kilitSahibiAdi,
         n.EskiKlasorId,
         okuyanlar?.Count ?? 0,

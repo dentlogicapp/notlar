@@ -161,6 +161,12 @@ public sealed class Not
     public string? HatirlatmaSekli { get; set; }                // "uygulama" | "email" | "her_ikisi"
     public bool HatirlatmaGonderildiMi { get; set; }            // background service idempotent için
 
+    // v21 M8 - iOS tarzi gelismis hatirlatici (yinele + erken animsatici).
+    public string? HatirlatmaTekrar { get; set; }              // "gunluk"|"haftalik"|"iki_haftalik"|"aylik"|"yillik" (null = tekrarsiz)
+    public DateTimeOffset? HatirlatmaTekrarBitis { get; set; } // tekrar bitis tarihi (null = suresiz)
+    public int? HatirlatmaErkenDakika { get; set; }            // asil zamandan kac dk once erken animsatici (null = yok)
+    public bool ErkenGonderildiMi { get; set; }                // erken animsatici idempotent flag (her tekrarda sifirlanir)
+
     // Olusturma bildirimi tetiklendi mi? create'te false kalir; ilk anlamli Kaydet (update) onu
     // duyurup true yapar. Boylece "Ekle -> otomatik duzenle -> Kaydet" akisinda cift bildirim (olusturuldu+guncellendi) olmaz.
     public bool Duyuruldu { get; set; } = false;

@@ -106,7 +106,10 @@ public sealed record NotGuncelleIstegi(
     string? HatirlatmaKime = null,
     string? HatirlatmaSekli = null,
     bool HatirlatmaSil = false,             // toggle kapatıldıysa hatırlatmayı sil
-    List<Guid>? HatirlatmaAliciIdler = null // v19 P4 - secili uye id'leri
+    List<Guid>? HatirlatmaAliciIdler = null, // v19 P4 - secili uye id'leri
+    string? HatirlatmaTekrar = null,          // v21 M8
+    DateTimeOffset? HatirlatmaTekrarBitis = null,  // v21 M8
+    int? HatirlatmaErkenDakika = null         // v21 M8
 );
 
 public sealed record NotTamamlaIstegi(string TamamlanmaAciklamasi);
@@ -125,6 +128,9 @@ public sealed record NotYaniti(
     List<Guid>? HatirlatmaAliciIdler,
     string? HatirlatmaSekli,
     bool HatirlatmaGonderildiMi,
+    string? HatirlatmaTekrar,              // v21 M8
+    DateTimeOffset? HatirlatmaTekrarBitis, // v21 M8
+    int? HatirlatmaErkenDakika,            // v21 M8
     // Kilit
     string? KilitSahibiAdi,
     Guid? EskiKlasorId,

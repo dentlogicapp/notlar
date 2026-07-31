@@ -359,6 +359,18 @@ using (var scope = app.Services.CreateScope())
                 ADD COLUMN IF NOT EXISTS ""HatirlatmaGonderimZamani"" timestamp with time zone;
             ALTER TABLE notlar
                 ADD COLUMN IF NOT EXISTS ""HatirlatmaKuranKullaniciId"" uuid;
+            -- v21 M8 - iOS tarzi hatirlatici: yinele + erken animsatici
+            ALTER TABLE notlar
+                ADD COLUMN IF NOT EXISTS ""HatirlatmaTekrar"" character varying(15);
+            ALTER TABLE notlar
+                ADD COLUMN IF NOT EXISTS ""HatirlatmaTekrarBitis"" timestamp with time zone;
+            ALTER TABLE notlar
+                ADD COLUMN IF NOT EXISTS ""HatirlatmaErkenDakika"" integer;
+            ALTER TABLE notlar
+                ADD COLUMN IF NOT EXISTS ""ErkenGonderildiMi"" boolean NOT NULL DEFAULT false;
+            -- Erken animsatici background sorgusu: HatirlatmaZamani - erken <= now AND !ErkenGonderildiMi
+            CREATE INDEX IF NOT EXISTS ""IX_notlar_ErkenGonderildiMi""
+                ON notlar (""ErkenGonderildiMi"", ""HatirlatmaZamani"") WHERE ""HatirlatmaErkenDakika"" IS NOT NULL;
             -- Olusturma bildirimi durumu. Mevcut notlar zaten duyuruldu (DEFAULT true);
             -- yeni notlar create'te false baslar (ALTER), ilk Kaydet'te duyurulur. Cift bildirim onlenir.
             ALTER TABLE notlar

@@ -116,6 +116,9 @@ export interface Not {
   hatirlatmaAliciIdler: string[] | null;        // v19 P4 - secili uye id'leri (cok alici)
   hatirlatmaSekli: HatirlatmaSekli | null;
   hatirlatmaGonderildiMi: boolean;
+  hatirlatmaTekrar: string | null;              // v21 M8 - yinele
+  hatirlatmaTekrarBitis: string | null;         // v21 M8 - tekrar bitis
+  hatirlatmaErkenDakika: number | null;         // v21 M8 - erken animsatici dk
   // Kilit
   kilitSahibiAdi: string | null;
   eskiKlasorId: string | null;
