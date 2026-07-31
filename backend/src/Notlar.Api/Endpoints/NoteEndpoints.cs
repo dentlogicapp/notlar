@@ -175,6 +175,15 @@ public static class NoteEndpoints
                 n.HatirlatmaZamani = req.HatirlatmaZamani;
                 n.HatirlatmaAliciIdler = JsonSerializer.Serialize(aliciIdler);
                 n.HatirlatmaSekli = req.HatirlatmaSekli;
+                // v21 M8 - iOS tarzi: yinele + erken animsatici (opsiyonel).
+                if (req.HatirlatmaTekrar is not null
+                    && !new[] { "gunluk", "haftalik", "iki_haftalik", "aylik", "yillik" }.Contains(req.HatirlatmaTekrar))
+                    return Results.BadRequest(new { hata = "HATIRLATMA_TEKRAR_GECERSIZ", mesaj = "Yinele degeri gecersiz." });
+                if (req.HatirlatmaErkenDakika is int ed && (ed < 0 || ed > 43200))
+                    return Results.BadRequest(new { hata = "HATIRLATMA_ERKEN_GECERSIZ", mesaj = "Erken animsatici 0-43200 dakika araliginda olmali." });
+                n.HatirlatmaTekrar = req.HatirlatmaTekrar;
+                n.HatirlatmaTekrarBitis = req.HatirlatmaTekrarBitis;
+                n.HatirlatmaErkenDakika = req.HatirlatmaErkenDakika;
                 n.HatirlatmaKuranKullaniciId = uc.KullaniciId.Value;
             }
 
@@ -319,6 +328,15 @@ public static class NoteEndpoints
                 n.HatirlatmaAliciIdler = JsonSerializer.Serialize(aliciIdler);
                 n.HatirlatmaKime = null;
                 n.HatirlatmaSekli = req.HatirlatmaSekli;
+                // v21 M8 - iOS tarzi: yinele + erken animsatici (opsiyonel).
+                if (req.HatirlatmaTekrar is not null
+                    && !new[] { "gunluk", "haftalik", "iki_haftalik", "aylik", "yillik" }.Contains(req.HatirlatmaTekrar))
+                    return Results.BadRequest(new { hata = "HATIRLATMA_TEKRAR_GECERSIZ", mesaj = "Yinele degeri gecersiz." });
+                if (req.HatirlatmaErkenDakika is int ed2 && (ed2 < 0 || ed2 > 43200))
+                    return Results.BadRequest(new { hata = "HATIRLATMA_ERKEN_GECERSIZ", mesaj = "Erken animsatici 0-43200 dakika araliginda olmali." });
+                n.HatirlatmaTekrar = req.HatirlatmaTekrar;
+                n.HatirlatmaTekrarBitis = req.HatirlatmaTekrarBitis;
+                n.HatirlatmaErkenDakika = req.HatirlatmaErkenDakika;
                 if (zamanDegisti)
                 {
                     n.HatirlatmaGonderildiMi = false;

@@ -97,7 +97,10 @@ public sealed record NotOlusturIstegi(
     DateTimeOffset? HatirlatmaZamani = null,
     string? HatirlatmaKime = null,         // DEPRECATED v19 P4 (eski 2-kullanicili model)
     string? HatirlatmaSekli = null,        // "uygulama" | "email" | "her_ikisi"
-    List<Guid>? HatirlatmaAliciIdler = null // v19 P4 - secili uye id'leri (cok alici)
+    List<Guid>? HatirlatmaAliciIdler = null, // v19 P4 - secili uye id'leri (cok alici)
+    string? HatirlatmaTekrar = null,          // v21 M8
+    DateTimeOffset? HatirlatmaTekrarBitis = null,  // v21 M8
+    int? HatirlatmaErkenDakika = null         // v21 M8
 );
 
 public sealed record NotGuncelleIstegi(
