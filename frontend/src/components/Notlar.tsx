@@ -1021,6 +1021,74 @@ function MentionOneriler({
 
 const IKON_BUTON = "min-w-[44px] min-h-[44px] sm:min-w-[36px] sm:min-h-[36px] inline-flex items-center justify-center rounded-md transition-colors";
 
+// BV4 - Yeniden Zamanla: paylasilan bilesen (kart dokum + takvim ayni; tek dogruluk kaynagi).
+// notApi.update ile mevcut hatirlatici alanlarini KORUR, sadece hatirlatmaZamani degisir.
+// datetime mevcut zamanla dolu gelir (iOS); min=simdi. invalidate -> her yerde anlik senkron.
+export function YenidenZamanla({ not, onBitti }: { not: Not; onBitti?: () => void }) {
+  const qc = useQueryClient();
+  const isoToLocal = (iso: string) => {
+    const d = new Date(iso);
+    const p = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+  };
+  const [yeniZaman, setYeniZaman] = useState<string>(
+    not.hatirlatmaZamani ? isoToLocal(not.hatirlatmaZamani) : ""
+  );
+  const simdiLocal = isoToLocal(new Date().toISOString());
+
+  const zamanla = useMutation({
+    mutationFn: () =>
+      notApi.update(not.id, {
+        baslik: not.baslik,
+        icerik: not.icerik,
+        klasorId: not.klasorId,
+        // Mevcut hatirlatici alanlarini KORU (backend validasyonu: alici+sekil zorunlu).
+        hatirlatmaZamani: new Date(yeniZaman).toISOString(),
+        hatirlatmaAliciIdler: not.hatirlatmaAliciIdler ?? [],
+        hatirlatmaSekli: (not.hatirlatmaSekli ?? "uygulama") as "uygulama" | "email" | "her_ikisi",
+        hatirlatmaTekrar: not.hatirlatmaTekrar,
+        hatirlatmaTekrarBitis: not.hatirlatmaTekrarBitis,
+        hatirlatmaErkenDakika: not.hatirlatmaErkenDakika,
+        hatirlatmaHaftaGunleri: not.hatirlatmaHaftaGunleri,
+        degisiklikAciklamasi: null,
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["notlar"] });
+      toast.success("Hatırlatıcı yeniden zamanlandı");
+      onBitti?.();
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  if (!not.hatirlatmaZamani) return null;
+  const gecmisSecildi = yeniZaman !== "" && new Date(yeniZaman) <= new Date();
+
+  return (
+    <div className="mt-2 pt-2 border-t border-cream-200 dark:border-ink-700">
+      <p className="text-[10px] font-medium text-clay-500 dark:text-ink-300 mb-1">Yeniden zamanla</p>
+      <input
+        type="datetime-local"
+        value={yeniZaman}
+        min={simdiLocal}
+        onChange={(e) => setYeniZaman(e.target.value)}
+        className="h-9 w-full appearance-none rounded-lg border border-cream-300 dark:border-ink-700 bg-white dark:bg-ink-850 px-2 text-[12px] text-clay-900 dark:text-ink-50 text-left [&::-webkit-date-and-time-value]:text-left focus:outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta/15 transition-colors"
+      />
+      {gecmisSecildi && (
+        <p className="text-[10px] text-red-600 dark:text-red-400 mt-1">Geçmiş bir zaman seçilemez.</p>
+      )}
+      <button
+        type="button"
+        disabled={!yeniZaman || gecmisSecildi || zamanla.isPending}
+        onClick={() => zamanla.mutate()}
+        className="mt-1.5 w-full h-8 rounded-lg bg-terracotta text-cream-50 text-[12px] font-medium hover:bg-terracotta/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors inline-flex items-center justify-center gap-1.5"
+      >
+        {zamanla.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+        Uygula
+      </button>
+    </div>
+  );
+}
+
 export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { not: Not; klasorBadgeGoster?: boolean; aramaTerimi?: string }) {
   const qc = useQueryClient();
   const [tamamlaAcik, setTamamlaAcik] = useState(false);
@@ -1302,6 +1370,7 @@ export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { n
                         {not.hatirlatmaGonderildiMi && (
                           <p className="text-[10px] text-clay-400 dark:text-ink-400 mt-1 italic">Gönderildi</p>
                         )}
+                        <YenidenZamanla not={not} onBitti={() => setHatirlatmaDokumAcik(false)} />
                       </div>
                     </>
                   )}
