@@ -178,16 +178,16 @@ public static class NoteEndpoints
                 // v21 M8 - iOS tarzi: yinele + erken animsatici (opsiyonel).
                 if (req.HatirlatmaTekrar is not null
                     && !new[] { "saatlik", "gunluk", "haftalik", "haftalik_secili", "iki_haftalik", "aylik", "yillik" }.Contains(req.HatirlatmaTekrar))
-                    return Results.BadRequest(new { hata = "HATIRLATMA_TEKRAR_GECERSIZ", mesaj = "Yinele degeri gecersiz." });
+                    return Results.BadRequest(new { hata = "HATIRLATMA_TEKRAR_GECERSIZ", mesaj = "Yineleme değeri geçersiz." });
                 if (req.HatirlatmaErkenDakika is int ed && (ed < 0 || ed > 43200))
-                    return Results.BadRequest(new { hata = "HATIRLATMA_ERKEN_GECERSIZ", mesaj = "Erken animsatici 0-43200 dakika araliginda olmali." });
+                    return Results.BadRequest(new { hata = "HATIRLATMA_ERKEN_GECERSIZ", mesaj = "Erken anımsatıcı 0-43200 dakika aralığında olmalı." });
                 n.HatirlatmaTekrar = req.HatirlatmaTekrar;
                 n.HatirlatmaTekrarBitis = req.HatirlatmaTekrarBitis;
                 n.HatirlatmaErkenDakika = req.HatirlatmaErkenDakika;
                 // Faz A - haftalik_secili ise hafta gunleri zorunlu; digerlerinde null.
                 if (req.HatirlatmaTekrar == "haftalik_secili"
                     && string.IsNullOrWhiteSpace(req.HatirlatmaHaftaGunleri))
-                    return Results.BadRequest(new { hata = "HATIRLATMA_HAFTA_GUNLERI_GEREKLI", mesaj = "Haftalik secili tekrar icin en az bir gun secilmeli." });
+                    return Results.BadRequest(new { hata = "HATIRLATMA_HAFTA_GUNLERI_GEREKLI", mesaj = "Haftanın belirli günleri için en az bir gün seçilmeli." });
                 n.HatirlatmaHaftaGunleri = req.HatirlatmaTekrar == "haftalik_secili" ? req.HatirlatmaHaftaGunleri : null;
                 n.HatirlatmaKuranKullaniciId = uc.KullaniciId.Value;
             }
@@ -331,7 +331,7 @@ public static class NoteEndpoints
                 var zamanDegisti = n.HatirlatmaZamani != req.HatirlatmaZamani;
                 // C - gecmis zaman reddi SADECE zaman degistiyse (mevcut gecmis hatirlatici duzenlenebilir; iz korunur).
                 if (zamanDegisti && req.HatirlatmaZamani.Value <= DateTimeOffset.UtcNow)
-                    return Results.BadRequest(new { hata = "HATIRLATMA_GECMIS_ZAMAN", mesaj = "Gecmis bir zamana hatirlatici kurulamaz." });
+                    return Results.BadRequest(new { hata = "HATIRLATMA_GECMIS_ZAMAN", mesaj = "Geçmiş bir zamana hatırlatıcı kurulamaz." });
                 n.HatirlatmaZamani = req.HatirlatmaZamani;
                 n.HatirlatmaAliciIdler = JsonSerializer.Serialize(aliciIdler);
                 n.HatirlatmaKime = null;
@@ -339,16 +339,16 @@ public static class NoteEndpoints
                 // v21 M8 - iOS tarzi: yinele + erken animsatici (opsiyonel).
                 if (req.HatirlatmaTekrar is not null
                     && !new[] { "saatlik", "gunluk", "haftalik", "haftalik_secili", "iki_haftalik", "aylik", "yillik" }.Contains(req.HatirlatmaTekrar))
-                    return Results.BadRequest(new { hata = "HATIRLATMA_TEKRAR_GECERSIZ", mesaj = "Yinele degeri gecersiz." });
+                    return Results.BadRequest(new { hata = "HATIRLATMA_TEKRAR_GECERSIZ", mesaj = "Yineleme değeri geçersiz." });
                 if (req.HatirlatmaErkenDakika is int ed2 && (ed2 < 0 || ed2 > 43200))
-                    return Results.BadRequest(new { hata = "HATIRLATMA_ERKEN_GECERSIZ", mesaj = "Erken animsatici 0-43200 dakika araliginda olmali." });
+                    return Results.BadRequest(new { hata = "HATIRLATMA_ERKEN_GECERSIZ", mesaj = "Erken anımsatıcı 0-43200 dakika aralığında olmalı." });
                 n.HatirlatmaTekrar = req.HatirlatmaTekrar;
                 n.HatirlatmaTekrarBitis = req.HatirlatmaTekrarBitis;
                 n.HatirlatmaErkenDakika = req.HatirlatmaErkenDakika;
                 // Faz A - haftalik_secili ise hafta gunleri zorunlu; digerlerinde null.
                 if (req.HatirlatmaTekrar == "haftalik_secili"
                     && string.IsNullOrWhiteSpace(req.HatirlatmaHaftaGunleri))
-                    return Results.BadRequest(new { hata = "HATIRLATMA_HAFTA_GUNLERI_GEREKLI", mesaj = "Haftalik secili tekrar icin en az bir gun secilmeli." });
+                    return Results.BadRequest(new { hata = "HATIRLATMA_HAFTA_GUNLERI_GEREKLI", mesaj = "Haftanın belirli günleri için en az bir gün seçilmeli." });
                 n.HatirlatmaHaftaGunleri = req.HatirlatmaTekrar == "haftalik_secili" ? req.HatirlatmaHaftaGunleri : null;
                 if (zamanDegisti)
                 {
