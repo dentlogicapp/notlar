@@ -27,6 +27,7 @@ import {
 } from "./ui/dialog";
 import { cn, tarihFormat, gorelizamandan, bastari } from "@/lib/utils";
 import type { Not, NotGecmisi, Klasor, TenantUye } from "@/lib/types";
+import { hatirlatmaDurumu } from "./MiniTakvim";
 
 const yeniSchema = z.object({
   baslik: z.string().min(1, "Başlık zorunlu").max(200),
@@ -85,6 +86,31 @@ function ayinGunuEki(n: number): string {
   const tablo: Record<number, string> = { 0:"unda",1:"inde",2:"sinde",3:"unde",4:"unde",5:"inde",6:"sinda",7:"sinde",8:"inde",9:"unda" };
   return "'" + tablo[Number(String(n).slice(-1))];
 }
+// BV5 - kart rozeti icin kisa tekrar etiketi.
+const GUNLER_KISA_KART = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
+function tekrarKisaEtiket(tekrar: string | null, haftaGunleriJson: string | null): string {
+  switch (tekrar) {
+    case "saatlik": return "Saatlik";
+    case "gunluk": return "Her gün";
+    case "haftalik": return "Haftalık";
+    case "iki_haftalik": return "2 haftada bir";
+    case "aylik": return "Aylık";
+    case "yillik": return "Yıllık";
+    case "haftalik_secili": {
+      let g: number[] = [];
+      try { g = JSON.parse(haftaGunleriJson || "[]") as number[]; } catch { g = []; }
+      g = [...g].sort((a, b) => a - b);
+      const set = new Set(g);
+      if ([1, 2, 3, 4, 5, 6, 7].every((x) => set.has(x))) return "Her gün";
+      if ([1, 2, 3, 4, 5].every((x) => set.has(x)) && ![6, 7].some((x) => set.has(x))) return "Hafta içi";
+      if ([6, 7].every((x) => set.has(x)) && ![1, 2, 3, 4, 5].some((x) => set.has(x))) return "Hafta sonu";
+      if (g.length === 0) return "Haftalık";
+      return g.map((x) => GUNLER_KISA_KART[x - 1]).join(", ");
+    }
+    default: return "";
+  }
+}
+
 function hatirlaticiOzet(
   zamanIso: string, tekrar: string, erkenDk: number | null, bitisTarih: string,
   haftaGunleri: number[]
@@ -1034,6 +1060,9 @@ export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { n
     onError: (err: Error) => toast.error(err.message),
   });
 
+  // BV5 - kart hatirlatma durumu (takvimle tutarli: gecikmis/gelecek/tamam).
+  const kartDurum = hatirlatmaDurumu(not);
+  const kartTekrarEtiket = tekrarKisaEtiket(not.hatirlatmaTekrar, not.hatirlatmaHaftaGunleri);
   const hatirlatmaKisaTarih = not.hatirlatmaZamani
     ? new Date(not.hatirlatmaZamani).toLocaleString("tr-TR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
     : "";
@@ -1247,13 +1276,13 @@ export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { n
                     aria-label={`Hatırlatıcı: ${hatirlatmaTamTarih}${hatirlatmaAlicilari.length ? `, kimlere: ${hatirlatmaAlicilari.join(", ")}` : ""}`}
                     className={cn(
                       "flex flex-col items-center justify-center min-w-[44px] min-h-[44px] sm:min-w-[36px] sm:min-h-[36px] rounded-md transition-colors hover:bg-cream-200 dark:hover:bg-ink-800",
-                      not.hatirlatmaGonderildiMi ? "text-clay-400 dark:text-ink-300" : "text-terracotta"
+                      kartDurum === "gecikmis" ? "text-red-500" : not.hatirlatmaGonderildiMi ? "text-clay-400 dark:text-ink-300" : "text-terracotta"
                     )}
                   >
                     <Bell className="h-3.5 w-3.5" fill={not.hatirlatmaGonderildiMi ? "none" : "currentColor"} strokeWidth={2} />
                     <span className="text-[9px] leading-none mt-0.5 font-medium whitespace-nowrap">{hatirlatmaKisaTarih}</span>
                     {not.hatirlatmaTekrar && (
-                      <span className="text-[8px] leading-none text-terracotta" title="Yinelenen hatırlatıcı">↻</span>
+                      <span className="text-[8px] leading-none text-terracotta whitespace-nowrap" title="Yinelenen hatırlatıcı">↻ {kartTekrarEtiket}</span>
                     )}
                   </button>
                   {hatirlatmaDokumAcik && (
