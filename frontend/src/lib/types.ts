@@ -119,6 +119,7 @@ export interface Not {
   hatirlatmaTekrar: string | null;              // v21 M8 - yinele
   hatirlatmaTekrarBitis: string | null;         // v21 M8 - tekrar bitis
   hatirlatmaErkenDakika: number | null;         // v21 M8 - erken animsatici dk
+  hatirlatmaHaftaGunleri: string | null;        // Faz A - JSONB int[] "[1,3,5]"
   // Kilit
   kilitSahibiAdi: string | null;
   eskiKlasorId: string | null;

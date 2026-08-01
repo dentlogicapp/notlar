@@ -100,7 +100,8 @@ public sealed record NotOlusturIstegi(
     List<Guid>? HatirlatmaAliciIdler = null, // v19 P4 - secili uye id'leri (cok alici)
     string? HatirlatmaTekrar = null,          // v21 M8
     DateTimeOffset? HatirlatmaTekrarBitis = null,  // v21 M8
-    int? HatirlatmaErkenDakika = null         // v21 M8
+    int? HatirlatmaErkenDakika = null,         // v21 M8
+    string? HatirlatmaHaftaGunleri = null    // Faz A - JSONB int[] "[1,3,5]"
 );
 
 public sealed record NotGuncelleIstegi(
@@ -112,7 +113,8 @@ public sealed record NotGuncelleIstegi(
     List<Guid>? HatirlatmaAliciIdler = null, // v19 P4 - secili uye id'leri
     string? HatirlatmaTekrar = null,          // v21 M8
     DateTimeOffset? HatirlatmaTekrarBitis = null,  // v21 M8
-    int? HatirlatmaErkenDakika = null         // v21 M8
+    int? HatirlatmaErkenDakika = null,         // v21 M8
+    string? HatirlatmaHaftaGunleri = null    // Faz A - JSONB int[] "[1,3,5]"
 );
 
 public sealed record NotTamamlaIstegi(string TamamlanmaAciklamasi);
@@ -134,6 +136,7 @@ public sealed record NotYaniti(
     string? HatirlatmaTekrar,              // v21 M8
     DateTimeOffset? HatirlatmaTekrarBitis, // v21 M8
     int? HatirlatmaErkenDakika,            // v21 M8
+    string? HatirlatmaHaftaGunleri,        // Faz A - JSONB int[] "[1,3,5]"
     // Kilit
     string? KilitSahibiAdi,
     Guid? EskiKlasorId,

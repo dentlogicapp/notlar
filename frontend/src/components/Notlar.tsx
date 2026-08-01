@@ -61,6 +61,7 @@ function taslakNot(baslik: string, klasorId: string | null): Not {
     hatirlatmaTekrar: null,
     hatirlatmaTekrarBitis: null,
     hatirlatmaErkenDakika: null,
+    hatirlatmaHaftaGunleri: null,
     kilitSahibiAdi: null,
     eskiKlasorId: null,
     okuyanSayisi: 0,
@@ -71,28 +72,62 @@ function taslakNot(baslik: string, klasorId: string | null): Not {
 }
 
 // v21 M8 - iOS tarzi hatirlatici ozeti (canli, kullanici dostu tek cumle).
+// v21 M8 + Faz A - iOS tarzi hatirlatici ozeti (Turkce ek motoru, Istanbul saati).
+const AYLAR_OZET = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+const GUNLER_OZET = ["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"];
+function ayaYonelmeEki(ay: string): string {
+  const kalin = "aıou", ince = "eiöü";
+  const unluler = ay.toLowerCase().split("").filter((c) => (kalin + ince).includes(c));
+  const son = unluler[unluler.length - 1];
+  return kalin.includes(son) ? "a" : "e";
+}
+function ayinGunuEki(n: number): string {
+  const tablo: Record<number, string> = { 0:"unda",1:"inde",2:"sinde",3:"unde",4:"unde",5:"inde",6:"sinda",7:"sinde",8:"inde",9:"unda" };
+  return "'" + tablo[Number(String(n).slice(-1))];
+}
 function hatirlaticiOzet(
-  zamanIso: string, tekrar: string, erkenDk: number | null, bitisTarih: string
+  zamanIso: string, tekrar: string, erkenDk: number | null, bitisTarih: string,
+  haftaGunleri: number[]
 ): string {
   const d = new Date(zamanIso);
-  const saat = d.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
-  const tekrarMetin: Record<string, string> = {
-    gunluk: "Her gün", haftalik: "Her hafta", iki_haftalik: "İki haftada bir",
-    aylik: "Her ay", yillik: "Her yıl",
-  };
-  const erkenMetin: Record<number, string> = {
-    5: "5 dakika", 15: "15 dakika", 60: "1 saat", 1440: "1 gün",
-  };
-  let s = tekrar && tekrarMetin[tekrar]
-    ? `${tekrarMetin[tekrar]} ${saat}'te`
-    : `${d.toLocaleDateString("tr-TR", { day: "numeric", month: "long" })} ${saat}`;
-  if (erkenDk && erkenMetin[erkenDk]) s += `, ${erkenMetin[erkenDk]} önce anımsatılacak`;
-  else s += " hatırlatılacak";
+  const o = { timeZone: "Europe/Istanbul" as const };
+  const saat = d.toLocaleTimeString("tr-TR", { ...o, hour: "2-digit", minute: "2-digit" });
+  const gunNo = Number(d.toLocaleDateString("tr-TR", { ...o, day: "numeric" }));
+  const ayIdx = d.getMonth();
+  const gunAdi = GUNLER_OZET[d.getDay()];
+  const se = `saat ${saat}'da`;
+  let s: string;
+  switch (tekrar) {
+    case "saatlik": s = "Her saat başı hatırlatılır"; break;
+    case "gunluk": s = `Her gün ${se} hatırlatılır`; break;
+    case "haftalik": s = `Her hafta ${gunAdi} günü ${se} hatırlatılır`; break;
+    case "aylik": s = `Her ayın ${gunNo}${ayinGunuEki(gunNo)} ${se} hatırlatılır`; break;
+    case "yillik": s = `Her yıl ${gunNo} ${AYLAR_OZET[ayIdx]} ${se} hatırlatılır`; break;
+    case "haftalik_secili": {
+      const g = [...(haftaGunleri || [])].sort((a, b) => a - b);
+      const set = new Set(g);
+      const hi = [1,2,3,4,5].every((x) => set.has(x)) && ![6,7].some((x) => set.has(x));
+      const hs = [6,7].every((x) => set.has(x)) && ![1,2,3,4,5].some((x) => set.has(x));
+      const hg = [1,2,3,4,5,6,7].every((x) => set.has(x));
+      let gm: string;
+      if (hg) gm = "Her gün";
+      else if (hi) gm = "Hafta içi her gün";
+      else if (hs) gm = "Hafta sonu";
+      else if (g.length === 0) gm = "Seçili günlerde";
+      else gm = "Her " + g.map((x) => GUNLER_OZET[x === 7 ? 0 : x]).join(", ");
+      s = `${gm} ${se} hatırlatılır`;
+      break;
+    }
+    default: s = `${gunNo} ${AYLAR_OZET[ayIdx]} ${gunAdi}, ${se} hatırlatılır`;
+  }
+  if (erkenDk) {
+    const em: Record<number, string> = { 5:"5 dakika",15:"15 dakika",60:"1 saat",1440:"1 gün" };
+    s += `, ${em[erkenDk] || `${erkenDk} dakika`} önce anımsatılır`;
+  }
   if (tekrar && bitisTarih) {
     const b = new Date(bitisTarih);
-    s += ` · ${b.toLocaleDateString("tr-TR", { day: "numeric", month: "short" })}'e kadar`;
-  } else if (tekrar) {
-    s += " · süresiz";
+    const bAy = AYLAR_OZET[b.getMonth()];
+    s += ` · ${b.getDate()} ${bAy}'${ayaYonelmeEki(bAy)} kadar`;
   }
   return s;
 }
@@ -309,6 +344,11 @@ export function DuzenleDialog({
   // v21 M8 - iOS tarzi: yinele + erken animsatici + tekrar bitis state
   const [hatirlatmaTekrar, setHatirlatmaTekrar] = useState<string>(not.hatirlatmaTekrar ?? "");
   const [hatirlatmaErkenDakika, setHatirlatmaErkenDakika] = useState<number | null>(not.hatirlatmaErkenDakika ?? null);
+  // Faz A - haftanin gunleri (int[]; 1=Pzt..7=Paz). JSON string olarak kaydedilir.
+  const [hatirlatmaHaftaGunleri, setHatirlatmaHaftaGunleri] = useState<number[]>(() => {
+    if (!not.hatirlatmaHaftaGunleri) return [];
+    try { return JSON.parse(not.hatirlatmaHaftaGunleri) as number[]; } catch { return []; }
+  });
   const [hatirlatmaTekrarBitis, setHatirlatmaTekrarBitis] = useState<string>(() => {
     if (!not.hatirlatmaTekrarBitis) return "";
     const d = new Date(not.hatirlatmaTekrarBitis);
@@ -352,6 +392,9 @@ export function DuzenleDialog({
                 hatirlatmaTekrar: hatirlatmaTekrar || null,
                 hatirlatmaTekrarBitis: hatirlatmaTekrarBitis ? new Date(hatirlatmaTekrarBitis).toISOString() : null,
                 hatirlatmaErkenDakika: hatirlatmaErkenDakika,
+                hatirlatmaHaftaGunleri: hatirlatmaTekrar === "haftalik_secili" && hatirlatmaHaftaGunleri.length > 0
+                  ? JSON.stringify([...hatirlatmaHaftaGunleri].sort((a, b) => a - b))
+                  : null,
               }
             : {}),
         });
@@ -370,6 +413,9 @@ export function DuzenleDialog({
           hatirlatmaTekrar: hatirlatmaTekrar || null,
           hatirlatmaTekrarBitis: hatirlatmaTekrarBitis ? new Date(hatirlatmaTekrarBitis).toISOString() : null,
           hatirlatmaErkenDakika: hatirlatmaErkenDakika,
+          hatirlatmaHaftaGunleri: hatirlatmaTekrar === "haftalik_secili" && hatirlatmaHaftaGunleri.length > 0
+            ? JSON.stringify([...hatirlatmaHaftaGunleri].sort((a, b) => a - b))
+            : null,
           hatirlatmaSil: false,
         });
       } else {
@@ -568,8 +614,10 @@ export function DuzenleDialog({
                     className="h-11 w-full appearance-none rounded-xl border border-cream-300 dark:border-ink-700 bg-white dark:bg-ink-850 px-3 text-[14px] text-clay-900 dark:text-ink-50 focus:outline-none focus:border-terracotta focus:ring-2 focus:ring-terracotta/15 transition-colors"
                   >
                     <option value="">Hiç</option>
+                    <option value="saatlik">Her saat</option>
                     <option value="gunluk">Her gün</option>
                     <option value="haftalik">Her hafta</option>
+                    <option value="haftalik_secili">Haftanın belirli günleri</option>
                     <option value="iki_haftalik">İki haftada bir</option>
                     <option value="aylik">Her ay</option>
                     <option value="yillik">Her yıl</option>
@@ -592,6 +640,35 @@ export function DuzenleDialog({
                 </div>
               </div>
               {/* Tekrar seciliyse bitis tarihi (opsiyonel; bos = suresiz) */}
+              {/* Faz A - haftalik_secili: gun secici + B4 hizli gruplar */}
+              {hatirlatmaTekrar === "haftalik_secili" && (
+                <div className="space-y-2">
+                  <div className="flex gap-1.5 flex-wrap">
+                    {([[1,"Pzt"],[2,"Sal"],[3,"Çar"],[4,"Per"],[5,"Cum"],[6,"Cmt"],[7,"Paz"]] as [number, string][]).map(([gun, ad]) => {
+                      const secili = hatirlatmaHaftaGunleri.includes(gun);
+                      return (
+                        <button key={gun} type="button"
+                          onClick={() => setHatirlatmaHaftaGunleri((o) =>
+                            o.includes(gun) ? o.filter((x) => x !== gun) : [...o, gun])}
+                          className={`h-9 w-9 rounded-full text-[12px] font-medium transition-colors ${secili
+                            ? "bg-terracotta text-cream-50"
+                            : "border border-cream-300 dark:border-ink-700 text-clay-500 dark:text-ink-200 hover:border-terracotta/50"}`}>
+                          {ad}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {([["Hafta içi",[1,2,3,4,5]],["Hafta sonu",[6,7]],["Her gün",[1,2,3,4,5,6,7]]] as [string, number[]][]).map(([ad, gunler]) => (
+                      <button key={ad} type="button"
+                        onClick={() => setHatirlatmaHaftaGunleri(gunler)}
+                        className="text-[11px] px-2.5 py-1 rounded-lg border border-cream-300 dark:border-ink-700 text-clay-600 dark:text-ink-100 hover:border-terracotta/50 hover:bg-cream-100 dark:hover:bg-ink-800 transition-colors">
+                        {ad}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               {hatirlatmaTekrar !== "" && (
                 <div>
                   <Label htmlFor="hatirlatma-bitis">Tekrarı şu tarihe kadar sürdür (isteğe bağlı)</Label>
@@ -606,9 +683,15 @@ export function DuzenleDialog({
                 </div>
               )}
               {/* B1 - canli ozet satiri (iOS deseni): secimlerin sonucu tek cumlede */}
+              {/* Faz A - gecmis zaman korumasi (frontend katman; backend de reddeder) */}
+              {hatirlatmaZamani && new Date(hatirlatmaZamani) <= new Date() && (
+                <p className="text-[12px] text-red-600 dark:text-red-400 leading-relaxed px-1">
+                  Geçmiş bir zamana hatırlatıcı kurulamaz. Lütfen ileri bir zaman seçin.
+                </p>
+              )}
               {hatirlatmaZamani && (
                 <p className="text-[12px] text-clay-500 dark:text-ink-200 leading-relaxed px-1">
-                  {hatirlaticiOzet(hatirlatmaZamani, hatirlatmaTekrar, hatirlatmaErkenDakika, hatirlatmaTekrarBitis)}
+                  {hatirlaticiOzet(hatirlatmaZamani, hatirlatmaTekrar, hatirlatmaErkenDakika, hatirlatmaTekrarBitis, hatirlatmaHaftaGunleri)}
                 </p>
               )}
               <div>

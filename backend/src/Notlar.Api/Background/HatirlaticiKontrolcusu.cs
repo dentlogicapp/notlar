@@ -103,7 +103,7 @@ public sealed class HatirlaticiKontrolcusu : BackgroundService
                     // Tekrar mantigi: tekrar varsa zamani ileri al + flaglari sifirla (yeni dongu);
                     // bitis tarihini asiyorsa dur (gonderildi=true). Erken flag da sifirlanir -> her
                     // tekrarda erken animsatici yeniden tetiklenir (iOS davranisi).
-                    var sonraki = SonrakiTekrarZamani(not.HatirlatmaZamani!.Value, not.HatirlatmaTekrar);
+                    var sonraki = SonrakiTekrarZamani(not.HatirlatmaZamani!.Value, not.HatirlatmaTekrar, not.HatirlatmaHaftaGunleri);
                     if (sonraki is DateTimeOffset s
                         && (not.HatirlatmaTekrarBitis is null || s <= not.HatirlatmaTekrarBitis.Value))
                     {
@@ -138,16 +138,43 @@ public sealed class HatirlaticiKontrolcusu : BackgroundService
             : kullanicilar.FirstOrDefault(k => k.Id == not.HatirlatmaKuranKullaniciId.Value) ?? not.OlusturanKullanici;
 
     // Sonraki tekrar zamani (null = tekrar yok/gecersiz -> dur). iOS standart set.
-    private static DateTimeOffset? SonrakiTekrarZamani(DateTimeOffset mevcut, string? tekrar)
-        => tekrar switch
+    // Sonraki tekrar zamani (null = tekrar yok/gecersiz -> dur).
+    // Faz A: saatlik + haftalik_secili (haftaGunleri JSONB "[1,3,5]", 1=Pzt..7=Paz) eklendi.
+    private static DateTimeOffset? SonrakiTekrarZamani(DateTimeOffset mevcut, string? tekrar, string? haftaGunleriJson)
+    {
+        switch (tekrar)
         {
-            "gunluk" => mevcut.AddDays(1),
-            "haftalik" => mevcut.AddDays(7),
-            "iki_haftalik" => mevcut.AddDays(14),
-            "aylik" => mevcut.AddMonths(1),
-            "yillik" => mevcut.AddYears(1),
-            _ => null
-        };
+            case "saatlik": return mevcut.AddHours(1);
+            case "gunluk": return mevcut.AddDays(1);
+            case "haftalik": return mevcut.AddDays(7);
+            case "iki_haftalik": return mevcut.AddDays(14);
+            case "aylik": return mevcut.AddMonths(1);
+            case "yillik": return mevcut.AddYears(1);
+            case "haftalik_secili": return SonrakiSeciliGun(mevcut, haftaGunleriJson);
+            default: return null;
+        }
+    }
+
+    // haftalik_secili: mevcut gunden sonraki en yakin secili gune atla (saat korunur).
+    // Bu hafta icinde sonraki secili gun yoksa, sonraki haftanin ilk secili gunune gecer.
+    private static DateTimeOffset? SonrakiSeciliGun(DateTimeOffset mevcut, string? haftaGunleriJson)
+    {
+        if (string.IsNullOrWhiteSpace(haftaGunleriJson)) return null;
+        List<int>? gunler;
+        try { gunler = JsonSerializer.Deserialize<List<int>>(haftaGunleriJson); }
+        catch { return null; }
+        if (gunler is null || gunler.Count == 0) return null;
+        // ISO 8601: Pzt=1..Paz=7. .NET DayOfWeek: Paz=0..Cmt=6 -> donustur.
+        var sirali = gunler.Where(g => g >= 1 && g <= 7).Distinct().OrderBy(g => g).ToList();
+        if (sirali.Count == 0) return null;
+        int mevcutIso = ((int)mevcut.DayOfWeek == 0) ? 7 : (int)mevcut.DayOfWeek;
+        // Bu haftada mevcuttan SONRAKI ilk secili gun
+        var sonrakiBuHafta = sirali.Where(g => g > mevcutIso).Cast<int?>().FirstOrDefault();
+        if (sonrakiBuHafta is int g1) return mevcut.AddDays(g1 - mevcutIso);
+        // Yoksa sonraki haftanin ilk secili gunu
+        int ilk = sirali[0];
+        return mevcut.AddDays(7 - mevcutIso + ilk);
+    }
 
     private static IReadOnlyList<Kullanici> HedefBul(IReadOnlyList<Kullanici> tumu, Kullanici kuran, Not not)
     {

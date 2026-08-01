@@ -366,6 +366,9 @@ using (var scope = app.Services.CreateScope())
                 ADD COLUMN IF NOT EXISTS ""HatirlatmaTekrarBitis"" timestamp with time zone;
             ALTER TABLE notlar
                 ADD COLUMN IF NOT EXISTS ""HatirlatmaErkenDakika"" integer;
+            -- Faz A - haftanin gunleri (JSONB int[]; 1=Pzt..7=Paz, ISO 8601)
+            ALTER TABLE notlar
+                ADD COLUMN IF NOT EXISTS ""HatirlatmaHaftaGunleri"" jsonb;
             ALTER TABLE notlar
                 ADD COLUMN IF NOT EXISTS ""ErkenGonderildiMi"" boolean NOT NULL DEFAULT false;
             -- Erken animsatici background sorgusu: HatirlatmaZamani - erken <= now AND !ErkenGonderildiMi

@@ -177,13 +177,18 @@ public static class NoteEndpoints
                 n.HatirlatmaSekli = req.HatirlatmaSekli;
                 // v21 M8 - iOS tarzi: yinele + erken animsatici (opsiyonel).
                 if (req.HatirlatmaTekrar is not null
-                    && !new[] { "gunluk", "haftalik", "iki_haftalik", "aylik", "yillik" }.Contains(req.HatirlatmaTekrar))
+                    && !new[] { "saatlik", "gunluk", "haftalik", "haftalik_secili", "iki_haftalik", "aylik", "yillik" }.Contains(req.HatirlatmaTekrar))
                     return Results.BadRequest(new { hata = "HATIRLATMA_TEKRAR_GECERSIZ", mesaj = "Yinele degeri gecersiz." });
                 if (req.HatirlatmaErkenDakika is int ed && (ed < 0 || ed > 43200))
                     return Results.BadRequest(new { hata = "HATIRLATMA_ERKEN_GECERSIZ", mesaj = "Erken animsatici 0-43200 dakika araliginda olmali." });
                 n.HatirlatmaTekrar = req.HatirlatmaTekrar;
                 n.HatirlatmaTekrarBitis = req.HatirlatmaTekrarBitis;
                 n.HatirlatmaErkenDakika = req.HatirlatmaErkenDakika;
+                // Faz A - haftalik_secili ise hafta gunleri zorunlu; digerlerinde null.
+                if (req.HatirlatmaTekrar == "haftalik_secili"
+                    && string.IsNullOrWhiteSpace(req.HatirlatmaHaftaGunleri))
+                    return Results.BadRequest(new { hata = "HATIRLATMA_HAFTA_GUNLERI_GEREKLI", mesaj = "Haftalik secili tekrar icin en az bir gun secilmeli." });
+                n.HatirlatmaHaftaGunleri = req.HatirlatmaTekrar == "haftalik_secili" ? req.HatirlatmaHaftaGunleri : null;
                 n.HatirlatmaKuranKullaniciId = uc.KullaniciId.Value;
             }
 
@@ -323,6 +328,9 @@ public static class NoteEndpoints
                 if (aliciIdler.Any(a => !tenantUyeIdler.Contains(a)))
                     return Results.BadRequest(new { hata = "HATIRLATMA_ALICI_GECERSIZ", mesaj = "Seçilen alıcı bu tenant'ın üyesi değil." });
 
+                // Faz A - gecmis zaman korumasi (create'te vardi, update'te eksikti - defense in depth).
+                if (req.HatirlatmaZamani.Value <= DateTimeOffset.UtcNow)
+                    return Results.BadRequest(new { hata = "HATIRLATMA_GECMIS_ZAMAN", mesaj = "Gecmis bir zamana hatirlatici kurulamaz." });
                 var zamanDegisti = n.HatirlatmaZamani != req.HatirlatmaZamani;
                 n.HatirlatmaZamani = req.HatirlatmaZamani;
                 n.HatirlatmaAliciIdler = JsonSerializer.Serialize(aliciIdler);
@@ -330,13 +338,18 @@ public static class NoteEndpoints
                 n.HatirlatmaSekli = req.HatirlatmaSekli;
                 // v21 M8 - iOS tarzi: yinele + erken animsatici (opsiyonel).
                 if (req.HatirlatmaTekrar is not null
-                    && !new[] { "gunluk", "haftalik", "iki_haftalik", "aylik", "yillik" }.Contains(req.HatirlatmaTekrar))
+                    && !new[] { "saatlik", "gunluk", "haftalik", "haftalik_secili", "iki_haftalik", "aylik", "yillik" }.Contains(req.HatirlatmaTekrar))
                     return Results.BadRequest(new { hata = "HATIRLATMA_TEKRAR_GECERSIZ", mesaj = "Yinele degeri gecersiz." });
                 if (req.HatirlatmaErkenDakika is int ed2 && (ed2 < 0 || ed2 > 43200))
                     return Results.BadRequest(new { hata = "HATIRLATMA_ERKEN_GECERSIZ", mesaj = "Erken animsatici 0-43200 dakika araliginda olmali." });
                 n.HatirlatmaTekrar = req.HatirlatmaTekrar;
                 n.HatirlatmaTekrarBitis = req.HatirlatmaTekrarBitis;
                 n.HatirlatmaErkenDakika = req.HatirlatmaErkenDakika;
+                // Faz A - haftalik_secili ise hafta gunleri zorunlu; digerlerinde null.
+                if (req.HatirlatmaTekrar == "haftalik_secili"
+                    && string.IsNullOrWhiteSpace(req.HatirlatmaHaftaGunleri))
+                    return Results.BadRequest(new { hata = "HATIRLATMA_HAFTA_GUNLERI_GEREKLI", mesaj = "Haftalik secili tekrar icin en az bir gun secilmeli." });
+                n.HatirlatmaHaftaGunleri = req.HatirlatmaTekrar == "haftalik_secili" ? req.HatirlatmaHaftaGunleri : null;
                 if (zamanDegisti)
                 {
                     n.HatirlatmaGonderildiMi = false;
@@ -818,6 +831,7 @@ public static class NoteEndpoints
         n.HatirlatmaSekli,
         n.HatirlatmaGonderildiMi,
         n.HatirlatmaTekrar, n.HatirlatmaTekrarBitis, n.HatirlatmaErkenDakika,  // v21 M8
+        n.HatirlatmaHaftaGunleri,  // Faz A
         kilitSahibiAdi,
         n.EskiKlasorId,
         okuyanlar?.Count ?? 0,

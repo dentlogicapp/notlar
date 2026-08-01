@@ -166,6 +166,7 @@ public sealed class Not
     public DateTimeOffset? HatirlatmaTekrarBitis { get; set; } // tekrar bitis tarihi (null = suresiz)
     public int? HatirlatmaErkenDakika { get; set; }            // asil zamandan kac dk once erken animsatici (null = yok)
     public bool ErkenGonderildiMi { get; set; }                // erken animsatici idempotent flag (her tekrarda sifirlanir)
+    public string? HatirlatmaHaftaGunleri { get; set; }        // Faz A - JSONB int[] "[1,3,5]" (1=Pzt..7=Paz); sadece HatirlatmaTekrar="haftalik_secili" ise anlamli
 
     // Olusturma bildirimi tetiklendi mi? create'te false kalir; ilk anlamli Kaydet (update) onu
     // duyurup true yapar. Boylece "Ekle -> otomatik duzenle -> Kaydet" akisinda cift bildirim (olusturuldu+guncellendi) olmaz.
