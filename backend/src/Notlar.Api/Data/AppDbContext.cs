@@ -151,6 +151,7 @@ public sealed class AppDbContext : DbContext
             e.Property(x => x.HatirlatmaAliciIdler).HasColumnType("jsonb");  // v19 P4 - uuid[] secili uye id'leri
             e.Property(x => x.HatirlatmaSekli).HasMaxLength(15);   // uygulama/email/her_ikisi
             e.Property(x => x.HatirlatmaTekrar).HasMaxLength(15);   // v21 M8 - yinele tipi
+            e.Property(x => x.HatirlatmaHaftaGunleri).HasColumnType("jsonb");   // Faz A - haftalik_secili gun listesi
             e.HasIndex(x => new { x.KlasorId, x.Silindi });
             e.HasIndex(x => x.OlusturmaZamani);
             e.HasIndex(x => x.Silindi);
