@@ -328,10 +328,10 @@ public static class NoteEndpoints
                 if (aliciIdler.Any(a => !tenantUyeIdler.Contains(a)))
                     return Results.BadRequest(new { hata = "HATIRLATMA_ALICI_GECERSIZ", mesaj = "Seçilen alıcı bu tenant'ın üyesi değil." });
 
-                // Faz A - gecmis zaman korumasi (create'te vardi, update'te eksikti - defense in depth).
-                if (req.HatirlatmaZamani.Value <= DateTimeOffset.UtcNow)
-                    return Results.BadRequest(new { hata = "HATIRLATMA_GECMIS_ZAMAN", mesaj = "Gecmis bir zamana hatirlatici kurulamaz." });
                 var zamanDegisti = n.HatirlatmaZamani != req.HatirlatmaZamani;
+                // C - gecmis zaman reddi SADECE zaman degistiyse (mevcut gecmis hatirlatici duzenlenebilir; iz korunur).
+                if (zamanDegisti && req.HatirlatmaZamani.Value <= DateTimeOffset.UtcNow)
+                    return Results.BadRequest(new { hata = "HATIRLATMA_GECMIS_ZAMAN", mesaj = "Gecmis bir zamana hatirlatici kurulamaz." });
                 n.HatirlatmaZamani = req.HatirlatmaZamani;
                 n.HatirlatmaAliciIdler = JsonSerializer.Serialize(aliciIdler);
                 n.HatirlatmaKime = null;
