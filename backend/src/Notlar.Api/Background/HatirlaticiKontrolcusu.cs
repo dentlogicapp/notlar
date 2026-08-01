@@ -73,7 +73,7 @@ public sealed class HatirlaticiKontrolcusu : BackgroundService
             {
                 var kuran = KuranBul(kullanicilar, not);
                 var hedefler = HedefBul(kullanicilar, kuran, not);
-                await bildirimSvc.HatirlaticiZamani(not, hedefler.Select(h => h.Id).ToList(), ct);
+                await bildirimSvc.HatirlaticiZamani(not, hedefler.Select(h => h.Id).ToList(), not.HatirlatmaErkenDakika, ct);
                 not.ErkenGonderildiMi = true;
                 degisiklikVar = true;
             }
@@ -98,7 +98,7 @@ public sealed class HatirlaticiKontrolcusu : BackgroundService
                 {
                     var kuran = KuranBul(kullanicilar, not);
                     var hedefler = HedefBul(kullanicilar, kuran, not);
-                    await bildirimSvc.HatirlaticiZamani(not, hedefler.Select(h => h.Id).ToList(), ct);
+                    await bildirimSvc.HatirlaticiZamani(not, hedefler.Select(h => h.Id).ToList(), null, ct);
 
                     // Tekrar mantigi: tekrar varsa zamani ileri al + flaglari sifirla (yeni dongu);
                     // bitis tarihini asiyorsa dur (gonderildi=true). Erken flag da sifirlanir -> her

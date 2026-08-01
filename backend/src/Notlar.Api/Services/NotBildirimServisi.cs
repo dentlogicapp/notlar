@@ -21,7 +21,7 @@ public interface INotBildirimServisi
     Task NotTamamlandi(Not not, Guid aktorId, CancellationToken ct = default);
     Task HatirlaticiAliciEklendi(Not not, Guid aktorId, IReadOnlyCollection<Guid> yeniAliciIdler, CancellationToken ct = default);
     Task UyeKatildi(Guid isletmeId, Kullanici yeniUye, CancellationToken ct = default);
-    Task HatirlaticiZamani(Not not, IReadOnlyCollection<Guid> hedefler, CancellationToken ct = default);
+    Task HatirlaticiZamani(Not not, IReadOnlyCollection<Guid> hedefler, int? erkenDakika, CancellationToken ct = default);
     Task TestGonder(Guid isletmeId, Guid adminId, string olay, CancellationToken ct = default);
     // v20 - Duyuru Paylasimi bildirimleri
     Task DuyuruPaylasildi(Duyuru duyuru, IReadOnlyCollection<Guid> aliciIdler, CancellationToken ct = default);
@@ -62,10 +62,11 @@ public sealed class NotBildirimServisi : INotBildirimServisi
     private static string KatalogVarsayilan(string anahtar)
         => AnahtarKatalogu.Tumu.FirstOrDefault(a => a.Anahtar == anahtar)?.Varsayilan ?? "";
 
-    private static string Doldur(string metin, string? notBaslik, string? kullaniciAdi, string? klasorAdi = null)  // v21 - klasorAdi default'lu (sifir kirilim)
+    private static string Doldur(string metin, string? notBaslik, string? kullaniciAdi, string? klasorAdi = null, string? sure = null)  // v21 - klasorAdi default'lu (sifir kirilim)
         => metin.Replace("{not_baslik}", Kirp(notBaslik, 40))
                 .Replace("{kullanici_adi}", Kirp(kullaniciAdi, 30))
-                .Replace("{klasor_adi}", Kirp(klasorAdi, 40));  // v21 - klasor olaylari
+                .Replace("{klasor_adi}", Kirp(klasorAdi, 40))  // v21 - klasor olaylari
+                .Replace("{sure}", sure ?? "");
 
     // Bildirim ekranina sigsin diye yer tutucu degerlerini kirpar (sonu "..." ile);
     // boylece sabit kuyruk ("... tikla!") her zaman gorunur kalir.
@@ -74,6 +75,18 @@ public sealed class NotBildirimServisi : INotBildirimServisi
         if (string.IsNullOrEmpty(s)) return "";
         s = s.Trim();
         return s.Length <= max ? s : s.Substring(0, max).TrimEnd() + "…";
+    }
+
+    // Konu 2 - erken animsatici kalan sure -> acik Turkce (ornek: "1 saat 30 dakika").
+    private static string SureMetni(int dakika)
+    {
+        if (dakika <= 0) return "";
+        int gun = dakika / 1440, kalan = dakika % 1440, saat = kalan / 60, dk = kalan % 60;
+        var p = new List<string>();
+        if (gun > 0) p.Add($"{gun} gün");
+        if (saat > 0) p.Add($"{saat} saat");
+        if (dk > 0) p.Add($"{dk} dakika");
+        return string.Join(" ", p);
     }
 
     private Task<string> AktorAd(Guid aktorId, CancellationToken ct)
@@ -184,12 +197,17 @@ public sealed class NotBildirimServisi : INotBildirimServisi
         await Tetikle(hedefler, b, g, "/", isletmeId, "uye_katildi", null, ct);
     }
 
-    public async Task HatirlaticiZamani(Not not, IReadOnlyCollection<Guid> hedefler, CancellationToken ct = default)
+    public async Task HatirlaticiZamani(Not not, IReadOnlyCollection<Guid> hedefler, int? erkenDakika, CancellationToken ct = default)
     {
         var liste = hedefler.Distinct().ToList();
         if (liste.Count == 0) return;
-        var (b, g) = await MetinAl(not.IsletmeId, "hatirlatici_push_baslik", "hatirlatici_push_govde", ct);
-        b = Doldur(b, not.Baslik, null); g = Doldur(g, not.Baslik, null);
+        // Konu 2 - erken animsatici ise ayri anahtar + {sure}; asil ise standart.
+        var erkenMi = erkenDakika is int;
+        var (b, g) = erkenMi
+            ? await MetinAl(not.IsletmeId, "hatirlatici_erken_push_baslik", "hatirlatici_erken_push_govde", ct)
+            : await MetinAl(not.IsletmeId, "hatirlatici_push_baslik", "hatirlatici_push_govde", ct);
+        var sure = erkenMi ? SureMetni(erkenDakika!.Value) : "";
+        b = Doldur(b, not.Baslik, null, null, sure); g = Doldur(g, not.Baslik, null, null, sure);
         // Hatirlatici MUAF: sessiz saatte bile aninda gider (kullanici o ana hatirlatici kurmus).
         await Tetikle(liste, b, g, $"/?focus={not.Id}", not.IsletmeId, "hatirlatma", not.Id, ct, sessizSaateTabi: false);
     }

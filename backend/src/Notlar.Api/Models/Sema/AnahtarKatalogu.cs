@@ -115,6 +115,21 @@ public static class AnahtarKatalogu
             .Aciklama("Push gövdesi; 'Planlama Defteri' satırı otomatik üstte yer alır, bu metin altına eklenir.")
             .Sira(410).Varsayilan("\"{not_baslik}\" notunun zamanı geldi. Hemen göz atmak için tıkla!").Build(),
 
+        AnahtarTanim.Tanim("hatirlatici_erken_push_baslik")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Baslik)
+            .Etiket("Erken Anımsatıcı - Başlık")
+            .Yonlendirme("Asıl hatırlatma zamanından önce gelen erken anımsatıcının başlığı. Marka adı otomatik eklenir.")
+            .Aciklama("Erken anımsatıcı ayarlıysa, asıl zamandan önce gönderilen push bildiriminin başlığı.")
+            .Sira(412).Varsayilan("Yaklaşan hatırlatıcı").Build(),
+
+        AnahtarTanim.Tanim("hatirlatici_erken_push_govde")
+            .Kategori(Kategori.Bildirim).Tip(AlanTipi.Metin)
+            .Placeholderlar("not_baslik", "sure")
+            .Etiket("Erken Anımsatıcı - Metin")
+            .Yonlendirme("{not_baslik} ilgili notun başlığı, {sure} kalan süre (ör. 15 dakika, 1 saat) ile değişir.")
+            .Aciklama("Push gövdesi; asıl zamandan önce gönderilir. Kullanıcıya ne kadar kaldığını bildirir.")
+            .Sira(413).Varsayilan("\"{not_baslik}\" notunun zamanına {sure} kaldı. Hemen göz atmak için tıkla!").Build(),
+
         AnahtarTanim.Tanim("not_olusturuldu_push_baslik")
             .Kategori(Kategori.Bildirim).Tip(AlanTipi.Baslik)
             .Etiket("Yeni Not Oluşturuldu - Başlık")
