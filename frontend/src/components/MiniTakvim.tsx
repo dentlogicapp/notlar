@@ -16,17 +16,37 @@ export function tarihAnahtar(d: Date): string {
   return `${y}-${m}-${g}`;
 }
 
+// BV1 - hatirlatici turetilmis durumu (takvim + kart tek dogruluk kaynagi).
+// gecikmis = gecmis + tamamlanmamis + TEKRARSIZ (tekrarli motor ilerletir).
+export type HatirlatmaDurumu = "gecikmis" | "gelecek" | "tamam";
+export function hatirlatmaDurumu(
+  not: { hatirlatmaZamani: string | null; tamamlandi: boolean; hatirlatmaTekrar: string | null },
+  simdi: Date = new Date()
+): HatirlatmaDurumu | null {
+  if (!not.hatirlatmaZamani) return null;
+  if (not.tamamlandi) return "tamam";
+  const zaman = new Date(not.hatirlatmaZamani);
+  const tekrarli = not.hatirlatmaTekrar != null && not.hatirlatmaTekrar !== "";
+  if (zaman <= simdi && !tekrarli) return "gecikmis";
+  return "gelecek";
+}
+
+// Gun basina oncelik: gecikmis (2) > gelecek (1) > tamam (0). En kritik kazanir.
+export function durumOnceligi(d: HatirlatmaDurumu): number {
+  return d === "gecikmis" ? 2 : d === "gelecek" ? 1 : 0;
+}
+
 function pztBasli(jsGun: number): number {
   return (jsGun + 6) % 7;
 }
 
 export function MiniTakvim({
-  hatirlatmaGunleri = new Set<string>(),
+  gunDurumlari = new Map<string, HatirlatmaDurumu>(),
   onGunTikla,
   buyuk = false,
   salt = false,
 }: {
-  hatirlatmaGunleri?: Set<string>;
+  gunDurumlari?: Map<string, HatirlatmaDurumu>;
   onGunTikla?: (tarih: Date) => void;
   buyuk?: boolean;
   salt?: boolean;
@@ -106,14 +126,19 @@ export function MiniTakvim({
           const anahtar = tarihAnahtar(tarih);
           const bugunMu = anahtar === tarihAnahtar(bugun);
           const haftaSonu = i % 7 >= 5;
-          const hatirlatmaVar = hatirlatmaGunleri.has(anahtar);
+          const gunDurum = gunDurumlari.get(anahtar) ?? null;
           const tatilMi = tatilSet.has(anahtar);
           const renkSinif = bugunMu
             ? "bg-terracotta text-white font-semibold animate-pulse-soft"
             : cn(!salt && "hover:bg-cream-200 dark:hover:bg-ink-800", tatilMi ? "bg-terracotta/15 text-terracotta font-semibold" : haftaSonu ? "text-terracotta/70" : "text-clay-700 dark:text-ink-100");
           const ortak = cn("relative flex items-center justify-center rounded-full transition-colors tabular-nums", hucreBoyut, renkSinif);
-          const isaret = hatirlatmaVar && (
-            <span className={cn("absolute bottom-0.5 rounded-full", salt ? "h-[3px] w-[3px]" : "h-1 w-1", bugunMu ? "bg-white" : "bg-terracotta")} aria-hidden />
+          const durumRenk = gunDurum === "gecikmis"
+            ? "bg-red-500"
+            : gunDurum === "tamam"
+              ? "bg-clay-300 dark:bg-ink-500"
+              : "bg-terracotta";
+          const isaret = gunDurum && (
+            <span className={cn("absolute bottom-0.5 rounded-full", salt ? "h-[3px] w-[3px]" : "h-1 w-1", bugunMu ? "bg-white" : durumRenk)} aria-hidden />
           );
 
           if (salt) {
@@ -124,7 +149,7 @@ export function MiniTakvim({
               key={g}
               type="button"
               onClick={() => onGunTikla?.(tarih)}
-              aria-label={`${g} ${AY_ADLARI[ay]}${bugunMu ? ", bugün" : ""}${hatirlatmaVar ? ", hatırlatıcı var" : ""}`}
+              aria-label={`${g} ${AY_ADLARI[ay]}${bugunMu ? ", bugün" : ""}${gunDurum === "gecikmis" ? ", gecikmiş hatırlatıcı" : gunDurum ? ", hatırlatıcı var" : ""}`}
               className={ortak}
             >
               {g}{isaret}

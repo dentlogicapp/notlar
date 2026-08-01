@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { notApi } from "@/lib/api";
 import { AnalogSaat } from "./AnalogSaat";
-import { MiniTakvim, tarihAnahtar } from "./MiniTakvim";
+import { MiniTakvim, tarihAnahtar, hatirlatmaDurumu, durumOnceligi, type HatirlatmaDurumu } from "./MiniTakvim";
 import { TakvimModal } from "./TakvimModal";
 import { CountdownWidget } from "./CountdownWidget";
 
@@ -17,9 +17,15 @@ export function ZamanPaneli() {
     queryFn: () => notApi.list({ silindi: false }),
     staleTime: 30_000,
   });
-  const hatirlatmaGunleri = new Set(
-    (notlar ?? []).filter((n) => n.hatirlatmaZamani).map((n) => tarihAnahtar(new Date(n.hatirlatmaZamani!)))
-  );
+  // BV2 - her gun icin en kritik hatirlatma durumu (gecikmis > gelecek > tamam).
+  const gunDurumlari = new Map<string, HatirlatmaDurumu>();
+  for (const n of (notlar ?? [])) {
+    const durum = hatirlatmaDurumu(n);
+    if (!durum || !n.hatirlatmaZamani) continue;
+    const anahtar = tarihAnahtar(new Date(n.hatirlatmaZamani));
+    const onceki = gunDurumlari.get(anahtar);
+    if (!onceki || durumOnceligi(durum) > durumOnceligi(onceki)) gunDurumlari.set(anahtar, durum);
+  }
 
   // Saat + Takvim tek blok. Icerik karti doldurur (sag/sol bosluk yok); sayactan bagimsiz.
   const SaatTakvimKart = () => (
@@ -32,7 +38,7 @@ export function ZamanPaneli() {
         className="rounded-lg p-1 hover:bg-cream-100 dark:hover:bg-ink-800/50 transition-colors"
         aria-label="Takvimi büyüt"
       >
-        <MiniTakvim salt hatirlatmaGunleri={hatirlatmaGunleri} />
+        <MiniTakvim salt gunDurumlari={gunDurumlari} />
       </button>
     </div>
   );

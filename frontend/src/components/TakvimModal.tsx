@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
-import { MiniTakvim, tarihAnahtar } from "./MiniTakvim";
+import { MiniTakvim, tarihAnahtar, hatirlatmaDurumu, durumOnceligi, type HatirlatmaDurumu } from "./MiniTakvim";
 import { tatilHaritasi } from "@/lib/tatiller";
 import { NotKart } from "./Notlar";
 import type { Not } from "@/lib/types";
@@ -33,9 +33,15 @@ export function TakvimModal({
   }, [acik, baslangicGun]);
 
   // hatirlatici olan gunler (isaret) + secili gunun notlari + acik not (id ile - duzenleme sonrasi guncel kalir)
-  const hatirlatmaGunleri = new Set(
-    notlar.filter((n) => n.hatirlatmaZamani).map((n) => tarihAnahtar(new Date(n.hatirlatmaZamani!)))
-  );
+  // BV2 - her gun icin en kritik hatirlatma durumu (gecikmis > gelecek > tamam).
+  const gunDurumlari = new Map<string, HatirlatmaDurumu>();
+  for (const n of notlar) {
+    const durum = hatirlatmaDurumu(n);
+    if (!durum || !n.hatirlatmaZamani) continue;
+    const anahtar = tarihAnahtar(new Date(n.hatirlatmaZamani));
+    const onceki = gunDurumlari.get(anahtar);
+    if (!onceki || durumOnceligi(durum) > durumOnceligi(onceki)) gunDurumlari.set(anahtar, durum);
+  }
   const seciliNotlar = seciliGun
     ? notlar.filter((n) => n.hatirlatmaZamani && tarihAnahtar(new Date(n.hatirlatmaZamani)) === tarihAnahtar(seciliGun))
     : [];
@@ -54,7 +60,7 @@ export function TakvimModal({
           <div className="space-y-4">
             <MiniTakvim
               buyuk
-              hatirlatmaGunleri={hatirlatmaGunleri}
+              gunDurumlari={gunDurumlari}
               onGunTikla={setSeciliGun}
             />
 
