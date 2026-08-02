@@ -1370,7 +1370,21 @@ export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { n
                         {not.hatirlatmaGonderildiMi && (
                           <p className="text-[10px] text-clay-400 dark:text-ink-400 mt-1 italic">Gönderildi</p>
                         )}
-                        <YenidenZamanla not={not} onBitti={() => setHatirlatmaDokumAcik(false)} />
+                        {not.tamamlandi ? (
+                          <div className="mt-2 pt-2 border-t border-cream-200 dark:border-ink-700">
+                            <p className="text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                              <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                              <span>
+                                Bu hatırlatıcı tamamlandı
+                                {not.tamamlanmaZamani
+                                  ? ` - ${new Date(not.tamamlanmaZamani).toLocaleDateString("tr-TR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}`
+                                  : ""}
+                              </span>
+                            </p>
+                          </div>
+                        ) : (
+                          <YenidenZamanla not={not} onBitti={() => setHatirlatmaDokumAcik(false)} />
+                        )}
                       </div>
                     </>
                   )}

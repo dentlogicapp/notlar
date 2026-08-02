@@ -60,6 +60,7 @@ public sealed class HatirlaticiKontrolcusu : BackgroundService
             .Where(n => n.HatirlatmaZamani != null
                      && n.HatirlatmaErkenDakika != null
                      && !n.ErkenGonderildiMi
+                     && !n.Tamamlandi   // Talep 2 - tamamlanan not erken animsatici tetiklemez (iz korunur)
                      && !n.HatirlatmaGonderildiMi
                      && !n.Silindi)
             .ToListAsync(ct);
@@ -86,6 +87,7 @@ public sealed class HatirlaticiKontrolcusu : BackgroundService
             .Where(n => n.HatirlatmaZamani != null
                      && !n.HatirlatmaGonderildiMi
                      && !n.Silindi
+                     && !n.Tamamlandi   // Talep 2 - tamamlanan not asil hatirlatici tetiklemez (tekrar dahil; iz korunur)
                      && n.HatirlatmaZamani <= simdi)
             .ToListAsync(ct);
 
