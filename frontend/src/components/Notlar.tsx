@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -1091,6 +1092,7 @@ export function YenidenZamanla({ not, onBitti }: { not: Not; onBitti?: () => voi
 
 export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { not: Not; klasorBadgeGoster?: boolean; aramaTerimi?: string }) {
   const qc = useQueryClient();
+  const router = useRouter();
   const [tamamlaAcik, setTamamlaAcik] = useState(false);
   const [duzenleAcik, setDuzenleAcik] = useState(false);
   const [detayAcik, setDetayAcik] = useState(false);
@@ -1215,6 +1217,15 @@ export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { n
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [not.id, not.benimSonGorme, not.guncellemeZamani, not.tamamlandi]);
 
+  // Konu A - hatirlatici-ac listener: focus mekanizmasi remount sonrasi dokum panelini acar.
+  useEffect(() => {
+    const el = kartRef.current;
+    if (!el) return;
+    const ac = () => setHatirlatmaDokumAcik(true);
+    el.addEventListener("hatirlatici-ac", ac);
+    return () => el.removeEventListener("hatirlatici-ac", ac);
+  }, []);
+
   const yenidenAc = useMutation({
     mutationFn: () => notApi.yenidenAc(not.id),
     onSuccess: (acilan) => {
@@ -1226,7 +1237,7 @@ export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { n
           description: "Hatırlatıcısı geçmişte kaldı. Yeniden zamanlamak ister misiniz?",
           action: {
             label: "Yeniden zamanla",
-            onClick: () => setHatirlatmaDokumAcik(true),
+            onClick: () => router.push(`/?focus=${not.id}&hatirlatici=1`),
           },
         });
       } else {

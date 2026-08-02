@@ -18,6 +18,7 @@ export function useFocusNot() {
   const router = useRouter();
   const pathname = usePathname();
   const focusId = searchParams.get("focus");
+  const hatirlaticiAc = searchParams.get("hatirlatici") === "1";
 
   // ?focus={id} -> scroll + highlight (el bulunana kadar retry)
   useEffect(() => {
@@ -32,6 +33,10 @@ export function useFocusNot() {
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "center" });
         el.classList.add("animate-focus-pulse");
+        // Konu A - hatirlatici=1 ise karta "dokum panelini ac" sinyali (remount-guvenli).
+        if (hatirlaticiAc) {
+          setTimeout(() => el.dispatchEvent(new CustomEvent("hatirlatici-ac", { bubbles: false })), 300);
+        }
         setTimeout(() => el.classList.remove("animate-focus-pulse"), 4700);
         router.replace(pathname, { scroll: false }); // focus paramini temizle, mevcut sayfada kal
       } else if (denemeler < 25) {
