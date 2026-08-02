@@ -532,6 +532,14 @@ public static class NoteEndpoints
             n.KlasorId = n.EskiKlasorId;
             n.EskiKlasorId = null;
 
+            // BT-2 - gecmis hatirlatici sessiz kabul: yeniden acilan notun hatirlatmasi
+            // gecmisteyse motor gecikmis bildirim gondermesin (gurultu onleme). Iz (HatirlatmaZamani) korunur.
+            if (n.HatirlatmaZamani is DateTimeOffset hz && hz <= DateTimeOffset.UtcNow)
+            {
+                n.HatirlatmaGonderildiMi = true;
+                n.ErkenGonderildiMi = true;
+            }
+
             db.NotGecmisleri.Add(new NotGecmisi
             {
                 NotId = n.Id,

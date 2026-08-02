@@ -1217,10 +1217,21 @@ export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { n
 
   const yenidenAc = useMutation({
     mutationFn: () => notApi.yenidenAc(not.id),
-    onSuccess: () => {
+    onSuccess: (acilan) => {
       qc.invalidateQueries({ queryKey: ["notlar"] });
       qc.invalidateQueries({ queryKey: ["klasorler"] }); // v12 — eski klasöre geri taşıma sayıları
-      toast.success("Yeniden açıldı");
+      // BT-2 - gecmis hatirlatici nazik oneri: hatirlatma gecmisteyse yeniden zamanlamayi oner.
+      if (acilan.hatirlatmaZamani && new Date(acilan.hatirlatmaZamani) <= new Date()) {
+        toast("Not yeniden açıldı", {
+          description: "Hatırlatıcısı geçmişte kaldı. Yeniden zamanlamak ister misiniz?",
+          action: {
+            label: "Yeniden zamanla",
+            onClick: () => setHatirlatmaDokumAcik(true),
+          },
+        });
+      } else {
+        toast.success("Yeniden açıldı");
+      }
     },
     onError: (err: Error) => toast.error(err.message),
   });
