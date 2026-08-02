@@ -163,9 +163,9 @@ public sealed class NotBildirimServisi : INotBildirimServisi
 
     // Bekleyen not ana listede gorunur -> ana sayfa; tamamlanan not "Tamamlananlar" klasorune
     // tasindigi icin -> o klasore yonlendirilir (ikisinde de ?focus={id} -> scroll + highlight).
-    private static string AnaUrl(Not not) => $"/?focus={not.Id}";
+    private static string AnaUrl(Not not) => $"/?focus={not.Id}&isletme={not.IsletmeId}";
     private static string KlasorUrl(Not not)
-        => not.KlasorId is Guid kid ? $"/klasor/{kid}?focus={not.Id}" : AnaUrl(not);
+        => not.KlasorId is Guid kid ? $"/klasor/{kid}?focus={not.Id}&isletme={not.IsletmeId}" : AnaUrl(not);
 
     public Task NotOlusturuldu(Not not, Guid aktorId, IReadOnlyCollection<Guid>? muafAliciIdler, CancellationToken ct = default)
         => NotOlayi(not, aktorId, muafAliciIdler, "not_olusturuldu_push_baslik", "not_olusturuldu_push_govde", AnaUrl(not), "not_olusturuldu", ct);
@@ -184,7 +184,7 @@ public sealed class NotBildirimServisi : INotBildirimServisi
         var (b, g) = await MetinAl(not.IsletmeId, "hatirlatici_alici_eklendi_push_baslik", "hatirlatici_alici_eklendi_push_govde", ct);
         var ad = await AktorAd(aktorId, ct);
         b = Doldur(b, not.Baslik, ad); g = Doldur(g, not.Baslik, ad);
-        await Tetikle(hedefler, b, g, $"/?focus={not.Id}", not.IsletmeId, "hatirlatici_eklendi", not.Id, ct);
+        await Tetikle(hedefler, b, g, $"/?focus={not.Id}&isletme={not.IsletmeId}", not.IsletmeId, "hatirlatici_eklendi", not.Id, ct);
     }
 
     public async Task UyeKatildi(Guid isletmeId, Kullanici yeniUye, CancellationToken ct = default)
@@ -209,7 +209,7 @@ public sealed class NotBildirimServisi : INotBildirimServisi
         var sure = erkenMi ? SureMetni(erkenDakika!.Value) : "";
         b = Doldur(b, not.Baslik, null, null, sure); g = Doldur(g, not.Baslik, null, null, sure);
         // Hatirlatici MUAF: sessiz saatte bile aninda gider (kullanici o ana hatirlatici kurmus).
-        await Tetikle(liste, b, g, $"/?focus={not.Id}", not.IsletmeId, "hatirlatma", not.Id, ct, sessizSaateTabi: false);
+        await Tetikle(liste, b, g, $"/?focus={not.Id}&isletme={not.IsletmeId}", not.IsletmeId, "hatirlatma", not.Id, ct, sessizSaateTabi: false);
     }
 
     // Test bildirimi: secili olayin metnini ornek placeholder degerleriyle admin'in kendi cihazina gonderir.

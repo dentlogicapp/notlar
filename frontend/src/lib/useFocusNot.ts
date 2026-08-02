@@ -2,6 +2,9 @@
 
 import { useEffect } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+import { isletmeApi } from "./api";
+import { useBen } from "./useBen";
 
 /**
  * Bildirimden (menu ici ya da push bar) gelen ?focus={id} -> notu bul,
@@ -19,6 +22,32 @@ export function useFocusNot() {
   const pathname = usePathname();
   const focusId = searchParams.get("focus");
   const hatirlaticiAc = searchParams.get("hatirlatici") === "1";
+  const isletmeParam = searchParams.get("isletme");
+  const qc = useQueryClient();
+  const { data: ben } = useBen();
+
+  // Cok-defter: isletme param aktif defterden farkliysa sessizce o deftere gec.
+  // SA goruntuleme modunda atla (impersonation bozulmasin). Gecis sonrasi isletme===aktif -> tek gecis.
+  useEffect(() => {
+    if (!focusId || !isletmeParam || !ben) return;
+    if (ben.goruntulemeModu) return;
+    if (ben.aktifIsletmeId === isletmeParam) return;
+    // Uye olunan bir defter mi? Degilse sessizce vazgec (backend zaten reddeder).
+    const uyeMi = (ben.uyelikler ?? []).some((u) => u.isletmeId === isletmeParam);
+    if (!uyeMi) return;
+    let iptal = false;
+    isletmeApi
+      .aktifDegistir(isletmeParam)
+      .then((yeniBen) => {
+        if (iptal) return;
+        qc.setQueryData(["ben"], yeniBen);
+        qc.invalidateQueries(); // yeni defterin verisini taze cek; focus retry bulur
+      })
+      .catch(() => {});
+    return () => {
+      iptal = true;
+    };
+  }, [focusId, isletmeParam, ben, qc]);
 
   // ?focus={id} -> scroll + highlight (el bulunana kadar retry)
   useEffect(() => {
