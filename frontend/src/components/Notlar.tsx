@@ -1423,7 +1423,7 @@ export function NotKart({ not, klasorBadgeGoster = true, aramaTerimi = "" }: { n
                 </span>
               ) : (
                 <button
-                  onClick={() => not.tamamlandi ? toast.error("Tamamlananlar klasöründeki bir not düzenlenemez. Düzenlemek için önce notun tamamlandİ işaretini (tik) kaldİrİp notu Tamamlananlar klasöründen çİkarİn, ardİndan düzenleyebilirsiniz.") : setDuzenleAcik(true)}
+                  onClick={() => not.tamamlandi ? toast.error("Tamamlananlar klasöründeki bir not düzenlenemez. Düzenlemek için önce notun tamamlandı işaretini (tik) kaldırıp notu Tamamlananlar klasöründen çıkarın, ardından düzenleyebilirsiniz.") : setDuzenleAcik(true)}
                   aria-label="Düzenle"
                   className={cn(IKON_BUTON, "text-clay-500 dark:text-ink-200 hover:text-clay-900 dark:hover:text-ink-50 hover:bg-cream-200 dark:hover:bg-ink-800 active:bg-cream-300 dark:active:bg-ink-700")}
                 >
